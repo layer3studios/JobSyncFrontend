@@ -14,7 +14,7 @@ import { LogOut } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { EMPLOYER_ROUTES } from './routes';
-import { canInvite } from '../../../lib/team-permissions';
+import { canEditCompanySettings } from '../../../lib/team-permissions';
 import type { Role } from '../../../types/employer-team';
 
 interface EmployerNavUser {
@@ -104,7 +104,7 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, 'Dashboard')}
           {renderNavLink(EMPLOYER_ROUTES.JOBS, 'Jobs')}
-          {role && canInvite(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS_TEAM, 'Settings')}
+          {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS_TEAM, 'Settings')}
         </nav>
 
         <div style={{ flex: 1 }} />

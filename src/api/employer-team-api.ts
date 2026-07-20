@@ -7,7 +7,7 @@
 // typed error; app-level auth handling takes over, we never re-auth here).
 import { apiUrl } from '../lib/api-base';
 import type {
-  TeamMember, CompanyInvite, Role, InvitableRole,
+  TeamMember, CompanyInvite, Role, InvitableRole, InvitePreview, AcceptInviteResult,
 } from '../types/employer-team';
 
 export class EmployerTeamApiError extends Error {
@@ -15,12 +15,14 @@ export class EmployerTeamApiError extends Error {
   code: string | null;
   existingInviteId?: string;
   existingMemberId?: string;
+  /** Stale-invite status from a 410 preview body: 'expired' | 'revoked' | 'accepted'. */
+  inviteStatus?: string;
 
   constructor(
     status: number,
     code: string | null,
     message: string,
-    extra?: { existingInviteId?: string; existingMemberId?: string },
+    extra?: { existingInviteId?: string; existingMemberId?: string; inviteStatus?: string },
   ) {
     super(message);
     this.name = 'EmployerTeamApiError';
@@ -28,6 +30,7 @@ export class EmployerTeamApiError extends Error {
     this.code = code;
     this.existingInviteId = extra?.existingInviteId;
     this.existingMemberId = extra?.existingMemberId;
+    this.inviteStatus = extra?.inviteStatus;
   }
 }
 
@@ -53,6 +56,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       {
         existingInviteId: body.existingInviteId as string | undefined,
         existingMemberId: body.existingMemberId as string | undefined,
+        inviteStatus: body.status as string | undefined,
       },
     );
   }
@@ -147,9 +151,37 @@ export async function transferFounder(toMemberId: string): Promise<{ fromMemberI
   );
 }
 
-export async function acceptInvite(token: string): Promise<{ member: TeamMember; redirectUrl: string }> {
-  return request<{ member: TeamMember; redirectUrl: string }>(
-    '/employer/team/invites/accept',
-    { method: 'POST', body: JSON.stringify({ token }) },
+/**
+ * Unauthenticated invite preview. 404 → INVITE_NOT_FOUND; 410 → the stale-status code
+ * (INVITE_EXPIRED / INVITE_REVOKED / INVITE_ALREADY_ACCEPTED) with `status` on the error.
+ */
+export async function previewInvite(token: string): Promise<InvitePreview> {
+  return request<InvitePreview>(`/public/invites/${encodeURIComponent(token)}`);
+}
+
+/**
+ * Accept an invite. A 201 resolves to { alreadyMember: false }; a 409 ALREADY_MEMBER is
+ * NOT an error here — the backend still marked the invite accepted and returns the member,
+ * so we resolve it with alreadyMember:true (D_impl_ui5_4). All other non-2xx throw.
+ */
+export async function acceptInvite(token: string): Promise<AcceptInviteResult> {
+  const response = await fetch(apiUrl('/employer/team/invites/accept'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (response.ok) {
+    return { member: body.member as TeamMember, redirectUrl: (body.redirectUrl as string) ?? '/employer', alreadyMember: false };
+  }
+  if (response.status === 409 && body.code === 'ALREADY_MEMBER') {
+    return { member: body.member as TeamMember, redirectUrl: (body.redirectUrl as string) ?? '/employer', alreadyMember: true };
+  }
+  throw new EmployerTeamApiError(
+    response.status,
+    (body.code as string | null) ?? statusToCode(response.status),
+    (body.error as string) || `Request failed (${response.status})`,
+    { inviteStatus: (body.status as string) ?? undefined },
   );
 }

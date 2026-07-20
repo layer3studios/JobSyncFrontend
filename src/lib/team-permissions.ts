@@ -5,6 +5,9 @@
 import type { Role } from '../types/employer-team';
 
 const isOwnerOrHigher = (role: Role): boolean => role === 'founder' || role === 'owner';
+// Founder/Owner/Member act on applicants + postings without per-action gating;
+// Interviewer is the only gated role (view + notes, plus opt-in move/archive).
+const isMemberOrHigher = (role: Role): boolean => role !== 'interviewer';
 
 /** Frontend visibility only — backend enforces truth. Founder/Owner may invite. */
 export function canInvite(currentRole: Role): boolean {
@@ -37,4 +40,53 @@ export function canChangeRole(currentRole: Role, targetRole: Role, isSelf: boole
  */
 export function canTransferFounder(currentRole: Role, targetRole: Role): boolean {
   return currentRole === 'founder' && targetRole === 'owner';
+}
+
+/**
+ * Frontend visibility only — backend enforces truth. Founder/Owner/Member may move
+ * applicants; an Interviewer only when granted canMoveApplicants.
+ */
+export function canMoveApplicant(currentRole: Role, canMoveApplicants: boolean): boolean {
+  return isMemberOrHigher(currentRole) || canMoveApplicants;
+}
+
+/**
+ * Frontend visibility only — backend enforces truth. Founder/Owner/Member may
+ * archive applicants; an Interviewer only when granted canArchiveApplicants.
+ */
+export function canArchiveApplicant(currentRole: Role, canArchiveApplicants: boolean): boolean {
+  return isMemberOrHigher(currentRole) || canArchiveApplicants;
+}
+
+/**
+ * Frontend visibility only — backend enforces truth. Readable alias of
+ * canArchiveApplicant for the Ranked bulk-archive surface.
+ */
+export function canBulkArchive(currentRole: Role, canArchiveApplicants: boolean): boolean {
+  return canArchiveApplicant(currentRole, canArchiveApplicants);
+}
+
+/** Frontend visibility only — backend enforces truth. Founder/Owner/Member may create postings. */
+export function canCreatePosting(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Frontend visibility only — backend enforces truth. Founder/Owner/Member may edit postings. */
+export function canEditPosting(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Frontend visibility only — backend enforces truth. Founder/Owner/Member may close/reopen postings. */
+export function canClosePosting(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Frontend visibility only — backend enforces truth. Founder/Owner/Member may requeue AI scoring. */
+export function canRescoreApplicant(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Frontend visibility only — backend enforces truth. Only Founder/Owner may edit company settings. */
+export function canEditCompanySettings(currentRole: Role): boolean {
+  return isOwnerOrHigher(currentRole);
 }

@@ -46,3 +46,25 @@ export interface TeamPageData {
   invites: CompanyInvite[];
   currentMember: TeamMember | null;
 }
+
+// Sanitized public preview from GET /api/public/invites/:token. Never carries the
+// token or the inviter's id — only invitedByName (Chunk 2 contract).
+export interface InvitePreview {
+  companyName: string;
+  companyId: string;
+  role: Role;
+  canMoveApplicants: boolean;
+  canArchiveApplicants: boolean;
+  expiresAt: string;
+  status: 'pending';
+  invitedByName: string | null;
+}
+
+// Result of POST /api/employer/team/invites/accept. `alreadyMember` is true when the
+// backend answered 409 ALREADY_MEMBER — still a success from the UI's point of view
+// (the invite was marked accepted), so we redirect rather than error (D_impl_ui5_4).
+export interface AcceptInviteResult {
+  member: TeamMember;
+  redirectUrl: string;
+  alreadyMember: boolean;
+}

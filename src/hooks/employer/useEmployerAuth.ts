@@ -10,8 +10,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { googleLogout } from '@react-oauth/google';
+import { listMembers } from '../../api/employer-team-api';
 import type {
-  EmployerUser, EmployerCompany, EmployerLoginError,
+  EmployerUser, EmployerCompany, EmployerLoginError, EmployerViewerRole,
 } from '../../context/employer/employer-context-types';
 
 const GATED_FALLBACK = 'Employer signup is not yet open.';
@@ -28,6 +29,12 @@ export function useEmployerAuth(seed?: Seed) {
   const [isLoading, setIsLoading] = useState(!isSeeded);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loginError, setLoginError] = useState<EmployerLoginError | null>(null);
+  // Viewer role + Interviewer flags, resolved from the roster once a company exists.
+  // Defaults are permissive (role null, flags true) so an unresolved/failed lookup
+  // never over-restricts — the backend still enforces truth.
+  const [viewerRole, setViewerRole] = useState<EmployerViewerRole | null>(null);
+  const [viewerCanMoveApplicants, setViewerCanMove] = useState(true);
+  const [viewerCanArchiveApplicants, setViewerCanArchive] = useState(true);
 
   // Re-fetch /me and set employerUser + company together. The /me payload (3A)
   // carries both, so one round trip keeps them in sync (C10). A non-ok response
@@ -113,6 +120,34 @@ export function useEmployerAuth(seed?: Seed) {
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  // Resolve the viewer's role + Interviewer flags from the roster. The /me payload
+  // carries neither, and the roster endpoint is company-scoped, so this only runs once
+  // a company exists. A guest, a company-less user, or any failure falls back to the
+  // permissive defaults (role null, both flags true).
+  const employerUserId = employerUser?.id ?? null;
+  const companyId = company?.id ?? null;
+  useEffect(() => {
+    if (!employerUserId || !companyId) {
+      setViewerRole(null); setViewerCanMove(true); setViewerCanArchive(true);
+      return undefined;
+    }
+    let active = true;
+    listMembers()
+      .then((members) => {
+        if (!active) return;
+        const me = members.find((member) => member.employerUserId === employerUserId);
+        if (!me) { setViewerRole(null); setViewerCanMove(true); setViewerCanArchive(true); return; }
+        const isInterviewer = me.role === 'interviewer';
+        setViewerRole(me.role);
+        setViewerCanMove(isInterviewer ? me.canMoveApplicants : true);
+        setViewerCanArchive(isInterviewer ? me.canArchiveApplicants : true);
+      })
+      .catch(() => {
+        if (active) { setViewerRole(null); setViewerCanMove(true); setViewerCanArchive(true); }
+      });
+    return () => { active = false; };
+  }, [employerUserId, companyId]);
+
   return {
     employerUser,
     setEmployerUser,
@@ -120,6 +155,9 @@ export function useEmployerAuth(seed?: Seed) {
     isLoading,
     isAuthenticating,
     loginError,
+    viewerRole,
+    viewerCanMoveApplicants,
+    viewerCanArchiveApplicants,
     login,
     logout,
     clearLoginError,

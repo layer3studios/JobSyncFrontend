@@ -14,6 +14,8 @@ import type { TabItem } from '@/components/ui';
 import JobsTable from '@/components/employer/jobs/JobsTable';
 import { listEmployerPostings, EmployerJobsApiError } from '@/api/employer-jobs-api';
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { canCreatePosting } from '@/lib/team-permissions';
 
 type StatusFilter = 'all' | PostingStatus;
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -31,6 +33,9 @@ export default function JobsList() {
   const [postings, setPostings] = useState<Posting[] | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [lastError, setLastError] = useState<string | null>(null);
+  // UX gate — Interviewers cannot create postings. Backend still enforces. Unknown → allow.
+  const { viewerRole } = useEmployer();
+  const allowCreate = viewerRole ? canCreatePosting(viewerRole) : true;
 
   const load = useCallback(async (status: StatusFilter) => {
     setLoadState('loading');
@@ -65,11 +70,11 @@ export default function JobsList() {
           icon={<Briefcase size={28} aria-hidden />}
           title="No postings yet"
           description="Create your first posting and share the apply URL with candidates."
-          action={(
+          action={allowCreate ? (
             <Link href="/employer/jobs/new">
               <Button variant="primary">Create your first posting</Button>
             </Link>
-          )}
+          ) : undefined}
         />
       ) : (
         <EmptyState
@@ -86,11 +91,11 @@ export default function JobsList() {
       <PageHeader
         label="EMPLOYER"
         title="Postings"
-        actions={(
+        actions={allowCreate ? (
           <Link href="/employer/jobs/new">
             <Button variant="primary">+ New posting</Button>
           </Link>
-        )}
+        ) : undefined}
       />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flexGrow: 1, minWidth: 200 }}>

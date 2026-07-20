@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   listMembers, listInvites, createInvite, revokeInvite, resendInvite,
-  patchMember, removeMember, transferFounder, EmployerTeamApiError,
+  patchMember, removeMember, transferFounder, previewInvite, acceptInvite, EmployerTeamApiError,
 } from '@/api/employer-team-api';
 
 function mockFetch(status: number, body: unknown) {
@@ -94,5 +94,58 @@ describe('employer-team-api', () => {
     await expect(transferFounder('m1')).rejects.toMatchObject({ code: 'CANNOT_TRANSFER_TO_SELF' });
     mockFetch(400, { code: 'TARGET_NOT_OWNER', error: 'no' });
     await expect(transferFounder('m3')).rejects.toMatchObject({ code: 'TARGET_NOT_OWNER' });
+  });
+});
+
+describe('previewInvite', () => {
+  beforeEach(() => vi.unstubAllGlobals());
+
+  it('resolves the sanitized preview on 200', async () => {
+    mockFetch(200, { companyName: 'Acme', role: 'member', status: 'pending' });
+    const preview = await previewInvite('tok');
+    expect(preview.companyName).toBe('Acme');
+  });
+
+  it('throws INVITE_NOT_FOUND on 404', async () => {
+    mockFetch(404, { code: 'INVITE_NOT_FOUND', error: 'nope' });
+    await expect(previewInvite('tok')).rejects.toMatchObject({ code: 'INVITE_NOT_FOUND', status: 404 });
+  });
+
+  it('throws with the stale status on 410', async () => {
+    mockFetch(410, { code: 'INVITE_EXPIRED', error: 'gone', status: 'expired' });
+    const err = await previewInvite('tok').catch((e) => e);
+    expect(err).toBeInstanceOf(EmployerTeamApiError);
+    expect(err.status).toBe(410);
+    expect(err.inviteStatus).toBe('expired');
+  });
+});
+
+describe('acceptInvite', () => {
+  beforeEach(() => vi.unstubAllGlobals());
+
+  it('resolves { member, redirectUrl, alreadyMember:false } on 201', async () => {
+    mockFetch(201, { member: { id: 'm1' }, redirectUrl: '/employer' });
+    const result = await acceptInvite('tok');
+    expect(result).toMatchObject({ redirectUrl: '/employer', alreadyMember: false });
+    expect(result.member.id).toBe('m1');
+  });
+
+  it('treats 409 ALREADY_MEMBER as success with alreadyMember:true', async () => {
+    mockFetch(409, { code: 'ALREADY_MEMBER', member: { id: 'm2' }, redirectUrl: '/employer' });
+    const result = await acceptInvite('tok');
+    expect(result.alreadyMember).toBe(true);
+    expect(result.member.id).toBe('m2');
+  });
+
+  it('throws 403 INVITE_EMAIL_MISMATCH', async () => {
+    mockFetch(403, { code: 'INVITE_EMAIL_MISMATCH', error: 'wrong email' });
+    await expect(acceptInvite('tok')).rejects.toMatchObject({ code: 'INVITE_EMAIL_MISMATCH', status: 403 });
+  });
+
+  it('throws on each 410 stale state', async () => {
+    for (const code of ['INVITE_EXPIRED', 'INVITE_REVOKED', 'INVITE_ALREADY_ACCEPTED']) {
+      mockFetch(410, { code, error: 'gone' });
+      await expect(acceptInvite('tok')).rejects.toMatchObject({ code, status: 410 });
+    }
   });
 });

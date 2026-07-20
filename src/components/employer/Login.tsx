@@ -12,6 +12,7 @@ import AuthLayout from '@/components/layouts/AuthLayout';
 import { Button, Spinner, Alert, Stack } from '@/components/ui';
 import { TYPE } from '@/theme/tokens';
 import { useEmployer } from '@/context/employer/EmployerContext';
+import { resolveSafeNextPath } from '@/lib/safe-next-path';
 
 const GOOGLE_ERROR_MESSAGE = 'Google sign-in failed. Please try again.';
 const NO_CREDENTIAL_MESSAGE = 'No sign-in credential was returned. Please try again.';
@@ -20,8 +21,11 @@ export default function EmployerLogin() {
   const { employerUser, isAuthenticating, loginError, login, clearLoginError } = useEmployer();
   const router = useRouter();
   const [googleError, setGoogleError] = useState<string | null>(null);
-
-  const redirectTo = '/employer';
+  // Post-login destination honours a safe internal ?next= (D_impl_ui5_2) — e.g. an
+  // invite link that bounced through login. Read on mount from window.location to keep
+  // this a plain client route (no Suspense-bound useSearchParams). Defaults to /employer.
+  const [redirectTo, setRedirectTo] = useState('/employer');
+  useEffect(() => { setRedirectTo(resolveSafeNextPath(window.location.search)); }, []);
 
   // Redirect once a session exists (covers both fresh login and already-logged-in).
   useEffect(() => {

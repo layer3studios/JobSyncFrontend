@@ -11,7 +11,7 @@ import { Card, Badge } from '@/components/ui';
 import PipelineCard from '@/components/employer/jobs/PipelineCard';
 import type { Applicant, Stage } from '@/types/employer-applicants';
 
-export default function PipelineColumn({ stage, applicants }: { stage: Stage; applicants: Applicant[] }) {
+export default function PipelineColumn({ stage, applicants, canMove = true }: { stage: Stage; applicants: Applicant[]; canMove?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stageId: stage.id } });
 
   return (
@@ -33,7 +33,7 @@ export default function PipelineColumn({ stage, applicants }: { stage: Stage; ap
           strategy={verticalListSortingStrategy}
         >
           {applicants.map((applicant) => (
-            <PipelineCard key={applicant.application.id} applicant={applicant} />
+            <PipelineCard key={applicant.application.id} applicant={applicant} canMove={canMove} />
           ))}
           {applicants.length === 0 && (
             <div style={{ opacity: 0.5, textAlign: 'center', padding: 24, fontSize: '0.8125rem', color: 'var(--ink-muted)' }}>
