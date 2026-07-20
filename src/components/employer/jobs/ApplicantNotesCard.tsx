@@ -1,0 +1,163 @@
+'use client';
+// FILE: src/components/employer/jobs/ApplicantNotesCard.tsx
+// Employer notes on one applicant, at the bottom of the detail sidebar (C3/D11). Owns
+// its own list state and fetches on mount (D8) so the detail response stays lean.
+// Append-only: notes render newest first with the author snapshot + relative time, and
+// there is no edit or delete affordance because the API offers neither.
+//
+// On a successful save the returned note is prepended to the list (R5) — no refetch, no
+// toast; the note appearing IS the confirmation. On failure the textarea keeps its
+// content so a rejected note is never lost.
+
+import { useCallback, useEffect, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { Card, Stack, Button, Alert, Textarea, SkeletonCard } from '@/components/ui';
+import { listApplicantNotes, createApplicantNote, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
+import type { ApplicantNote } from '@/types/employer-applicants';
+import { formatRelativeTime } from './applicant-view-helpers';
+
+type LoadState = 'loading' | 'loaded' | 'error';
+
+// Mirrors the server cap (C7) so the counter and the disabled state agree with the API.
+const MAXIMUM_NOTE_LENGTH = 4000;
+// Warn before the hard stop rather than only at it — the user can still trim in time.
+const COUNTER_WARNING_LENGTH = 3800;
+const LOAD_ERROR_MESSAGE = 'Could not load notes.';
+const SAVE_ERROR_MESSAGE = 'Could not save this note.';
+
+const LABEL_STYLE = {
+  fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+  textTransform: 'uppercase' as const, color: 'var(--ink-faint)',
+};
+const BODY_STYLE = {
+  margin: 0, fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--ink-2)',
+  whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const,
+};
+const META_STYLE = { fontSize: '0.72rem', color: 'var(--ink-faint)' };
+const EMPTY_STYLE = { fontSize: '0.82rem', color: 'var(--ink-faint)' };
+const NOTE_STYLE = { paddingBottom: 12, borderBottom: '1px solid var(--border)' };
+
+/** Counter colour: neutral, then amber approaching the cap, then danger past it. */
+function counterColor(length: number): string {
+  if (length > MAXIMUM_NOTE_LENGTH) return 'var(--danger)';
+  if (length >= COUNTER_WARNING_LENGTH) return 'var(--warning)';
+  return 'var(--ink-faint)';
+}
+
+/** Who wrote it: the snapshot name, falling back to the snapshot email (D9). */
+function authorLabel(note: ApplicantNote): string {
+  return note.authorName?.trim() || note.authorEmail;
+}
+
+function NoteRow({ note, isLast }: { note: ApplicantNote; isLast: boolean }) {
+  return (
+    <div style={isLast ? undefined : NOTE_STYLE}>
+      <Stack gap={6}>
+        <p style={BODY_STYLE}>{note.body}</p>
+        <div style={META_STYLE}>
+          {authorLabel(note)} · {formatRelativeTime(note.createdAt)}
+        </div>
+      </Stack>
+    </div>
+  );
+}
+
+export default function ApplicantNotesCard({ applicationId }: { applicationId: string }) {
+  const [notes, setNotes] = useState<ApplicantNote[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [draft, setDraft] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoadState('loading');
+    try {
+      setNotes(await listApplicantNotes(applicationId));
+      setLoadState('loaded');
+    } catch {
+      setLoadState('error');
+    }
+  }, [applicationId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // The server trims before measuring (C7), so the counter and the gate measure the
+  // trimmed length too — otherwise trailing whitespace would read as over the cap.
+  const trimmedLength = draft.trim().length;
+  const canSave = trimmedLength > 0 && trimmedLength <= MAXIMUM_NOTE_LENGTH && !isSaving;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const created = await createApplicantNote(applicationId, { body: draft.trim() });
+      setNotes((current) => [created, ...current]); // confirmed append (R5) — server shape, not a guess
+      setDraft('');
+    } catch (error) {
+      // Keep the draft: the user's words are the one thing we must not drop (R5).
+      setSaveError(error instanceof EmployerApplicantsApiError ? error.message : SAVE_ERROR_MESSAGE);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [applicationId, canSave, draft]);
+
+  // Cmd/Ctrl+Enter submits; a bare Enter stays a newline (D10) — notes are multi-line.
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      void handleSave();
+    }
+  }
+
+  function renderList() {
+    if (loadState === 'loading') return <SkeletonCard lines={3} />;
+    if (loadState === 'error') {
+      return (
+        <Alert type="error">
+          <Stack gap={12} dir="row" align="center" justify="space-between" wrap>
+            <span>{LOAD_ERROR_MESSAGE}</span>
+            <Button variant="ghost" size="sm" onClick={() => void load()}>Retry</Button>
+          </Stack>
+        </Alert>
+      );
+    }
+    // Muted line, not an EmptyState CTA — the composer below already is the call to action (D9).
+    if (notes.length === 0) return <div style={EMPTY_STYLE}>No notes yet</div>;
+    return (
+      <Stack gap={12}>
+        {notes.map((note, index) => (
+          <NoteRow key={note.id} note={note} isLast={index === notes.length - 1} />
+        ))}
+      </Stack>
+    );
+  }
+
+  return (
+    <Card>
+      <Stack gap={12}>
+        <div style={LABEL_STYLE}>Notes</div>
+        {renderList()}
+        <Stack gap={8}>
+          <Textarea
+            label="Add a note"
+            rows={3}
+            value={draft}
+            disabled={isSaving}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          {saveError && <Alert type="error">{saveError}</Alert>}
+          <Stack gap={12} dir="row" align="center" justify="space-between" wrap>
+            <span style={{ ...META_STYLE, color: counterColor(trimmedLength) }}>
+              {trimmedLength} / {MAXIMUM_NOTE_LENGTH}
+            </span>
+            <Button size="sm" disabled={!canSave} onClick={() => void handleSave()}>
+              {isSaving ? 'Saving…' : 'Save Note'}
+            </Button>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Card>
+  );
+}
