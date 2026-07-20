@@ -14,6 +14,8 @@ import { LogOut } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { EMPLOYER_ROUTES } from './routes';
+import { canInvite } from '../../../lib/team-permissions';
+import type { Role } from '../../../types/employer-team';
 
 interface EmployerNavUser {
   name: string;
@@ -25,10 +27,12 @@ interface Props {
   isCompact: boolean;
   currentUser: EmployerNavUser | null;
   companyName: string | null;
+  /** The viewer's company role. Gates the Settings link (Founder/Owner only). */
+  role?: Role | null;
   onLogout: () => void;
 }
 
-export default function EmployerTopNav({ isCompact, currentUser, companyName, onLogout }: Props) {
+export default function EmployerTopNav({ isCompact, currentUser, companyName, role, onLogout }: Props) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -100,6 +104,7 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, on
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, 'Dashboard')}
           {renderNavLink(EMPLOYER_ROUTES.JOBS, 'Jobs')}
+          {role && canInvite(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS_TEAM, 'Settings')}
         </nav>
 
         <div style={{ flex: 1 }} />

@@ -7,6 +7,7 @@
 export const EMPLOYER_ROUTES = {
   DASHBOARD: '/employer',
   JOBS: '/employer/jobs',
+  SETTINGS_TEAM: '/employer/settings/team',
 } as const;
 
 export const ADMIN_ROUTES = {
