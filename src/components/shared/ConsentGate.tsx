@@ -73,6 +73,8 @@ export default function ConsentGate({
   if (state === 'granted') return <>{children}</>;
 
   return (
+    // data-ph-mask: consent form carries the notice + user's data-processing choice.
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Card variant="raised">
       <Stack gap={14}>
         <div>
@@ -110,5 +112,6 @@ export default function ConsentGate({
         </div>
       </Stack>
     </Card>
+    </div>
   );
 }

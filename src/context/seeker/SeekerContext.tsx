@@ -12,6 +12,7 @@ import { useSeekerAuth } from './useSeekerAuth';
 import { useApplied } from './useApplied';
 import { useDismissed } from './useDismissed';
 import { useSkillsAndGoal } from './useSkillsAndGoal';
+import { useAnalyticsIdentity } from '../../hooks/useAnalyticsIdentity';
 import type { UserCtx, AppUser } from './seeker-context-types';
 
 // Re-export for back-compat
@@ -78,6 +79,16 @@ export function SeekerProvider(
 
   const todayCount = useMemo(() => getTodayCount(appliedJobs), [appliedJobs]);
   const streak = useMemo(() => getStreak(appliedJobs), [appliedJobs]);
+
+  // Analytics identity — consent-gated + no-op until PostHog inits (Chunk 1 §7). Only
+  // non-sensitive, already-known fields; distinct_id is the stable public slug.
+  const analyticsIdentity = useMemo(
+    () => (currentUser
+      ? { distinctId: currentUser.slug, properties: { role: 'seeker', email: currentUser.email, name: currentUser.name, isSeeker: true } }
+      : null),
+    [currentUser],
+  );
+  useAnalyticsIdentity(analyticsIdentity);
 
   const logout = useCallback(async () => {
     await rawLogout();

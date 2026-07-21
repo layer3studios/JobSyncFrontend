@@ -13,6 +13,8 @@ import { googleLogout } from '@react-oauth/google';
 import type {
   EmployerUser, EmployerCompany, EmployerLoginError,
 } from '../../context/employer/employer-context-types';
+import { trackEvent } from '../../lib/analytics-events';
+import { isFirstSeen } from '../../lib/first-seen';
 
 const GATED_FALLBACK = 'Employer signup is not yet open.';
 const INVALID_MESSAGE = 'We could not verify your Google account. Please try again.';
@@ -78,6 +80,10 @@ export function useEmployerAuth(seed?: Seed) {
         // /google only returns employerUser; refresh pulls company from /me so a
         // returning, already-onboarded user lands on the dashboard, not onboarding.
         setEmployerUser(data.employerUser ?? null);
+        // No isNewUser flag (D2) — infer signup vs login from first-seen per browser.
+        const employerId = data.employerUser?.id ?? '';
+        const isSignup = isFirstSeen('employer', employerId);
+        trackEvent(isSignup ? 'employer_signup_completed' : 'employer_login_completed', { method: 'google' });
         await refreshEmployerSession();
         return;
       }

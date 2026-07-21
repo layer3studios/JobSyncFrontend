@@ -4,6 +4,11 @@
 
 import { useState, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { trackEvent } from '../../../lib/analytics-events';
+
+type DiscoveryFilter = 'company' | 'role' | 'exp' | 'wp' | 'date';
+const emitRemoved = (filterType: DiscoveryFilter) =>
+  trackEvent('jobs_filter_applied', { filterType, action: 'removed' });
 
 export function useDashboardFilters() {
   const sp = useSearchParams();
@@ -30,11 +35,11 @@ export function useDashboardFilters() {
   const [sortByMatch, setSortByMatch] = useState(sp.get('sort') === 'match');
 
   const activeFilters = [
-    sel ? { label: sel, clear: () => setSp(p => { p.delete('company'); }) } : null,
-    roleCategoryFilter !== 'all' ? { label: roleCategoryFilter, clear: () => { setRoleCategoryFilter('all'); setSp(p => { p.delete('role'); }); } } : null,
-    experienceBandFilter !== 'all' ? { label: experienceBandFilter, clear: () => { setExperienceBandFilter('all'); setSp(p => { p.delete('exp'); }); } } : null,
-    workplaceFilter !== 'all' ? { label: workplaceFilter, clear: () => { setWorkplaceFilter('all'); setSp(p => { p.delete('wp'); }); } } : null,
-    dateFilter !== 'all' ? { label: dateFilter, clear: () => { setDateFilter('all'); setSp(p => { p.delete('date'); }); } } : null,
+    sel ? { label: sel, clear: () => { emitRemoved('company'); setSp(p => { p.delete('company'); }); } } : null,
+    roleCategoryFilter !== 'all' ? { label: roleCategoryFilter, clear: () => { emitRemoved('role'); setRoleCategoryFilter('all'); setSp(p => { p.delete('role'); }); } } : null,
+    experienceBandFilter !== 'all' ? { label: experienceBandFilter, clear: () => { emitRemoved('exp'); setExperienceBandFilter('all'); setSp(p => { p.delete('exp'); }); } } : null,
+    workplaceFilter !== 'all' ? { label: workplaceFilter, clear: () => { emitRemoved('wp'); setWorkplaceFilter('all'); setSp(p => { p.delete('wp'); }); } } : null,
+    dateFilter !== 'all' ? { label: dateFilter, clear: () => { emitRemoved('date'); setDateFilter('all'); setSp(p => { p.delete('date'); }); } } : null,
   ].filter(Boolean) as { label: string; clear: () => void }[];
 
   const clearAll = () => {

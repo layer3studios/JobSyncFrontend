@@ -26,6 +26,8 @@ import RankedFilterBar from '@/components/employer/jobs/RankedFilterBar';
 import ScoreCell from '@/components/employer/jobs/RankedScoreCell';
 import BulkArchiveBar from '@/components/employer/jobs/BulkArchiveBar';
 import BulkArchiveDialog from '@/components/employer/jobs/BulkArchiveDialog';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 const LOAD_ERROR_MESSAGE = 'Could not load applicants.';
@@ -47,6 +49,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
+  const { company } = useEmployer();
 
   const load = useCallback(async (activeSort: ApplicantSort) => {
     setLoadState('loading');
@@ -90,6 +93,9 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     try {
       setIsSubmitting(true);
       const result = await bulkArchiveApplicants({ applicationIds: [...selectedIds], reasonId, note });
+      result.succeeded.forEach(({ id }) => trackEvent('applicant_archived', {
+        applicationId: id, postingId, companyId: company?.id ?? undefined, archiveReason: reasonId, isBulk: true,
+      }));
       const { variant, message, nextSelection } = summarizeBulkResult(result, selectedIds);
       showToast(variant, message);
       setSelectedIds(nextSelection);

@@ -5,9 +5,11 @@
 import Link from 'next/link';
 import { BRAND, COPY } from '../../theme/brand';
 import BrandLogo from '../BrandLogo';
+import { useAnalyticsConsent } from '../../hooks/useAnalyticsConsent';
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const { openPreferences } = useAnalyticsConsent();
 
   return (
     <footer style={{
@@ -64,9 +66,26 @@ export default function Footer() {
           <p style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', lineHeight: 1.6, maxWidth: 600 }}>
             {COPY.footer.disclaimer}
           </p>
-          <p style={{ fontSize: '0.75rem', color: 'var(--ink-faint)' }}>
-            © {year} {BRAND.fullName}
-          </p>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={openPreferences}
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--ink-muted)',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Cookie preferences
+            </button>
+            <p style={{ fontSize: '0.75rem', color: 'var(--ink-faint)' }}>
+              © {year} {BRAND.fullName}
+            </p>
+          </div>
         </div>
       </div>
     </footer>
