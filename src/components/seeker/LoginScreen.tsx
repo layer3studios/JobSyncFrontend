@@ -10,6 +10,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useSeeker } from '../../context/seeker/SeekerContext';
 import BrandLogo from '../BrandLogo';
 import { LOGIN_BENEFITS } from './login-benefits';
+import { trackEvent } from '../../lib/analytics-events';
+import { getFromRoute } from '../../lib/from-route';
 
 export default function LoginScreen() {
   const { login } = useSeeker();
@@ -23,9 +25,8 @@ export default function LoginScreen() {
     window.addEventListener('resize', fn);
     return () => window.removeEventListener('resize', fn);
   }, []);
-
+  useEffect(() => { trackEvent('seeker_signup_started', { fromRoute: getFromRoute() }); }, []); // signup entry point
   const isMobile = vw < 640;
-
 
   return (
     <div style={{

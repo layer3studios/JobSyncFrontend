@@ -6,6 +6,9 @@
 // When omitted, we fetch on mount exactly as the original Vite app did.
 import { useState, useEffect, useCallback } from 'react';
 import type { AppUser } from './seeker-context-types';
+import { trackEvent } from '../../lib/analytics-events';
+import { isFirstSeen } from '../../lib/first-seen';
+import { getFromRoute } from '../../lib/from-route';
 
 export function useSeekerAuth(initialUser?: AppUser | null) {
   const isSeeded = initialUser !== undefined;
@@ -33,9 +36,13 @@ export function useSeekerAuth(initialUser?: AppUser | null) {
     if (!r.ok) throw new Error('Google login failed');
     const { user } = await r.json();
     setCurrentUser(user);
+    // No isNewUser flag in the payload (D1) — infer signup vs login from first-seen.
+    const isSignup = isFirstSeen('seeker', user?.slug ?? '');
+    trackEvent(isSignup ? 'seeker_signup_completed' : 'seeker_login_completed', { method: 'google' });
   }, []);
 
   const rawLogout = useCallback(async () => {
+    trackEvent('seeker_logged_out', { fromRoute: getFromRoute() });
     await fetch('/api/seeker/auth/logout', { method: 'POST', credentials: 'include' });
     setCurrentUser(null);
   }, []);

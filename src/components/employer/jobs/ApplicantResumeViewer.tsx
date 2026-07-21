@@ -70,6 +70,8 @@ export default function ApplicantResumeViewer({
   const size = formatBytes(resumeMeta.sizeBytes);
 
   return (
+    // data-ph-mask: resume filename + embedded document are personal data — masked in replay.
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Card padding="sm" style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%', minHeight: 0 }}>
         <Stack gap={8} dir="row" align="center" justify="space-between" wrap>
@@ -104,5 +106,6 @@ export default function ApplicantResumeViewer({
         )}
       </div>
     </Card>
+    </div>
   );
 }

@@ -98,6 +98,8 @@ export default function ApplicantContactCard({ contact }: { contact: ApplicantCo
   if (!email && !phone && !linkedin && !github && !portfolio && !location) return null;
 
   return (
+    // data-ph-mask: applicant contact PII masked in session replay (defence-in-depth).
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Card>
       <Stack gap={10}>
         <div style={LABEL_STYLE}>Contact</div>
@@ -133,5 +135,6 @@ export default function ApplicantContactCard({ contact }: { contact: ApplicantCo
         )}
       </Stack>
     </Card>
+    </div>
   );
 }

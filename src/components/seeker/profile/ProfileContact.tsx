@@ -45,6 +45,8 @@ export default function ProfileContact({ profile, onSaved }: {
   const location = [profile.currentLocation?.city, profile.currentLocation?.state].filter(Boolean).join(', ');
 
   return (
+    // data-ph-mask: seeker's own name/email/phone/summary — masked in replay.
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Card>
       <Stack gap={12}>
         <Stack gap={8} dir="row" align="center" justify="space-between">
@@ -81,5 +83,6 @@ export default function ProfileContact({ profile, onSaved }: {
         )}
       </Stack>
     </Card>
+    </div>
   );
 }
