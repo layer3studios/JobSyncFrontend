@@ -134,6 +134,8 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
   }
 
   return (
+    // data-ph-mask: free-text notes may contain personal data — masked in replay.
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Card>
       <Stack gap={12}>
         <div style={LABEL_STYLE}>Notes</div>
@@ -159,5 +161,6 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
         </Stack>
       </Stack>
     </Card>
+    </div>
   );
 }
