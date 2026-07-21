@@ -10,3 +10,7 @@
 // backend is the single source of truth for which token authorizes which route.
 export const SEEKER_COOKIE_NAME = 'tj_token';
 export const EMPLOYER_COOKIE_NAME = 'jm_employer_token';
+// Admin audience (feat/admin-identity). httpOnly, backend-set (8h TTL). Documented
+// here only — the client never reads or parses it; admin auth state comes from
+// GET /api/admin/auth/me.
+export const ADMIN_COOKIE_NAME = 'jm_admin_token';

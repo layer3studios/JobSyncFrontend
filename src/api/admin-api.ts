@@ -6,6 +6,7 @@
 // Paths route through API_BASE (C10); real URL is unchanged from the Vite app.
 
 import { apiUrl } from '../lib/api-base';
+import type { AdminIdentity } from '../context/admin/admin-context-types';
 
 export class AdminApiError extends Error {
   status: number;
@@ -75,4 +76,43 @@ export function removeWhitelistEntry(email: string): Promise<{ deleted: true }> 
   return request(`/admin/employer-access/whitelist/${encodeURIComponent(email)}`, {
     method: 'DELETE',
   });
+}
+
+// ─── Admin auth (jm_admin_token) ──────────────────────────────────────────────
+// These endpoints return a { admin } envelope (not { data }), so they use their own
+// fetch logic. All send credentials:'include' so the browser attaches jm_admin_token.
+
+/** POST /admin/auth/google → the signed-in admin. Throws AdminApiError on non-2xx. */
+export async function loginAdmin(idToken: string): Promise<AdminIdentity> {
+  const response = await fetch(apiUrl('/admin/auth/google'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new AdminApiError(response.status, body?.code ?? null, body?.error || `Request failed (${response.status})`);
+  }
+  return body.admin as AdminIdentity;
+}
+
+/** GET /admin/auth/me → the admin, or null when there is no valid session (401). */
+export async function fetchAdminMe(): Promise<AdminIdentity | null> {
+  const response = await fetch(apiUrl('/admin/auth/me'), { credentials: 'include' });
+  if (response.status === 401) return null;
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new AdminApiError(response.status, body?.code ?? null, body?.error || `Request failed (${response.status})`);
+  }
+  return body.admin as AdminIdentity;
+}
+
+/** POST /admin/auth/logout. Best-effort — a non-2xx (already-expired cookie) is ignored. */
+export async function logoutAdmin(): Promise<void> {
+  try {
+    await fetch(apiUrl('/admin/auth/logout'), { method: 'POST', credentials: 'include' });
+  } catch {
+    // Network error on logout is non-fatal; the caller clears local state regardless.
+  }
 }
