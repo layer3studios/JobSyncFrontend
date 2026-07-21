@@ -32,12 +32,22 @@ export interface EmployerCompany {
   createdAt: string;
 }
 
+// The four-value company role enum. Kept as a string union here to avoid a cross-import
+// into src/types; identical to Role in src/types/employer-team.
+export type EmployerViewerRole = 'founder' | 'owner' | 'member' | 'interviewer';
+
 export interface EmployerCtx {
   employerUser: EmployerUser | null;
   company: EmployerCompany | null;     // null until onboarding completes (Step 3B)
   isLoading: boolean;          // initial /me check in flight
   isAuthenticating: boolean;   // login POST in flight
   loginError: EmployerLoginError | null;
+  // Viewer's company role + Interviewer permission flags, resolved from the roster
+  // (the /me payload does not carry role). Non-Interviewer viewers report both flags
+  // true (the flags are meaningless for them). null role = unresolved / guest.
+  viewerRole: EmployerViewerRole | null;
+  viewerCanMoveApplicants: boolean;
+  viewerCanArchiveApplicants: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
   clearLoginError: () => void;

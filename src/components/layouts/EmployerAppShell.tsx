@@ -13,7 +13,9 @@ import EmployerTopNav from './parts/EmployerTopNav';
 const COMPACT_BREAKPOINT_WIDTH = 1024;
 
 export default function EmployerAppShell({ children }: { children: ReactNode }) {
-  const { employerUser, company, logout } = useEmployer();
+  // viewerRole is resolved centrally in EmployerContext (from the roster); the shell
+  // just forwards it to gate the Settings nav link (Chunk 4).
+  const { employerUser, company, viewerRole, logout } = useEmployer();
   const viewport = useViewport();
   const isCompact = viewport.w < COMPACT_BREAKPOINT_WIDTH;
 
@@ -39,6 +41,7 @@ export default function EmployerAppShell({ children }: { children: ReactNode }) 
         isCompact={isCompact}
         currentUser={currentUser}
         companyName={company?.name ?? null}
+        role={viewerRole}
         onLogout={logout}
       />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Card, Button, Badge, Stack, useToast } from '@/components/ui';
 import { TYPE } from '@/theme/tokens';
 import { useEmployer } from '@/context/employer/EmployerContext';
+import { canEditPosting, canClosePosting } from '@/lib/team-permissions';
 import PostingForm from '@/components/employer/jobs/PostingForm';
 import PostingConfirmDialog from '@/components/employer/jobs/PostingConfirmDialog';
 import type { ConfirmAction } from '@/components/employer/jobs/PostingConfirmDialog';
@@ -41,8 +42,11 @@ export default function DetailSettings({ posting, onReload }: {
   posting: Posting;
   onReload: () => Promise<void>;
 }) {
-  const { company } = useEmployer();
+  const { company, viewerRole } = useEmployer();
   const { showToast } = useToast();
+  // UX gates — Interviewers cannot edit or close postings. Backend still enforces.
+  const allowEdit = viewerRole ? canEditPosting(viewerRole) : true;
+  const allowClose = viewerRole ? canClosePosting(viewerRole) : true;
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [isMutating, setIsMutating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<ConfirmAction | null>(null);
@@ -141,11 +145,11 @@ export default function DetailSettings({ posting, onReload }: {
         </div>
 
         <Stack gap={8} dir="row" wrap>
-          <Button onClick={() => setMode('edit')}>Edit</Button>
-          {(posting.status === 'draft' || posting.status === 'active') && (
+          {allowEdit && <Button onClick={() => setMode('edit')}>Edit</Button>}
+          {allowClose && (posting.status === 'draft' || posting.status === 'active') && (
             <Button variant="danger" loading={isMutating} onClick={() => setConfirmOpen('close')}>Close posting</Button>
           )}
-          {posting.status === 'closed' && (
+          {allowClose && posting.status === 'closed' && (
             <Button variant="secondary" loading={isMutating} onClick={() => setConfirmOpen('reopen')}>Reopen posting</Button>
           )}
         </Stack>

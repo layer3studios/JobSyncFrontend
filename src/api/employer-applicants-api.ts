@@ -22,6 +22,16 @@ export class EmployerApplicantsApiError extends Error {
   }
 }
 
+// Friendly copy for role-permission 403s the UI didn't pre-gate (Chunk 5, item 17).
+// Normalised here in the shared wrapper — no separate interceptor — so every surface
+// that surfaces error.message shows the same explanation instead of a raw backend code.
+export const ROLE_FORBIDDEN_MESSAGE = "You don't have permission to do that.";
+
+function isRolePermissionError(status: number, code: string | null): boolean {
+  if (status !== 403) return false;
+  return Boolean(code && (code.startsWith('ROLE_') || code.includes('FORBIDDEN')));
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), {
     credentials: 'include',
@@ -30,11 +40,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new EmployerApplicantsApiError(
-      response.status,
-      body?.code ?? null,
-      body?.error || `Request failed (${response.status})`,
-    );
+    const code = body?.code ?? null;
+    const message = isRolePermissionError(response.status, code)
+      ? ROLE_FORBIDDEN_MESSAGE
+      : body?.error || `Request failed (${response.status})`;
+    throw new EmployerApplicantsApiError(response.status, code, message);
   }
   return body as T;
 }

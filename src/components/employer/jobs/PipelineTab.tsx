@@ -18,6 +18,8 @@ import PipelineCard from '@/components/employer/jobs/PipelineCard';
 import { listApplicantsForPosting, listStages, moveApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { Applicant, Stage } from '@/types/employer-applicants';
 import { groupApplicantsByStage, findApplicantById, moveApplicantInMap } from '@/components/employer/jobs/pipeline-tab-helpers';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { canMoveApplicant } from '@/lib/team-permissions';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 const LOAD_ERROR_MESSAGE = 'Could not load the pipeline.';
@@ -29,6 +31,9 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
   const [activeApplicantId, setActiveApplicantId] = useState<string | null>(null);
   const { showToast } = useToast();
+  // UX gate only — the backend still enforces the move. Unknown role → allow.
+  const { viewerRole, viewerCanMoveApplicants } = useEmployer();
+  const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -64,6 +69,7 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
 
   async function handleDragEnd(event: DragEndEvent) {
     setActiveApplicantId(null);
+    if (!canMove) return; // defence-in-depth: cards are already non-draggable
     const { active, over } = event;
     if (!over) return;
     const applicant = findApplicantById(byStage, String(active.id));
@@ -111,11 +117,11 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
     >
       <div style={{ display: 'flex', overflowX: 'auto', gap: 12, paddingBottom: 8 }}>
         {stages.map((stage) => (
-          <PipelineColumn key={stage.id} stage={stage} applicants={byStage.get(stage.id) ?? []} />
+          <PipelineColumn key={stage.id} stage={stage} applicants={byStage.get(stage.id) ?? []} canMove={canMove} />
         ))}
       </div>
       <DragOverlay>
-        {activeApplicant ? <PipelineCard applicant={activeApplicant} isDragging /> : null}
+        {activeApplicant ? <PipelineCard applicant={activeApplicant} isDragging canMove={canMove} /> : null}
       </DragOverlay>
     </DndContext>
   );

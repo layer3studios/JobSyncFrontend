@@ -7,56 +7,21 @@
 // the old score stays on screen behind a "Rescoring…" chip (C13) — no polling (C12).
 
 import { useState } from 'react';
-import type { ReactNode } from 'react';
 import { Briefcase, MapPin, Clock } from 'lucide-react';
 import { Button, Select, Input, Textarea, Modal, Alert, Stack, Badge } from '@/components/ui';
 import { moveApplicant, archiveApplicant, unarchiveApplicant, rescoreApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ApplicantScore, Stage, ArchiveReason, StageChange, ScoreJobStatus } from '@/types/employer-applicants';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { canMoveApplicant, canArchiveApplicant, canRescoreApplicant } from '@/lib/team-permissions';
 import { formatRelativeTime } from './applicant-view-helpers';
+import { TIER_COLOR, SectionLabel, SkillRow, RescoreButton, FitTile } from './applicant-review-parts';
 
 const ACTION_ERROR = 'Something went wrong. Please try again.';
 const EMPTY_VALUE = '—';
-// Tier → the accent colour that tints the score hero + meter fill.
-const TIER_COLOR: Record<string, string> = {
-  strong: 'var(--success)', good: 'var(--accent)', partial: 'var(--warning)', weak: 'var(--warning)', poor: 'var(--danger)',
-};
+const NO_MOVE_TOOLTIP = "You don't have permission to move applicants. Ask an admin.";
 
 function errorMessage(error: unknown): string {
   return error instanceof EmployerApplicantsApiError ? error.message : ACTION_ERROR;
-}
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>{children}</div>;
-}
-
-function SkillRow({ label, skills, variant }: { label: string; skills: string[]; variant: 'success' | 'warning' | 'info' }) {
-  if (skills.length === 0) return null;
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--ink-muted)', minWidth: 58 }}>{label}</span>
-      {skills.map((skill) => <Badge key={skill} variant={variant}>{skill}</Badge>)}
-    </div>
-  );
-}
-
-/** Tertiary action in the score hero. Reads "Rescoring…" and locks while a job is in flight. */
-function RescoreButton({ isRescoring, disabled, onClick }: { isRescoring: boolean; disabled: boolean; onClick: () => void }) {
-  return (
-    <Button variant="ghost" disabled={disabled} onClick={onClick} style={{ padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600 }}>
-      {isRescoring ? 'Rescoring…' : 'Rescore'}
-    </Button>
-  );
-}
-
-function FitTile({ icon, label, value }: { icon: ReactNode; label: string; value: string | null | undefined }) {
-  return (
-    <div style={{ flex: 1, minWidth: 0, background: 'var(--surface-sunken)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-faint)', fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-        {icon}{label}
-      </div>
-      <div style={{ marginTop: 4, fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || EMPTY_VALUE}</div>
-    </div>
-  );
 }
 
 export default function ApplicantReviewPanel({
@@ -79,6 +44,12 @@ export default function ApplicantReviewPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // UX gates only — the backend enforces truth. Unknown role → allow.
+  const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants } = useEmployer();
+  const allowMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
+  const allowArchive = viewerRole ? canArchiveApplicant(viewerRole, viewerCanArchiveApplicants) : true;
+  const allowRescore = viewerRole ? canRescoreApplicant(viewerRole) : true;
 
   async function run(action: () => Promise<unknown>): Promise<boolean> {
     setBusy(true); setError(null);
@@ -118,7 +89,7 @@ export default function ApplicantReviewPanel({
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {isRescoring && <Badge variant="neutral">Rescoring…</Badge>}
                 <Badge variant="neutral" style={{ background: tint, color: 'var(--text-on-accent)' }}>{score.tier}</Badge>
-                <RescoreButton isRescoring={isRescoring} disabled={isRescoring || busy} onClick={handleRescore} />
+                {allowRescore && <RescoreButton isRescoring={isRescoring} disabled={isRescoring || busy} onClick={handleRescore} />}
               </div>
             </div>
             <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
@@ -128,7 +99,7 @@ export default function ApplicantReviewPanel({
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-sunken)', borderRadius: 14, padding: '14px 16px', color: 'var(--ink-muted)', fontWeight: 600 }}>
             <span>{isRescoring ? 'Scoring in progress' : 'Not scored yet'}</span>
-            <span style={{ marginLeft: 'auto' }}><RescoreButton isRescoring={isRescoring} disabled={isRescoring || busy} onClick={handleRescore} /></span>
+            {allowRescore && <span style={{ marginLeft: 'auto' }}><RescoreButton isRescoring={isRescoring} disabled={isRescoring || busy} onClick={handleRescore} /></span>}
           </div>
         )}
 
@@ -161,16 +132,20 @@ export default function ApplicantReviewPanel({
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
         {error && <div style={{ marginBottom: 10 }}><Alert type="error">{error}</Alert></div>}
         {archived ? (
-          <Button variant="secondary" loading={busy} onClick={() => void run(() => unarchiveApplicant(applicationId))}>Unarchive applicant</Button>
+          allowArchive
+            ? <Button variant="secondary" loading={busy} onClick={() => void run(() => unarchiveApplicant(applicationId))}>Unarchive applicant</Button>
+            : <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--ink-muted)' }}>This applicant is archived.</p>
         ) : (
           <Stack gap={10}>
             <Stack dir="row" gap={10} align="end">
-              <div style={{ flex: 1 }}><Select label="Move to" value={stageId} options={stages.map((s) => ({ value: s.id, label: s.text }))} onChange={(e) => setStageId(e.target.value)} /></div>
-              <div style={{ flex: 1.4 }}><Input label="Note" value={moveNote} onChange={(e) => setMoveNote(e.target.value)} /></div>
+              <div style={{ flex: 1 }} title={allowMove ? undefined : NO_MOVE_TOOLTIP}>
+                <Select label="Move to" value={stageId} disabled={!allowMove} options={stages.map((s) => ({ value: s.id, label: s.text }))} onChange={(e) => setStageId(e.target.value)} />
+              </div>
+              <div style={{ flex: 1.4 }}><Input label="Note" value={moveNote} disabled={!allowMove} onChange={(e) => setMoveNote(e.target.value)} /></div>
             </Stack>
             <Stack dir="row" gap={10}>
-              <Button style={{ flex: 1 }} loading={busy} disabled={stageId === currentStageId} onClick={() => void handleMoveStage()}>Move stage</Button>
-              <Button style={{ flex: 1 }} variant="danger" onClick={() => setConfirmOpen(true)}>Archive</Button>
+              <Button style={{ flex: 1 }} loading={busy} disabled={!allowMove || stageId === currentStageId} onClick={() => void handleMoveStage()}>Move stage</Button>
+              {allowArchive && <Button style={{ flex: 1 }} variant="danger" onClick={() => setConfirmOpen(true)}>Archive</Button>}
             </Stack>
           </Stack>
         )}

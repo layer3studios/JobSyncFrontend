@@ -1,10 +1,8 @@
 'use client';
 // FILE: src/components/employer/jobs/RankedTab.tsx
-// Ranked applicant table: applicants (sorted by score/date) + stages + archive reasons
-// fetched in parallel. Score → tier Badge; null → "Scoring…"/"Not scored" (P1). PP3 adds
-// row selection + a floating bulk-archive bar wired to the PP1 endpoint (partial success).
-// T1.5 adds purely client-side search/stage/score/archived filtering over the fetched
-// list — no new query params. Selection survives filter changes (C11).
+// Ranked applicant table: applicants + stages + archive reasons fetched in parallel,
+// with client-side filtering and a floating bulk-archive bar. Chunk 5 hides the row
+// selection + bulk bar entirely when the viewer can't archive (D_impl_ui5_9).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -26,6 +24,8 @@ import RankedFilterBar from '@/components/employer/jobs/RankedFilterBar';
 import ScoreCell from '@/components/employer/jobs/RankedScoreCell';
 import BulkArchiveBar from '@/components/employer/jobs/BulkArchiveBar';
 import BulkArchiveDialog from '@/components/employer/jobs/BulkArchiveDialog';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { canBulkArchive } from '@/lib/team-permissions';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 const LOAD_ERROR_MESSAGE = 'Could not load applicants.';
@@ -47,6 +47,10 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
+  // Bulk archive is the only multi-select action here, so hide the selection UI
+  // entirely when the viewer can't archive (D_impl_ui5_9). Backend still enforces.
+  const { viewerRole, viewerCanArchiveApplicants } = useEmployer();
+  const allowArchive = viewerRole ? canBulkArchive(viewerRole, viewerCanArchiveApplicants) : true;
 
   const load = useCallback(async (activeSort: ApplicantSort) => {
     setLoadState('loading');
@@ -104,20 +108,19 @@ export default function RankedTab({ postingId }: { postingId: string }) {
 
   const stageNameById = new Map(stages.map((stage) => [stage.id, stage.text]));
 
+  const selectColumn: Column<Applicant> = { key: 'select', header: '', render: (applicant) => {
+    const id = applicant.application.id;
+    const isSelected = selectedIds.has(id);
+    return (
+      <div style={{ background: isSelected ? 'var(--paper-2)' : 'transparent', margin: '-10px -14px', padding: '10px 14px' }}>
+        <input type="checkbox" checked={isSelected} aria-label={`Select ${applicant.contact?.fullName ?? 'applicant'}`}
+          onClick={(event) => event.stopPropagation()} onChange={() => handleToggleRow(id)} />
+      </div>
+    );
+  } };
+
   const columns: Column<Applicant>[] = [
-    { key: 'select', header: '', render: (applicant) => {
-      const id = applicant.application.id;
-      const isSelected = selectedIds.has(id);
-      return (
-        <div style={{ background: isSelected ? 'var(--paper-2)' : 'transparent', margin: '-10px -14px', padding: '10px 14px' }}>
-          <input
-            type="checkbox" checked={isSelected}
-            aria-label={`Select ${applicant.contact?.fullName ?? 'applicant'}`}
-            onClick={(event) => event.stopPropagation()} onChange={() => handleToggleRow(id)}
-          />
-        </div>
-      );
-    } },
+    ...(allowArchive ? [selectColumn] : []),
     { key: 'applicant', header: 'Applicant', render: (applicant) => (
       <div>
         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{applicant.contact?.fullName ?? '—'}</div>
@@ -155,14 +158,16 @@ export default function RankedTab({ postingId }: { postingId: string }) {
         <div style={{ maxWidth: 240 }}>
           <Select aria-label="Sort applicants" value={sort} options={SORT_OPTIONS} onChange={(event) => setSort(event.target.value as ApplicantSort)} />
         </div>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem', color: 'var(--ink-muted)', cursor: 'pointer' }}>
-          <input
-            type="checkbox" checked={allSelected} aria-label="Select all applicants on this page"
-            ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
-            onChange={handleTogglePage}
-          />
-          Select all
-        </label>
+        {allowArchive && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem', color: 'var(--ink-muted)', cursor: 'pointer' }}>
+            <input
+              type="checkbox" checked={allSelected} aria-label="Select all applicants on this page"
+              ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+              onChange={handleTogglePage}
+            />
+            Select all
+          </label>
+        )}
       </Stack>
       <RankedFilterBar value={filterState} stages={stages} onChange={setFilterState} />
       {filteredApplicants.length === 0 ? (
@@ -172,20 +177,24 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       ) : (
         <Card padding="sm"><Table columns={columns} data={filteredApplicants} /></Card>
       )}
-      <BulkArchiveBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        onArchive={() => setIsDialogOpen(true)}
-        isSubmitting={isSubmitting}
-      />
-      <BulkArchiveDialog
-        open={isDialogOpen}
-        selectedCount={selectedIds.size}
-        reasons={reasons}
-        isSubmitting={isSubmitting}
-        onCancel={() => setIsDialogOpen(false)}
-        onConfirm={handleConfirmArchive}
-      />
+      {allowArchive && (
+        <>
+          <BulkArchiveBar
+            selectedCount={selectedIds.size}
+            onClear={() => setSelectedIds(new Set())}
+            onArchive={() => setIsDialogOpen(true)}
+            isSubmitting={isSubmitting}
+          />
+          <BulkArchiveDialog
+            open={isDialogOpen}
+            selectedCount={selectedIds.size}
+            reasons={reasons}
+            isSubmitting={isSubmitting}
+            onCancel={() => setIsDialogOpen(false)}
+            onConfirm={handleConfirmArchive}
+          />
+        </>
+      )}
     </Stack>
   );
 }
