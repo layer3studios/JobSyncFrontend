@@ -12,4 +12,5 @@ export const EMPLOYER_ROUTES = {
 export const ADMIN_ROUTES = {
   HOME: '/admin',
   EMPLOYER_ACCESS: '/admin/employer-access',
+  ANALYTICS: '/admin/analytics',
 } as const;
