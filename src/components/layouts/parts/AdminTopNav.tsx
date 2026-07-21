@@ -107,6 +107,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(ADMIN_ROUTES.EMPLOYER_ACCESS, 'Employer Access')}
+          {renderNavLink(ADMIN_ROUTES.ANALYTICS, 'Analytics')}
         </nav>
 
         <div style={{ flex: 1 }} />
