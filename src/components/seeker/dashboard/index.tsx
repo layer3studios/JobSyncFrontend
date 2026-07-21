@@ -17,6 +17,7 @@ import DashboardControls from './DashboardControls';
 import DashboardBody from './DashboardBody';
 import MobileSheets from './MobileSheets';
 import { countNewJobs, applyClientFilters } from './filter-helpers';
+import { useDashboardAnalytics, trackJobResultClick } from './useDashboardAnalytics';
 
 export default function Dashboard() {
   const f = useDashboardFilters();
@@ -109,12 +110,14 @@ export default function Dashboard() {
   }, [useSplit, finalJobs, selectedJob]);
 
   const handleSelectJob = useCallback((job: IJob) => {
+    trackJobResultClick(job._id, finalJobs.findIndex(j => j._id === job._id));
     setSelectedJob(job);
     f.setSp(p => { p.set('selectedJob', job._id); });
     if (isMobile) setJobSheetOpen(true);
-  }, [isMobile]);
+  }, [isMobile, finalJobs]);
 
   const newJobsCount = useMemo(() => countNewJobs(jobs), [jobs]);
+  useDashboardAnalytics({ loading, totalResults: totalJobs, filterCount: f.activeFilters.length, searchInput: f.searchInput });
 
   return (
     <Container size="xl" style={{ paddingTop: 'clamp(16px, 4vw, 24px)', paddingBottom: isMobile ? 80 : 40, width: '100%' }}>

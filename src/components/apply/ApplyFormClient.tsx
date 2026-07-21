@@ -5,7 +5,7 @@
 // multipart FormData, and routes to the success page. No auth/contexts (C9).
 // The server shell provides {company, job}; this island owns form state + submit.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Alert, Stack } from '@/components/ui';
 import ApplyFormFields from './ApplyFormFields';
@@ -14,6 +14,7 @@ import { submitApplication, PublicApiError } from '@/api/public-api';
 import { validateApplyForm, fieldError, mapServerError } from './apply-form-helpers';
 import type { ApplyErrors } from './apply-form-helpers';
 import type { ApplyFormData, PublicCompany, PublicJob } from '@/types/public-apply';
+import { trackEvent } from '@/lib/analytics-events';
 
 const EMPTY: ApplyFormData = {
   firstName: '', lastName: '', email: '', phone: '', coverNote: '',
@@ -51,6 +52,19 @@ export default function ApplyFormClient({ company, job, companySlug, jobSlug }: 
   const [data, setData] = useState<ApplyFormData>(EMPTY);
   const [errors, setErrors] = useState<ApplyErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  // First-focus-per-field dedup (session-scoped, per form instance — not global).
+  const focusedFields = useRef<Set<string>>(new Set());
+
+  // Reaching the apply form = the seeker started applying (public, unauthenticated flow).
+  useEffect(() => {
+    trackEvent('apply_started', { jobId: job.id, companyId: company.slug, applyMethod: 'public' });
+  }, [job.id, company.slug]);
+
+  const onFieldFocus = useCallback((field: string) => {
+    if (focusedFields.current.has(field)) return;
+    focusedFields.current.add(field);
+    trackEvent('apply_form_field_focused', { jobId: job.id, fieldName: field });
+  }, [job.id]);
 
   const set = useCallback(<K extends keyof ApplyFormData>(field: K, value: ApplyFormData[K]) => {
     setData((d) => ({ ...d, [field]: value }));
@@ -82,9 +96,14 @@ export default function ApplyFormClient({ company, job, companySlug, jobSlug }: 
       form.append('website_url', data.honeypot);
       if (data.resume) form.append('resume', data.resume);
       await submitApplication(companySlug, jobSlug, form);
+      trackEvent('apply_submitted', {
+        jobId: job.id, companyId: company.slug, applyMethod: 'public',
+        hasResume: data.resume !== null, hasCoverNote: data.coverNote.trim() !== '',
+      });
       const query = new URLSearchParams();
       if (company.name) query.set('company', company.name);
       if (job.title) query.set('job', job.title);
+      query.set('jid', job.id);
       router.replace(`/apply/${companySlug}/${jobSlug}/success?${query.toString()}`);
     } catch (err) {
       setErrors(err instanceof PublicApiError
@@ -109,7 +128,7 @@ export default function ApplyFormClient({ company, job, companySlug, jobSlug }: 
     <Card>
       <Stack gap={16}>
         {errors._form && <Alert type="error">{errors._form}</Alert>}
-        <ApplyFormFields data={data} errors={errors} companyName={company.name} set={set} onBlur={onBlur} />
+        <ApplyFormFields data={data} errors={errors} companyName={company.name} set={set} onBlur={onBlur} onFieldFocus={onFieldFocus} />
         <Button loading={submitting} disabled={!canSubmit} onClick={handleSubmit}>Submit application</Button>
       </Stack>
     </Card>

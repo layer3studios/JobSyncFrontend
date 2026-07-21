@@ -5,11 +5,14 @@
 // The layout body lives in ApplicantDetailBody (line-cap split); this file owns data
 // loading, route params, back-link resolution, and keyboard prev/next/back nav.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Container, Button, PageHeader } from '@/components/ui';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
+import { scoreToDecile } from '@/lib/score-decile';
 import { fetchApplicantDetail, listApplicantsForPosting, listStages, listArchiveReasons, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { Applicant, ApplicantDetail, ApplicantSort, Stage, ArchiveReason } from '@/types/employer-applicants';
 import { useViewport } from '@/hooks/shared/useViewport';
@@ -50,8 +53,10 @@ export default function ApplicantDetail() {
   const appId = typeof params.applicationId === 'string' ? params.applicationId : '';
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { company } = useEmployer();
   const { w } = useViewport();
   const twoColumn = w > 900;
+  const hasTrackedView = useRef(false);
 
   const [detail, setDetail] = useState<ApplicantDetail | null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -85,6 +90,20 @@ export default function ApplicantDetail() {
   }, [appId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Fire applicant_viewed once, after the detail (and its score) has loaded, so
+  // scoreDecile reflects the real bucket rather than 'unscored' during loading.
+  useEffect(() => {
+    if (!detail || hasTrackedView.current) return;
+    hasTrackedView.current = true;
+    trackEvent('applicant_viewed', {
+      applicationId: appId,
+      postingId,
+      companyId: company?.id ?? undefined,
+      scoreDecile: scoreToDecile(detail.score?.score ?? null),
+    });
+  }, [detail, appId, postingId, company?.id]);
+
   // Return the user to the tab they came from (P1.4): ?from=pipeline|ranked → ?tab=…
   const fromTab = searchParams.get('from');
   const backTabQuery = fromTab && RETURNABLE_TAB_IDS.includes(fromTab) ? `?tab=${fromTab}` : '';

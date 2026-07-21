@@ -16,31 +16,37 @@ interface Props {
   companyName: string;
   set: <K extends keyof ApplyFormData>(field: K, value: ApplyFormData[K]) => void;
   onBlur: (field: keyof ApplyFormData) => void;
+  // First-focus-per-field analytics hook (dedup handled by the parent).
+  onFieldFocus: (field: string) => void;
 }
 
-export default function ApplyFormFields({ data, errors, companyName, set, onBlur }: Props) {
+export default function ApplyFormFields({ data, errors, companyName, set, onBlur, onFieldFocus }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
     <Stack gap={16}>
       <Stack gap={12} dir="row" wrap>
-        <div style={{ flex: '1 1 160px' }}>
+        <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
           <Input label="First name" required value={data.firstName} error={errors.firstName}
             onChange={(e) => set('firstName', e.target.value)} onBlur={() => onBlur('firstName')} />
         </div>
-        <div style={{ flex: '1 1 160px' }}>
+        <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
           <Input label="Last name" required value={data.lastName} error={errors.lastName}
             onChange={(e) => set('lastName', e.target.value)} onBlur={() => onBlur('lastName')} />
         </div>
       </Stack>
 
-      <Input label="Email" required type="email" inputMode="email" value={data.email} error={errors.email}
-        onChange={(e) => set('email', e.target.value)} onBlur={() => onBlur('email')} />
+      <div onFocus={() => onFieldFocus('email')}>
+        <Input label="Email" required type="email" inputMode="email" value={data.email} error={errors.email}
+          onChange={(e) => set('email', e.target.value)} onBlur={() => onBlur('email')} />
+      </div>
 
-      <Input label="Phone" type="text" inputMode="tel" value={data.phone} error={errors.phone}
-        onChange={(e) => set('phone', e.target.value)} onBlur={() => onBlur('phone')} />
+      <div onFocus={() => onFieldFocus('phone')}>
+        <Input label="Phone" type="text" inputMode="tel" value={data.phone} error={errors.phone}
+          onChange={(e) => set('phone', e.target.value)} onBlur={() => onBlur('phone')} />
+      </div>
 
-      <div>
+      <div onFocus={() => onFieldFocus('resume')}>
         <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>Resume (PDF) *</p>
         <Stack gap={8} dir="row" align="center" wrap>
           <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>
@@ -53,10 +59,12 @@ export default function ApplyFormFields({ data, errors, companyName, set, onBlur
         {errors.resume && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.resume}</p>}
       </div>
 
-      <Textarea label="Cover note" rows={4} value={data.coverNote}
-        placeholder="Why are you interested in this role?" onChange={(e) => set('coverNote', e.target.value)} />
+      <div onFocus={() => onFieldFocus('coverNote')}>
+        <Textarea label="Cover note" rows={4} value={data.coverNote}
+          placeholder="Why are you interested in this role?" onChange={(e) => set('coverNote', e.target.value)} />
+      </div>
 
-      <div>
+      <div onFocus={() => onFieldFocus('consent')}>
         <Checkbox checked={data.consent_dpdp} onChange={(v) => set('consent_dpdp', v)}
           label={`I agree to JobMesh and ${companyName} processing my data for recruitment purposes.`} />
         {errors.consent_dpdp && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.consent_dpdp}</p>}

@@ -12,9 +12,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Card, Stack, Button, Alert, Textarea, SkeletonCard } from '@/components/ui';
+import { useParams } from 'next/navigation';
 import { listApplicantNotes, createApplicantNote, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ApplicantNote } from '@/types/employer-applicants';
 import { formatRelativeTime } from './applicant-view-helpers';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 
@@ -68,6 +71,9 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
   const [draft, setDraft] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const params = useParams<{ postingId: string }>();
+  const postingId = typeof params.postingId === 'string' ? params.postingId : '';
+  const { company } = useEmployer();
 
   const load = useCallback(async () => {
     setLoadState('loading');
@@ -91,7 +97,9 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
     setIsSaving(true);
     setSaveError(null);
     try {
+      const noteLength = draft.trim().length;
       const created = await createApplicantNote(applicationId, { body: draft.trim() });
+      trackEvent('note_added', { applicationId, postingId, companyId: company?.id ?? undefined, noteLength });
       setNotes((current) => [created, ...current]); // confirmed append (R5) — server shape, not a guess
       setDraft('');
     } catch (error) {
@@ -100,7 +108,7 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
     } finally {
       setIsSaving(false);
     }
-  }, [applicationId, canSave, draft]);
+  }, [applicationId, canSave, draft, postingId, company?.id]);
 
   // Cmd/Ctrl+Enter submits; a bare Enter stays a newline (D10) — notes are multi-line.
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {

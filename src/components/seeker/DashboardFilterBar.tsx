@@ -1,8 +1,15 @@
 'use client';
 // FILE: src/components/seeker/DashboardFilterBar.tsx
 import type { CSSProperties } from 'react';
+import { trackEvent } from '../../lib/analytics-events';
 
 interface Option { value: string; label: string; }
+
+// A select value of 'all' clears that dimension (removed); anything else adds it.
+type DiscoveryFilter = 'role' | 'exp' | 'wp' | 'date';
+function emitFilter(filterType: DiscoveryFilter, value: string): void {
+  trackEvent('jobs_filter_applied', { filterType, action: value === 'all' ? 'removed' : 'added' });
+}
 
 interface Props {
   roleCategoryFilter: string;
@@ -35,7 +42,7 @@ export default function DashboardFilterBar({
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       <select
         value={roleCategoryFilter}
-        onChange={e => { setRoleCategoryFilter(e.target.value); setSp(sp => { sp.set('role', e.target.value); sp.delete('page'); }); }}
+        onChange={e => { setRoleCategoryFilter(e.target.value); emitFilter('role', e.target.value); setSp(sp => { sp.set('role', e.target.value); sp.delete('page'); }); }}
         style={desktopSelectStyle}
       >
         {roleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -43,7 +50,7 @@ export default function DashboardFilterBar({
 
       <select
         value={experienceBandFilter}
-        onChange={e => { setExperienceBandFilter(e.target.value); setSp(sp => { sp.set('exp', e.target.value); sp.delete('page'); }); }}
+        onChange={e => { setExperienceBandFilter(e.target.value); emitFilter('exp', e.target.value); setSp(sp => { sp.set('exp', e.target.value); sp.delete('page'); }); }}
         style={desktopSelectStyle}
       >
         {experienceOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -51,7 +58,7 @@ export default function DashboardFilterBar({
 
       <select
         value={workplaceFilter}
-        onChange={e => { setWorkplaceFilter(e.target.value); setSp(sp => { sp.set('wp', e.target.value); sp.delete('page'); }); }}
+        onChange={e => { setWorkplaceFilter(e.target.value); emitFilter('wp', e.target.value); setSp(sp => { sp.set('wp', e.target.value); sp.delete('page'); }); }}
         style={desktopSelectStyle}
       >
         <option value="all">All workplaces</option>
@@ -62,7 +69,7 @@ export default function DashboardFilterBar({
 
       <select
         value={dateFilter}
-        onChange={e => { setDateFilter(e.target.value); setSp(sp => { sp.set('date', e.target.value); sp.delete('page'); }); }}
+        onChange={e => { setDateFilter(e.target.value); emitFilter('date', e.target.value); setSp(sp => { sp.set('date', e.target.value); sp.delete('page'); }); }}
         style={desktopSelectStyle}
       >
         <option value="all">Any time</option>
