@@ -12,10 +12,14 @@ import type { Applicant } from '@/types/employer-applicants';
 import { tierBadgeVariant } from '@/components/employer/jobs/applicant-view-helpers';
 import { formatKanbanScoreLabel, isScoringInProgress, SCORING_STATE_LABEL } from '@/components/employer/jobs/pipeline-tab-helpers';
 
-export default function PipelineCard({ applicant, isDragging }: { applicant: Applicant; isDragging?: boolean }) {
+const NO_MOVE_TOOLTIP = "You don't have permission to move applicants. Ask an admin.";
+
+/** `canMove` gates drag (UX only — the backend still enforces the move). Default true. */
+export default function PipelineCard({ applicant, isDragging, canMove = true }: { applicant: Applicant; isDragging?: boolean; canMove?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isActive } = useSortable({
     id: applicant.application.id,
     data: { stageId: applicant.application.stageId },
+    disabled: !canMove,
   });
 
   const { contact, score } = applicant;
@@ -23,7 +27,8 @@ export default function PipelineCard({ applicant, isDragging }: { applicant: App
     <div
       ref={setNodeRef}
       {...attributes}
-      {...listeners}
+      {...(canMove ? listeners : {})}
+      title={canMove ? undefined : NO_MOVE_TOOLTIP}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -32,7 +37,7 @@ export default function PipelineCard({ applicant, isDragging }: { applicant: App
         touchAction: 'none',
       }}
     >
-      <Card padding="sm" style={{ cursor: 'grab' }}>
+      <Card padding="sm" style={{ cursor: canMove ? 'grab' : 'default' }}>
         <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '0.875rem' }}>{contact?.fullName ?? '—'}</div>
         <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginBottom: 8 }}>{contact?.email ?? ''}</div>
         {score && !score.processingError ? (

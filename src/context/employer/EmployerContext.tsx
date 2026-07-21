@@ -15,6 +15,9 @@ const Ctx = createContext<EmployerCtx>({
   isLoading: true,
   isAuthenticating: false,
   loginError: null,
+  viewerRole: null,
+  viewerCanMoveApplicants: true,
+  viewerCanArchiveApplicants: true,
   login: async () => {},
   logout: async () => {},
   clearLoginError: () => {},
@@ -30,12 +33,14 @@ export function EmployerProvider(
     : undefined;
   const {
     employerUser, company, isLoading, isAuthenticating, loginError,
+    viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants,
     login, logout, clearLoginError, refreshEmployerSession,
   } = useEmployerAuth(seed);
 
   return (
     <Ctx.Provider value={{
       employerUser, company, isLoading, isAuthenticating, loginError,
+      viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants,
       login, logout, clearLoginError, refreshEmployerSession,
     }}>
       {children}
