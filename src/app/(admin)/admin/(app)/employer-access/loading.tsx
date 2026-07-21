@@ -1,5 +1,5 @@
 // FILE: /admin/employer-access loading — simple list skeleton.
-import { SkeletonLine } from '../../../../components/ui/Skeleton';
+import { SkeletonLine } from '@/components/ui/Skeleton';
 
 export default function EmployerAccessLoading() {
   return (

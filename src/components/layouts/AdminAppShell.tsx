@@ -1,20 +1,19 @@
 'use client';
 // FILE: src/components/layouts/AdminAppShell.tsx
-// Client shell for the admin audience — verbatim adaptation of the Vite
-// AdminAppLayout. Admin sessions are seeker sessions with a whitelisted email, so
-// useSeeker() is the auth source (R4). The (admin) server layout runs the isAdmin
-// guard and seeds SeekerProvider so this shell can read currentUser + logout.
-// Desktop-first: no footer, no mobile bottom nav.
+// Client shell for the admin audience. Admin is its own audience (jm_admin_token) —
+// identity + logout come from the admin context via useAdmin(), never the seeker
+// stack. The (admin)/admin/(app) guard layout runs the auth check and seeds
+// AdminProvider so this shell reads the admin from context. Desktop-first shell.
 import { useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { useSeeker } from '../../context/seeker/SeekerContext';
+import { useAdmin } from '../../context/admin/AdminContext';
 import { useViewport } from '../../hooks/shared/useViewport';
 import AdminTopNav from './parts/AdminTopNav';
 
 const COMPACT_BREAKPOINT_WIDTH = 1024;
 
 export default function AdminAppShell({ children }: { children: ReactNode }) {
-  const { currentUser, logout, isLoading } = useSeeker();
+  const { admin, logout, isLoading } = useAdmin();
   const viewport = useViewport();
   const isCompact = viewport.w < COMPACT_BREAKPOINT_WIDTH;
 
@@ -24,12 +23,14 @@ export default function AdminAppShell({ children }: { children: ReactNode }) {
 
   // Defensive: the server guard authorises above, but the client provider can mount
   // a tick before it hydrates. Render nothing rather than a half-populated nav.
-  if (isLoading || !currentUser) return null;
+  if (isLoading || !admin) return null;
 
+  // AdminIdentity carries no name/picture (backend does not return them, D1). Derive a
+  // display name from the email local-part; AdminTopNav renders an initial fallback.
   const navUser = {
-    name: currentUser.name,
-    email: currentUser.email,
-    picture: currentUser.picture || undefined,
+    name: admin.email.split('@')[0],
+    email: admin.email,
+    picture: undefined,
   };
 
   return (
