@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { createInvite, revokeInvite, EmployerTeamApiError } from '@/api/employer-team-api';
 import type { CompanyInvite, InvitableRole } from '@/types/employer-team';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
 import CopyLinkField from './CopyLinkField';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // mirrors the backend invite-service regex
@@ -28,6 +30,7 @@ interface Props {
 }
 
 export default function InviteTeammateModal({ onClose, onCreated, onCopied }: Props) {
+  const { company } = useEmployer();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InvitableRole>('member');
   const [canMove, setCanMove] = useState(false);
@@ -48,6 +51,12 @@ export default function InviteTeammateModal({ onClose, onCreated, onCopied }: Pr
     try {
       const { invite, inviteUrl } = await createInvite({
         email: trimmed, role,
+        canMoveApplicants: isInterviewer ? canMove : false,
+        canArchiveApplicants: isInterviewer ? canArchive : false,
+      });
+      // New invites only — resend/revoke never fire this (metric counts fresh sends).
+      trackEvent('team_invite_sent', {
+        companyId: company?.id ?? '', inviteId: invite.id, role,
         canMoveApplicants: isInterviewer ? canMove : false,
         canArchiveApplicants: isInterviewer ? canArchive : false,
       });

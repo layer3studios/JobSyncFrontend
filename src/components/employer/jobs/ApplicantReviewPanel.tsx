@@ -4,13 +4,15 @@
 // action bar → history footer. Move is inline; archive opens a confirm Modal with a
 // separate note. Rescore requeues AI scoring (old score stays behind a chip; no polling).
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Briefcase, MapPin, Clock } from 'lucide-react';
 import { Button, Select, Input, Textarea, Modal, Alert, Stack, Badge } from '@/components/ui';
 import { moveApplicant, archiveApplicant, unarchiveApplicant, rescoreApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ApplicantScore, Stage, ArchiveReason, StageChange, ScoreJobStatus } from '@/types/employer-applicants';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canMoveApplicant, canArchiveApplicant, canRescoreApplicant } from '@/lib/team-permissions';
+import { trackEvent } from '@/lib/analytics-events';
 import { formatRelativeTime } from './applicant-view-helpers';
 import { TIER_COLOR, SectionLabel, SkillRow, RescoreButton, FitTile } from './applicant-review-parts';
 import { useApplicantReviewAnalytics } from './useApplicantReviewAnalytics';
@@ -46,7 +48,19 @@ export default function ApplicantReviewPanel({
   const { trackMove, trackArchive, trackRescore } = useApplicantReviewAnalytics(applicationId);
 
   // UX gates only — the backend enforces truth. Unknown role → allow.
-  const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants } = useEmployer();
+  const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants, company } = useEmployer();
+  const params = useParams<{ postingId: string }>();
+  const postingId = typeof params.postingId === 'string' ? params.postingId : '';
+
+  // Engagement event: once per applicant panel open (ref-guard → re-renders for the
+  // same applicant never double-fire; no applicant → no event).
+  const viewedApplicantRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!applicationId || viewedApplicantRef.current === applicationId) return;
+    viewedApplicantRef.current = applicationId;
+    trackEvent('applicants_viewed', { companyId: company?.id ?? '', applicantId: applicationId, jobId: postingId });
+  }, [applicationId, company?.id, postingId]);
+
   const allowMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
   const allowArchive = viewerRole ? canArchiveApplicant(viewerRole, viewerCanArchiveApplicants) : true;
   const allowRescore = viewerRole ? canRescoreApplicant(viewerRole) : true;
@@ -60,12 +74,19 @@ export default function ApplicantReviewPanel({
 
   async function handleMoveStage() {
     const ok = await run(() => moveApplicant(applicationId, { stageId, note: moveNote || undefined }));
-    if (ok) { trackMove(currentStageId, stageId); setMoveNote(''); }
+    if (!ok) return;
+    trackMove(currentStageId, stageId);
+    trackEvent('applicants_moved_stage', { companyId: company?.id ?? '', applicantId: applicationId, jobId: postingId, fromStage: stageName(currentStageId), toStage: stageName(stageId) });
+    setMoveNote('');
   }
 
   async function handleConfirmArchive() {
     const ok = await run(() => archiveApplicant(applicationId, { reasonId, note: archiveNote || undefined }));
-    if (ok) { trackArchive(reasonId); setConfirmOpen(false); setArchiveNote(''); }
+    if (!ok) return;
+    trackArchive(reasonId);
+    trackEvent('applicants_archived', { companyId: company?.id ?? '', applicantId: applicationId, jobId: postingId, ...(reasonId ? { reasonId } : {}) });
+    setConfirmOpen(false);
+    setArchiveNote('');
   }
 
   // A queued/processing job means the worker owns this application right now (C11).

@@ -95,9 +95,14 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     try {
       setIsSubmitting(true);
       const result = await bulkArchiveApplicants({ applicationIds: [...selectedIds], reasonId, note });
-      result.succeeded.forEach(({ id }) => trackEvent('applicant_archived', {
-        applicationId: id, postingId, companyId: company?.id ?? undefined, archiveReason: reasonId, isBulk: true,
-      }));
+      result.succeeded.forEach(({ id }) => {
+        trackEvent('applicant_archived', {
+          applicationId: id, postingId, companyId: company?.id ?? undefined, archiveReason: reasonId, isBulk: true,
+        });
+        trackEvent('applicants_archived', {
+          companyId: company?.id ?? '', applicantId: id, jobId: postingId, ...(reasonId ? { reasonId } : {}),
+        });
+      });
       const { variant, message, nextSelection } = summarizeBulkResult(result, selectedIds);
       showToast(variant, message);
       setSelectedIds(nextSelection);
