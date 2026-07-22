@@ -20,6 +20,7 @@ import type { Applicant, Stage } from '@/types/employer-applicants';
 import { groupApplicantsByStage, findApplicantById, moveApplicantInMap } from '@/components/employer/jobs/pipeline-tab-helpers';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canMoveApplicant } from '@/lib/team-permissions';
+import { trackEvent } from '@/lib/analytics-events';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 const LOAD_ERROR_MESSAGE = 'Could not load the pipeline.';
@@ -32,7 +33,7 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   const [activeApplicantId, setActiveApplicantId] = useState<string | null>(null);
   const { showToast } = useToast();
   // UX gate only — the backend still enforces the move. Unknown role → allow.
-  const { viewerRole, viewerCanMoveApplicants } = useEmployer();
+  const { viewerRole, viewerCanMoveApplicants, company } = useEmployer();
   const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
 
   const sensors = useSensors(
@@ -78,10 +79,15 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
     if (applicant.application.stageId === targetStageId) return;
 
     const previous = byStage;
+    const fromStage = applicant.application.stageId;
     setByStage(moveApplicantInMap(byStage, applicant, targetStageId));
     const stageName = stages.find((stage) => stage.id === targetStageId)?.text ?? 'stage';
     try {
       await moveApplicant(applicant.application.id, { stageId: targetStageId });
+      trackEvent('applicant_moved_stage', {
+        applicationId: applicant.application.id, postingId, companyId: company?.id ?? undefined,
+        fromStage, toStage: targetStageId, method: 'drag',
+      });
       showToast('success', `Moved to ${stageName}`);
     } catch {
       setByStage(previous);

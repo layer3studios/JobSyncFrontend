@@ -1,10 +1,8 @@
 'use client';
 // FILE: src/components/employer/jobs/ApplicantReviewPanel.tsx
-// Applicant review rail: score hero (tier-tinted meter, Rescore action) → skill chips →
-// fit tiles → summary → action bar → history footer. Move is inline; archive opens a
-// confirm Modal. Move-note and archive-note are separate fields so a move note never
-// leaks into an archive. Rescore requeues AI scoring; while a job is queued/processing
-// the old score stays on screen behind a "Rescoring…" chip (C13) — no polling (C12).
+// Applicant review rail: score hero (Rescore action) → skills → fit tiles → summary →
+// action bar → history footer. Move is inline; archive opens a confirm Modal with a
+// separate note. Rescore requeues AI scoring (old score stays behind a chip; no polling).
 
 import { useState } from 'react';
 import { Briefcase, MapPin, Clock } from 'lucide-react';
@@ -15,6 +13,7 @@ import { useEmployer } from '@/context/employer/EmployerContext';
 import { canMoveApplicant, canArchiveApplicant, canRescoreApplicant } from '@/lib/team-permissions';
 import { formatRelativeTime } from './applicant-view-helpers';
 import { TIER_COLOR, SectionLabel, SkillRow, RescoreButton, FitTile } from './applicant-review-parts';
+import { useApplicantReviewAnalytics } from './useApplicantReviewAnalytics';
 
 const ACTION_ERROR = 'Something went wrong. Please try again.';
 const EMPTY_VALUE = '—';
@@ -44,6 +43,7 @@ export default function ApplicantReviewPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { trackMove, trackArchive, trackRescore } = useApplicantReviewAnalytics(applicationId);
 
   // UX gates only — the backend enforces truth. Unknown role → allow.
   const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants } = useEmployer();
@@ -60,17 +60,17 @@ export default function ApplicantReviewPanel({
 
   async function handleMoveStage() {
     const ok = await run(() => moveApplicant(applicationId, { stageId, note: moveNote || undefined }));
-    if (ok) setMoveNote('');
+    if (ok) { trackMove(currentStageId, stageId); setMoveNote(''); }
   }
 
   async function handleConfirmArchive() {
     const ok = await run(() => archiveApplicant(applicationId, { reasonId, note: archiveNote || undefined }));
-    if (ok) { setConfirmOpen(false); setArchiveNote(''); }
+    if (ok) { trackArchive(reasonId); setConfirmOpen(false); setArchiveNote(''); }
   }
 
   // A queued/processing job means the worker owns this application right now (C11).
   const isRescoring = scoreJobStatus?.status === 'queued' || scoreJobStatus?.status === 'processing';
-  const handleRescore = () => void run(() => rescoreApplicant(applicationId));
+  const handleRescore = () => void run(() => rescoreApplicant(applicationId)).then((ok) => { if (ok) trackRescore(); });
 
   const hasScore = Boolean(score && score.processingError == null && score.score != null);
   const tint = score ? (TIER_COLOR[score.tier] ?? 'var(--accent)') : 'var(--ink-muted)';

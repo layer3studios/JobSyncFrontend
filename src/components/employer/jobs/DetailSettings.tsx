@@ -17,6 +17,7 @@ import {
   updateEmployerPosting, closeEmployerPosting, reopenEmployerPosting, EmployerJobsApiError,
 } from '@/api/employer-jobs-api';
 import type { Posting, PostingStatus, PostingCreateInput } from '@/types/employer-jobs';
+import { trackEvent } from '@/lib/analytics-events';
 
 const STATUS_VARIANT: Record<PostingStatus, 'success' | 'warning' | 'neutral'> = {
   active: 'success', draft: 'warning', closed: 'neutral',
@@ -73,9 +74,12 @@ export default function DetailSettings({ posting, onReload }: {
     if (!confirmOpen) return;
     setIsMutating(true);
     try {
+      const wasDraft = posting.status === 'draft';
       confirmOpen === 'close'
         ? await closeEmployerPosting(posting.id)
         : await reopenEmployerPosting(posting.id);
+      // Reopening a draft is the "publish" transition (draft → active).
+      if (confirmOpen === 'reopen' && wasDraft) trackEvent('posting_published', { postingId: posting.id });
       showToast('success', confirmOpen === 'close' ? 'Posting closed' : 'Posting reopened');
       await onReload();
       setConfirmOpen(null);

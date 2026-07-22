@@ -75,6 +75,8 @@ export default function ConsentManager() {
   const withdrawn = (consents ?? []).filter((c) => c.withdrawnAt !== null);
 
   return (
+    // data-ph-mask: seeker's consent records + rights-request contact — masked in replay.
+    <div data-ph-mask style={{ display: 'contents' }}>
     <Container size="md" style={{ paddingTop: 32, paddingBottom: 60 }}>
       <PageHeader label="ACCOUNT" title="Privacy & consent" />
 
@@ -138,5 +140,6 @@ export default function ConsentManager() {
         Are you sure? This may affect your ability to use features like resume matching.
       </Modal>
     </Container>
+    </div>
   );
 }
