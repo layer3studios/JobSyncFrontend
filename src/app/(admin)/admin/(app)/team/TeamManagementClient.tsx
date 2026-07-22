@@ -8,7 +8,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { useAdmin } from '@/context/admin/AdminContext';
 import {
-  deactivateAdmin, reactivateAdmin, updateAdminRole, AdminTeamApiError,
+  deactivateAdmin, reactivateAdmin, updateAdminRole,
+  resendAdminInvite, revokeAdminInvite, AdminTeamApiError,
 } from '@/api/admin-team-api';
 import type { TeamAdmin, AdminInvite, AdminRole } from '@/api/admin-team-api';
 import TeamAdminsTable from './parts/TeamAdminsTable';
@@ -21,6 +22,10 @@ const ACTION_MESSAGES: Record<string, string> = {
   CANNOT_DEMOTE_LAST_SUPER_ADMIN: 'You cannot demote the last super admin.',
   NOT_SUPER_ADMIN: 'You need super admin permission.',
   NOT_FOUND: 'That admin no longer exists — reload the page.',
+  CANNOT_RESEND_ACTIVE_ADMIN: 'This admin is already active.',
+  CANNOT_RESEND_ACTIVATED_ADMIN: 'Cannot resend — this admin was previously active.',
+  CANNOT_REVOKE_ACTIVE_ADMIN: 'This admin is active. Deactivate first.',
+  CANNOT_REVOKE_ACTIVATED_ADMIN: 'This admin was previously active. Deactivate instead.',
 };
 
 function messageForActionError(error: unknown): string {
@@ -46,6 +51,39 @@ export default function TeamManagementClient({ initialAdmins }: { initialAdmins:
     try {
       const updated = await action();
       setAdmins((prev) => prev.map((row) => (row.adminUserId === updated.adminUserId ? updated : row)));
+    } catch (error) {
+      setActionError({ adminUserId, message: messageForActionError(error) });
+    } finally {
+      setPendingRowAction(null);
+    }
+  }
+
+  // Resend: same URL-display UX as the initial invite — set lastInviteResult and
+  // open the modal, which renders straight into its copy-link view (one code path,
+  // D2 of this chunk). Row state needs no change: only inviteExpiresAt moved, and
+  // TeamAdmin doesn't carry it.
+  async function handleResendInvite(adminUserId: string) {
+    setPendingRowAction(adminUserId);
+    setActionError(null);
+    try {
+      const invite = await resendAdminInvite(adminUserId);
+      setLastInviteResult(invite);
+      setInviteModalOpen(true);
+    } catch (error) {
+      setActionError({ adminUserId, message: messageForActionError(error) });
+    } finally {
+      setPendingRowAction(null);
+    }
+  }
+
+  // Revoke: native confirm (D1), then hard-delete → the row simply disappears.
+  async function handleRevokeInvite(adminUserId: string, email: string) {
+    if (!window.confirm(`Revoke invite for ${email}? This cannot be undone.`)) return;
+    setPendingRowAction(adminUserId);
+    setActionError(null);
+    try {
+      await revokeAdminInvite(adminUserId);
+      setAdmins((prev) => prev.filter((row) => row.adminUserId !== adminUserId));
     } catch (error) {
       setActionError({ adminUserId, message: messageForActionError(error) });
     } finally {
@@ -94,6 +132,8 @@ export default function TeamManagementClient({ initialAdmins }: { initialAdmins:
         onDeactivate={(id) => void runRowAction(id, () => deactivateAdmin(id))}
         onReactivate={(id) => void runRowAction(id, () => reactivateAdmin(id))}
         onChangeRole={(id, role: AdminRole) => void runRowAction(id, () => updateAdminRole(id, role))}
+        onResendInvite={(id) => void handleResendInvite(id)}
+        onRevokeInvite={(id, email) => void handleRevokeInvite(id, email)}
       />
 
       {inviteModalOpen && (
