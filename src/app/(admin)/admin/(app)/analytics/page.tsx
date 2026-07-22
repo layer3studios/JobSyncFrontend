@@ -1,8 +1,12 @@
-// FILE: src/app/(admin)/admin/analytics/page.tsx
+// FILE: src/app/(admin)/admin/(app)/analytics/page.tsx
 // Admin analytics dashboard (Server Component). Reads ?since, fetches all six bundles
-// in parallel with the seeker cookie forwarded (isAdmin enforced by the backend and
-// the (admin) layout), and hands normalized data to the client. Renders a single clear
-// state — never half a dashboard — when analytics is unconfigured or access is denied.
+// in parallel with the cookie jar forwarded. Admin identity is jm_admin_token, verified
+// by require-admin-middleware; this file now sits under (admin)/admin/(app)/layout.tsx,
+// so that guard redirects unauthed users FIRST — the API 401 catch below is only a
+// belt-and-suspenders net for a session that expires mid-render. The 25s per-call
+// timeout reflects PostHog Query API latency (its queue can hold a request up to 30s per
+// PostHog docs). Renders a single clear state — never half a dashboard — when analytics
+// is unconfigured or access is denied.
 import type { Metadata } from 'next';
 import { serverFetch, ServerFetchError } from '@/lib/server-fetch';
 import {
@@ -20,7 +24,15 @@ export const metadata: Metadata = {
 
 const RANGES: SinceRange[] = ['24h', '7d', '30d'];
 type Row = Record<string, unknown>;
-const get = (path: string, since: string) => serverFetch<Row>(`/admin/analytics/${path}?since=${since}`);
+// PostHog Query API can queue up to 30s (R1); 25s sits under Nginx's 60s read timeout
+// with buffer, but returns a fast-enough error when PostHog is genuinely down (D2).
+const ANALYTICS_SSR_TIMEOUT_MS = 25_000;
+const get = (path: string, since: string) =>
+  serverFetch<Row>(
+    `/admin/analytics/${path}?since=${since}`,
+    undefined,
+    { timeoutMs: ANALYTICS_SSR_TIMEOUT_MS },
+  );
 
 function resolveSince(raw: string | string[] | undefined): SinceRange {
   const value = Array.isArray(raw) ? raw[0] : raw;

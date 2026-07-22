@@ -11,10 +11,10 @@ vi.mock('recharts', () => {
   };
 });
 
-import KpiTile from '@/app/(admin)/admin/analytics/parts/KpiTile';
-import SparklineCard from '@/app/(admin)/admin/analytics/parts/SparklineCard';
-import FunnelBarChart from '@/app/(admin)/admin/analytics/parts/FunnelBarChart';
-import PieDistribution from '@/app/(admin)/admin/analytics/parts/PieDistribution';
+import KpiTile from '@/app/(admin)/admin/(app)/analytics/parts/KpiTile';
+import SparklineCard from '@/app/(admin)/admin/(app)/analytics/parts/SparklineCard';
+import FunnelBarChart from '@/app/(admin)/admin/(app)/analytics/parts/FunnelBarChart';
+import PieDistribution from '@/app/(admin)/admin/(app)/analytics/parts/PieDistribution';
 
 describe('analytics parts (smoke)', () => {
   it('KpiTile renders label, formatted value, and hint', () => {
