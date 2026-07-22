@@ -20,8 +20,8 @@ vi.mock('recharts', () => {
   };
 });
 
-import AdminAnalyticsClient from '@/app/(admin)/admin/analytics/AdminAnalyticsClient';
-import EmptyStateNotice from '@/app/(admin)/admin/analytics/parts/EmptyStateNotice';
+import AdminAnalyticsClient from '@/app/(admin)/admin/(app)/analytics/AdminAnalyticsClient';
+import EmptyStateNotice from '@/app/(admin)/admin/(app)/analytics/parts/EmptyStateNotice';
 
 const meta = { cachedAt: '2026-07-20T00:00:00.000Z', since: '7d' };
 const DATA: AdminAnalyticsData = {

@@ -54,14 +54,19 @@ export function serverApiUrl(path: string): string {
  * Fetch a backend `/api` path from server code with the caller's cookies forwarded.
  * `path` is the portion AFTER '/api' (e.g. '/seeker/me'), matching the client api
  * modules. Returns parsed JSON on 2xx; throws ServerFetchError otherwise. Aborts
- * after SERVER_FETCH_TIMEOUT_MS.
+ * after SERVER_FETCH_TIMEOUT_MS by default; pass `options.timeoutMs` to widen the
+ * budget for analytics-class endpoints (e.g. PostHog Query API, whose queue can hold
+ * a request up to 30s) where the 3s ceiling would spuriously time out.
  */
-export async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function serverFetch<T>(
+  path: string, init?: RequestInit, options?: { timeoutMs?: number },
+): Promise<T> {
+  const timeoutMs = options?.timeoutMs ?? SERVER_FETCH_TIMEOUT_MS;
   const cookieJar = await cookies();
   const cookieHeader = cookieJar.toString(); // C9: forward the whole jar; backend authorizes per route.
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SERVER_FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
     response = await fetch(serverApiUrl(path), {
@@ -79,7 +84,7 @@ export async function serverFetch<T>(path: string, init?: RequestInit): Promise<
     throw new ServerFetchError(
       504,
       aborted ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_UNAVAILABLE',
-      aborted ? `Upstream timed out after ${SERVER_FETCH_TIMEOUT_MS}ms` : (error instanceof Error ? error.message : 'Upstream unavailable'),
+      aborted ? `Upstream timed out after ${timeoutMs}ms` : (error instanceof Error ? error.message : 'Upstream unavailable'),
     );
   } finally {
     clearTimeout(timer);
