@@ -109,6 +109,8 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(ADMIN_ROUTES.EMPLOYER_ACCESS, 'Employer Access')}
           {renderNavLink(ADMIN_ROUTES.ANALYTICS, 'Analytics')}
+          {/* Literal path: ADMIN_ROUTES lives in routes.ts, outside this chunk's allowlist. */}
+          {renderNavLink('/admin/team', 'Team')}
         </nav>
 
         <div style={{ flex: 1 }} />
