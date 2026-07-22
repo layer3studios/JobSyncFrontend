@@ -87,8 +87,9 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
       WebkitBackdropFilter: 'saturate(180%) blur(20px)',
       borderBottom: '1px solid var(--border)',
     }}>
-      <div style={{
-        maxWidth: 1280, margin: '0 auto', padding: '12px 24px',
+      {/* Width matches the admin content container (max-w-[1536px]) so nav and page align. */}
+      <div className="mx-auto w-full max-w-[1536px]" style={{
+        padding: '12px clamp(16px, 3vw, 32px)',
         display: 'flex', alignItems: 'center', gap: 16, minHeight: 60,
       }}>
         <Link href={ADMIN_ROUTES.HOME} aria-label="Go to admin home" style={{ textDecoration: 'none', flexShrink: 0 }}>
@@ -128,6 +129,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
                 {(currentUser.name.trim()[0] ?? '?').toUpperCase()}
               </span>
               {currentUser.picture && (
+                // eslint-disable-next-line @next/next/no-img-element -- 36px avatar with onError fallback; next/image adds no value here
                 <img
                   src={currentUser.picture}
                   alt=""

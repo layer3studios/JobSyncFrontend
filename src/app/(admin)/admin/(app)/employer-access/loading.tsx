@@ -3,7 +3,7 @@ import { SkeletonLine } from '@/components/ui/Skeleton';
 
 export default function EmployerAccessLoading() {
   return (
-    <div className="container-lg" style={{ padding: '32px 16px' }}>
+    <div className="mx-auto w-full max-w-[1536px]" style={{ padding: '24px clamp(16px, 3vw, 32px)' }}>
       <SkeletonLine width="40%" height={30} style={{ marginBottom: 20 }} />
       <SkeletonLine height={60} style={{ borderRadius: 12, marginBottom: 20 }} />
       <div style={{ display: 'grid', gap: 8 }}>

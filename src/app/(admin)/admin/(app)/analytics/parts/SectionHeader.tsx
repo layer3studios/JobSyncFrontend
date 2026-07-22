@@ -19,7 +19,7 @@ export default function SectionHeader({ title, cachedAt }: { title: string; cach
   return (
     <div style={{
       display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-      gap: 12, flexWrap: 'wrap', marginBottom: 14, marginTop: 28,
+      gap: 12, flexWrap: 'wrap', marginBottom: 10, marginTop: 24,
     }}>
       <h2 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{title}</h2>
       <span style={{ fontSize: '0.75rem', color: 'var(--ink-faint)' }}>

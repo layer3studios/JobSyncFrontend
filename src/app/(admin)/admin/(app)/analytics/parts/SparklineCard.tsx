@@ -11,7 +11,7 @@ export default function SparklineCard({ title, data }: { title: string; data: Da
   return (
     <div style={{
       background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-      padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8,
+      padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>

@@ -12,12 +12,12 @@ export default function KpiTile({ label, value, hint }: Props) {
   return (
     <div style={{
       background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-      padding: '16px 18px', minWidth: 0,
+      padding: '12px 14px', minWidth: 0,
     }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {label}
       </div>
-      <div style={{ fontSize: '1.7rem', fontWeight: 700, color: 'var(--ink)', marginTop: 6, lineHeight: 1.1 }}>
+      <div style={{ fontSize: '1.7rem', fontWeight: 700, color: 'var(--ink)', marginTop: 4, lineHeight: 1.1 }}>
         {display}
       </div>
       {hint && <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 4 }}>{hint}</div>}
