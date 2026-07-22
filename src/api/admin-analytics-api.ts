@@ -74,7 +74,11 @@ async function getJson(endpoint: string, since: SinceRange | string): Promise<Ro
   if (!res.ok) {
     throw new AdminAnalyticsApiError(res.status, (body.code as string) ?? null, (body.error as string) || `Request failed (${res.status})`);
   }
-  return body;
+  // Backend envelope: { result: {...}, cachedAt, since }. Unwrap so normalizers see
+  // the fields at top-level. Defensive fallback: if `result` is absent, treat body
+  // itself as the payload (older callers, SSR path, or forward-compat).
+  const result = (body.result as Row | undefined) ?? body;
+  return { ...result, cachedAt: body.cachedAt, since: body.since };
 }
 
 export const fetchVolume = async (since: SinceRange | string): Promise<VolumeResponse> => normalizeVolume(await getJson('/volume', since));

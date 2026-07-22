@@ -27,12 +27,22 @@ type Row = Record<string, unknown>;
 // PostHog Query API can queue up to 30s (R1); 25s sits under Nginx's 60s read timeout
 // with buffer, but returns a fast-enough error when PostHog is genuinely down (D2).
 const ANALYTICS_SSR_TIMEOUT_MS = 25_000;
-const get = (path: string, since: string) =>
-  serverFetch<Row>(
+// Backend envelope: { result: {...}, cachedAt, since }. Unwrap so normalizers see
+// the fields at top-level. Mirrors the client-side unwrap in api/admin-analytics-api.ts
+// so SSR and client paths hand the same shape to the normalizers.
+const unwrap = (body: Row): Row => {
+  const result = (body.result as Row | undefined) ?? body;
+  return { ...result, cachedAt: body.cachedAt, since: body.since };
+};
+
+const get = async (path: string, since: string): Promise<Row> => {
+  const body = await serverFetch<Row>(
     `/admin/analytics/${path}?since=${since}`,
     undefined,
     { timeoutMs: ANALYTICS_SSR_TIMEOUT_MS },
   );
+  return unwrap(body);
+};
 
 function resolveSince(raw: string | string[] | undefined): SinceRange {
   const value = Array.isArray(raw) ? raw[0] : raw;
