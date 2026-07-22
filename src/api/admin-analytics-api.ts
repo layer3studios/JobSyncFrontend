@@ -7,7 +7,7 @@
 // names (day→date, device→type variance is absorbed here).
 import type {
   SinceRange, VolumeResponse, SeekerResponse, EmployerResponse,
-  EngagementResponse, TeamResponse, TrafficResponse,
+  EngagementResponse, TeamResponse, TrafficResponse, AdminAnalyticsData,
 } from '@/types/admin-analytics';
 
 const BASE = '/api/admin/analytics';
@@ -83,3 +83,15 @@ export const fetchEmployer = async (since: SinceRange | string): Promise<Employe
 export const fetchEngagement = async (since: SinceRange | string): Promise<EngagementResponse> => normalizeEngagement(await getJson('/engagement', since));
 export const fetchTeam = async (since: SinceRange | string): Promise<TeamResponse> => normalizeTeam(await getJson('/team', since));
 export const fetchTraffic = async (since: SinceRange | string): Promise<TrafficResponse> => normalizeTraffic(await getJson('/traffic', since));
+
+// Bundle wrapper for client-side range switching: fires all six in parallel and
+// assembles the same AdminAnalyticsData shape the SSR page produces. Bundle-level
+// success/failure — any rejection (AdminAnalyticsApiError) rejects the whole call;
+// AdminAnalyticsClient handles the fallback/Retry UX (D2).
+export async function fetchAllAnalyticsBundles(since: SinceRange): Promise<AdminAnalyticsData> {
+  const [volume, seeker, employer, engagement, team, traffic] = await Promise.all([
+    fetchVolume(since), fetchSeeker(since), fetchEmployer(since),
+    fetchEngagement(since), fetchTeam(since), fetchTraffic(since),
+  ]);
+  return { volume, seeker, employer, engagement, team, traffic };
+}

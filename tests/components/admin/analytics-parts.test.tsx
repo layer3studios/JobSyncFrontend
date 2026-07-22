@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 vi.mock('recharts', () => {
@@ -15,6 +15,7 @@ import KpiTile from '@/app/(admin)/admin/(app)/analytics/parts/KpiTile';
 import SparklineCard from '@/app/(admin)/admin/(app)/analytics/parts/SparklineCard';
 import FunnelBarChart from '@/app/(admin)/admin/(app)/analytics/parts/FunnelBarChart';
 import PieDistribution from '@/app/(admin)/admin/(app)/analytics/parts/PieDistribution';
+import TimeRangeSelector from '@/app/(admin)/admin/(app)/analytics/parts/TimeRangeSelector';
 
 describe('analytics parts (smoke)', () => {
   it('KpiTile renders label, formatted value, and hint', () => {
@@ -40,5 +41,34 @@ describe('analytics parts (smoke)', () => {
     expect(screen.getByText('By referrer')).toBeTruthy();
     rerender(<PieDistribution title="By device" data={[]} />);
     expect(screen.getByText('No data')).toBeTruthy();
+  });
+});
+
+describe('TimeRangeSelector', () => {
+  it('renders all ranges with the active one pressed', () => {
+    render(<TimeRangeSelector value="7d" onSelect={vi.fn()} />);
+    expect((screen.getByText('7 days') as HTMLButtonElement).getAttribute('aria-pressed')).toBe('true');
+    expect((screen.getByText('24h') as HTMLButtonElement).getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('clicking a different range calls onSelect with that value', () => {
+    const onSelect = vi.fn();
+    render(<TimeRangeSelector value="7d" onSelect={onSelect} />);
+    fireEvent.click(screen.getByText('24h'));
+    expect(onSelect).toHaveBeenCalledWith('24h');
+  });
+
+  it('clicking the currently-active range does not call onSelect', () => {
+    const onSelect = vi.fn();
+    render(<TimeRangeSelector value="7d" onSelect={onSelect} />);
+    fireEvent.click(screen.getByText('7 days'));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('isChanging disables every button', () => {
+    render(<TimeRangeSelector value="7d" onSelect={vi.fn()} isChanging />);
+    ['24h', '7 days', '30 days'].forEach((label) => {
+      expect((screen.getByText(label) as HTMLButtonElement).disabled).toBe(true);
+    });
   });
 });

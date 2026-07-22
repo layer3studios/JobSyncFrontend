@@ -75,5 +75,5 @@ export default async function AdminAnalyticsPage({
     throw error; // unexpected → error.tsx boundary
   }
 
-  return <AdminAnalyticsClient data={data} since={since} />;
+  return <AdminAnalyticsClient initialData={data} initialSince={since} />;
 }
