@@ -15,7 +15,7 @@ describe('serverFetch', () => {
   beforeEach(() => vi.unstubAllGlobals());
 
   it('forwards the whole cookie jar as a Cookie header and returns JSON on 2xx', async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(jsonResponse(200, { ok: true })));
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() => Promise.resolve(jsonResponse(200, { ok: true })));
     vi.stubGlobal('fetch', fetchMock);
 
     const data = await serverFetch<{ ok: boolean }>('/seeker/me');
@@ -27,7 +27,7 @@ describe('serverFetch', () => {
   });
 
   it('throws a typed ServerFetchError (status + code) on non-2xx', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(jsonResponse(401, { code: 'UNAUTHENTICATED', error: 'nope' }))));
+    vi.stubGlobal('fetch', vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() => Promise.resolve(jsonResponse(401, { code: 'UNAUTHENTICATED', error: 'nope' }))));
 
     const error = await serverFetch('/seeker/me').catch((caught) => caught);
     expect(error).toBeInstanceOf(ServerFetchError);
