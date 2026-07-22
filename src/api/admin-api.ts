@@ -83,12 +83,13 @@ export function removeWhitelistEntry(email: string): Promise<{ deleted: true }> 
 // fetch logic. All send credentials:'include' so the browser attaches jm_admin_token.
 
 /** POST /admin/auth/google → the signed-in admin. Throws AdminApiError on non-2xx. */
-export async function loginAdmin(idToken: string): Promise<AdminIdentity> {
+/** Sign in. `inviteToken` (invite-acceptance flow) activates a pending admin row. */
+export async function loginAdmin(idToken: string, inviteToken?: string): Promise<AdminIdentity> {
   const response = await fetch(apiUrl('/admin/auth/google'), {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify(inviteToken ? { idToken, inviteToken } : { idToken }),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
