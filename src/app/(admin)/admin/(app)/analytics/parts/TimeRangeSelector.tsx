@@ -1,8 +1,9 @@
 'use client';
-// FILE: src/app/(admin)/admin/analytics/parts/TimeRangeSelector.tsx
-// Segmented control for the dashboard time window. Changing the range pushes a new
-// ?since= to the URL, which re-runs the server component (C: no client-side refetch).
-import { useRouter, usePathname } from 'next/navigation';
+// FILE: src/app/(admin)/admin/(app)/analytics/parts/TimeRangeSelector.tsx
+// Segmented control for the dashboard time window. Selecting a range calls onSelect;
+// the parent (AdminAnalyticsClient) fetches client-side and caches per range. While a
+// fetch is in flight for the viewed range, isChanging disables the buttons (the active
+// one keeps its highlight so the user still sees what they picked).
 import type { SinceRange } from '@/types/admin-analytics';
 
 const RANGES: { value: SinceRange; label: string }[] = [
@@ -11,13 +12,16 @@ const RANGES: { value: SinceRange; label: string }[] = [
   { value: '30d', label: '30 days' },
 ];
 
-export default function TimeRangeSelector({ value }: { value: SinceRange }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
+export default function TimeRangeSelector({
+  value, onSelect, isChanging = false,
+}: {
+  value: SinceRange;
+  onSelect: (next: SinceRange) => void;
+  isChanging?: boolean;
+}) {
   const select = (next: SinceRange) => {
     if (next === value) return;
-    router.push(`${pathname}?since=${next}`);
+    onSelect(next);
   };
 
   return (
@@ -32,9 +36,12 @@ export default function TimeRangeSelector({ value }: { value: SinceRange }) {
             key={range.value}
             type="button"
             aria-pressed={active}
+            disabled={isChanging}
             onClick={() => select(range.value)}
             style={{
-              padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              padding: '6px 14px', borderRadius: 8, border: 'none',
+              cursor: isChanging ? 'not-allowed' : 'pointer',
+              opacity: isChanging ? 0.6 : 1,
               fontSize: '0.82rem', fontWeight: active ? 600 : 500,
               color: active ? 'var(--ink)' : 'var(--ink-muted)',
               background: active ? 'var(--surface)' : 'transparent',
