@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { Container, Card, Button, Stack } from '@/components/ui';
+import ApplySuccessTracker from '@/components/apply/ApplySuccessTracker';
 
 export const metadata: Metadata = {
   title: 'Application submitted',
@@ -16,13 +17,14 @@ export default async function ApplySuccessPage({
   params, searchParams,
 }: {
   params: Promise<{ companySlug: string; jobSlug: string }>;
-  searchParams: Promise<{ company?: string; job?: string }>;
+  searchParams: Promise<{ company?: string; job?: string; jid?: string }>;
 }) {
   const { companySlug } = await params;
-  const { company: companyName, job: jobTitle } = await searchParams;
+  const { company: companyName, job: jobTitle, jid: jobId } = await searchParams;
 
   return (
     <Container size="sm" style={{ paddingTop: 40, paddingBottom: 60 }}>
+      <ApplySuccessTracker companySlug={companySlug} jobId={jobId} />
       <Card variant="raised">
         <Stack gap={14} align="center">
           <CheckCircle2 size={44} color="var(--success)" aria-hidden />

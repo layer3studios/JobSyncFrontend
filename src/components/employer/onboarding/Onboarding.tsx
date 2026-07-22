@@ -13,6 +13,7 @@ import OnboardingForm from '@/components/employer/onboarding/OnboardingForm';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { createEmployerCompany, EmployerApiError } from '@/api/employer-api';
 import { slugifyCompanyName } from '@/utils/slugify-company';
+import { trackEvent } from '@/lib/analytics-events';
 
 const NETWORK_MESSAGE = 'Network error. Check your connection and try again.';
 const ALREADY_ONBOARDED_MESSAGE = 'This account already has a company. Redirecting…';
@@ -35,6 +36,9 @@ export default function EmployerOnboarding() {
   const [topError, setTopError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasOnboardedConflict, setHasOnboardedConflict] = useState(false);
+
+  // Company-setup screen reached.
+  useEffect(() => { trackEvent('onboarding_started', {}); }, []);
 
   // ALREADY_ONBOARDED on a stale tab: show the alert briefly, then bounce.
   useEffect(() => {
@@ -92,6 +96,7 @@ export default function EmployerOnboarding() {
         website: trimmedWebsite || undefined,
         retentionDays: retention,
       });
+      trackEvent('onboarding_completed', {});
       await refreshEmployerSession();
       router.replace('/employer');
     } catch (error) {

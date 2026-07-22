@@ -13,6 +13,8 @@ import { Button, Spinner, Alert, Stack } from '@/components/ui';
 import { TYPE } from '@/theme/tokens';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { resolveSafeNextPath } from '@/lib/safe-next-path';
+import { trackEvent } from '@/lib/analytics-events';
+import { getFromRoute } from '@/lib/from-route';
 
 const GOOGLE_ERROR_MESSAGE = 'Google sign-in failed. Please try again.';
 const NO_CREDENTIAL_MESSAGE = 'No sign-in credential was returned. Please try again.';
@@ -31,6 +33,9 @@ export default function EmployerLogin() {
   useEffect(() => {
     if (employerUser) router.replace(redirectTo);
   }, [employerUser, router, redirectTo]);
+
+  // Employer sign-in screen is the employer signup entry point.
+  useEffect(() => { trackEvent('employer_signup_started', { fromRoute: getFromRoute() }); }, []);
 
   const activeError = loginError ?? (googleError ? { kind: 'unknown' as const, message: googleError } : null);
 

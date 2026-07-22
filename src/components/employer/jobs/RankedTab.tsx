@@ -26,6 +26,7 @@ import BulkArchiveBar from '@/components/employer/jobs/BulkArchiveBar';
 import BulkArchiveDialog from '@/components/employer/jobs/BulkArchiveDialog';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canBulkArchive } from '@/lib/team-permissions';
+import { trackEvent } from '@/lib/analytics-events';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 const LOAD_ERROR_MESSAGE = 'Could not load applicants.';
@@ -49,7 +50,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const { showToast } = useToast();
   // Bulk archive is the only multi-select action here, so hide the selection UI
   // entirely when the viewer can't archive (D_impl_ui5_9). Backend still enforces.
-  const { viewerRole, viewerCanArchiveApplicants } = useEmployer();
+  const { viewerRole, viewerCanArchiveApplicants, company } = useEmployer();
   const allowArchive = viewerRole ? canBulkArchive(viewerRole, viewerCanArchiveApplicants) : true;
 
   const load = useCallback(async (activeSort: ApplicantSort) => {
@@ -94,6 +95,9 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     try {
       setIsSubmitting(true);
       const result = await bulkArchiveApplicants({ applicationIds: [...selectedIds], reasonId, note });
+      result.succeeded.forEach(({ id }) => trackEvent('applicant_archived', {
+        applicationId: id, postingId, companyId: company?.id ?? undefined, archiveReason: reasonId, isBulk: true,
+      }));
       const { variant, message, nextSelection } = summarizeBulkResult(result, selectedIds);
       showToast(variant, message);
       setSelectedIds(nextSelection);
