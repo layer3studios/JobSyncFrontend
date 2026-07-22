@@ -82,11 +82,16 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
     const fromStage = applicant.application.stageId;
     setByStage(moveApplicantInMap(byStage, applicant, targetStageId));
     const stageName = stages.find((stage) => stage.id === targetStageId)?.text ?? 'stage';
+    const fromStageName = stages.find((stage) => stage.id === fromStage)?.text ?? 'stage';
     try {
       await moveApplicant(applicant.application.id, { stageId: targetStageId });
       trackEvent('applicant_moved_stage', {
         applicationId: applicant.application.id, postingId, companyId: company?.id ?? undefined,
         fromStage, toStage: targetStageId, method: 'drag',
+      });
+      trackEvent('applicants_moved_stage', {
+        companyId: company?.id ?? '', applicantId: applicant.application.id, jobId: postingId,
+        fromStage: fromStageName, toStage: stageName,
       });
       showToast('success', `Moved to ${stageName}`);
     } catch {

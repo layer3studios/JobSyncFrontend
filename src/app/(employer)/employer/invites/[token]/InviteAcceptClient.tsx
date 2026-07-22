@@ -12,6 +12,7 @@ import { TYPE } from '@/theme/tokens';
 import { useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { acceptInvite, EmployerTeamApiError } from '@/api/employer-team-api';
+import { trackEvent } from '@/lib/analytics-events';
 import { roleLabel } from '@/lib/role-labels';
 import { formatRelativeExpiry } from '@/lib/relative-time';
 import type { InvitePreview } from '@/types/employer-team';
@@ -41,6 +42,13 @@ export default function InviteAcceptClient({ token, preview }: { token: string; 
     setMismatch(false);
     try {
       const result = await acceptInvite(token);
+      // companyId comes from the invite preview (C8) — the acceptor may have no company
+      // of their own yet. inviteId is omitted: neither the sanitized preview nor the
+      // accept response carries it (Chunk 2 contract), and the token must never be sent.
+      trackEvent('team_invite_accepted', {
+        companyId: preview.companyId,
+        role: (preview.role === 'founder' ? 'owner' : preview.role),
+      });
       showToast('success', result.alreadyMember ? "You're already a member" : `Joined ${preview.companyName}`);
       router.replace(result.redirectUrl || '/employer');
     } catch (error) {

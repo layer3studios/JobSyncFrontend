@@ -16,6 +16,7 @@ type ScoreDecile = number | 'unscored';
 type FilterType = 'search' | 'company' | 'role' | 'exp' | 'wp' | 'date' | 'entry' | 'newOnly' | 'hideApplied' | 'sort';
 type FilterAction = 'added' | 'removed';
 type InviteStatus = 'valid' | 'expired' | 'revoked' | 'accepted';
+type InvitableRoleName = 'owner' | 'member' | 'interviewer';
 
 // The single source of truth: event name → property shape. Adding/renaming a property
 // is a compile-time break at every call site (no `any`, no `unknown`).
@@ -61,6 +62,19 @@ export interface EventPropertyMap {
   member_role_changed: { fromRole: string; toRole: string; targetIsSelf: boolean };
   member_removed: { targetIsSelf: boolean };
   founder_transferred: Record<string, never>;
+  // Admin-analytics reconciliation events — the plural/team_-prefixed names the backend
+  // HogQL queries count (fix/analytics-event-name-reconciliation). They coexist with the
+  // legacy singular events above until those are retired.
+  // PII-safe: identifiers + enum only
+  applicants_viewed: { companyId: string; applicantId: string; jobId: string };
+  // PII-safe: identifiers + enum only
+  applicants_moved_stage: { companyId: string; applicantId: string; jobId: string; fromStage: string; toStage: string };
+  // PII-safe: identifiers + enum only (reasonId is an internal id — never the reason text)
+  applicants_archived: { companyId: string; applicantId: string; jobId: string; reasonId?: string };
+  // PII-safe: identifiers + enum only
+  team_invite_sent: { companyId: string; inviteId: string; role: InvitableRoleName; canMoveApplicants: boolean; canArchiveApplicants: boolean };
+  // PII-safe: identifiers + enum only (inviteId optional — the accept flow never sees it; C2 sanitizes)
+  team_invite_accepted: { companyId: string; inviteId?: string; role: InvitableRoleName };
 }
 
 export type AnalyticsEvent = keyof EventPropertyMap;
