@@ -88,3 +88,14 @@ export async function updateAdminRole(adminUserId: string, role: AdminRole): Pro
   });
   return body.admin;
 }
+
+/** Regenerate a pending invite's token + expiry; the old URL dies immediately. */
+export async function resendAdminInvite(adminUserId: string): Promise<AdminInvite> {
+  const body = await request<{ invite: AdminInvite }>(`/admin/team/${encodeURIComponent(adminUserId)}/resend-invite`, { method: 'POST' });
+  return body.invite;
+}
+
+/** Hard-delete a never-activated pending invite row. */
+export async function revokeAdminInvite(adminUserId: string): Promise<void> {
+  await request<{ adminUserId: string }>(`/admin/team/${encodeURIComponent(adminUserId)}/invite`, { method: 'DELETE' });
+}
