@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../ui';
-import { Group, Chips } from './DashboardFilterSheetParts';
+import { Group, Chips, MultiChips } from './DashboardFilterSheetParts';
+import { MAX_LOCATIONS, SALARY_MAX_LPA } from './dashboard/constants';
+import type { JobFacets } from './dashboard/useJobFacets';
 
 interface Option { value: string; label: string; }
 
@@ -14,16 +16,24 @@ interface Props {
   visibleJobsCount: number;
   clearAllFilters: () => void;
   roleCategoryFilter: string;
-  experienceBandFilter: string;
-  workplaceFilter: string;
+  experienceBandFilter: string[];
+  workplaceFilter: string[];
   dateFilter: string;
   roleOptions: Option[];
   experienceOptions: Option[];
   setRoleCategoryFilter: (v: string) => void;
-  setExperienceBandFilter: (v: string) => void;
-  setWorkplaceFilter: (v: string) => void;
+  setExperienceBandFilter: (v: string[]) => void;
+  setWorkplaceFilter: (v: string[]) => void;
   setDateFilter: (v: string) => void;
   setSp: (fn: (sp: URLSearchParams) => void) => void;
+  facets: JobFacets;
+  locationsFilter: string[];
+  setLocationsFilter: (v: string[]) => void;
+  techStackFilter: string[];
+  setTechStackFilter: (v: string[]) => void;
+  salaryMinFilter: string;
+  salaryMaxFilter: string;
+  setSalaryFilter: (min: string, max: string) => void;
 }
 
 export default function DashboardFilterSheet({
@@ -32,9 +42,36 @@ export default function DashboardFilterSheet({
   roleOptions, experienceOptions,
   setRoleCategoryFilter, setExperienceBandFilter, setWorkplaceFilter,
   setDateFilter, setSp,
+  facets, locationsFilter, setLocationsFilter,
+  techStackFilter, setTechStackFilter,
+  salaryMinFilter, salaryMaxFilter, setSalaryFilter,
 }: Props) {
   const [mounted, setMounted] = useState(isOpen);
   const [closing, setClosing] = useState(false);
+
+  // Salary committed on a short debounce to avoid a refetch per keystroke.
+  const [salMin, setSalMin] = useState(salaryMinFilter);
+  const [salMax, setSalMax] = useState(salaryMaxFilter);
+  useEffect(() => { setSalMin(salaryMinFilter); setSalMax(salaryMaxFilter); }, [salaryMinFilter, salaryMaxFilter]);
+  useEffect(() => {
+    if (salMin === salaryMinFilter && salMax === salaryMaxFilter) return;
+    const t = setTimeout(() => setSalaryFilter(salMin, salMax), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salMin, salMax]);
+
+  const clampLpa = (v: string) => {
+    if (v === '') return '';
+    const n = Math.max(0, Math.min(SALARY_MAX_LPA, Math.floor(Number(v) || 0)));
+    return String(n);
+  };
+
+  const salaryInputStyle = {
+    flex: 1, padding: '9px 12px', borderRadius: 9,
+    fontFamily: 'inherit', fontSize: '0.86rem',
+    background: 'var(--surface)', color: 'var(--ink)',
+    border: '1px solid var(--border-strong)', outline: 'none',
+  } as const;
 
   useEffect(() => {
     if (isOpen) { setMounted(true); setClosing(false); }
@@ -102,22 +139,29 @@ export default function DashboardFilterSheet({
             />
           </Group>
           <Group label="Experience">
-            <Chips
-              value={experienceBandFilter}
-              options={experienceOptions}
-              onChange={v => { setExperienceBandFilter(v); setSp(sp => { sp.set('exp', v); sp.delete('page'); }); }}
+            <MultiChips
+              values={experienceBandFilter}
+              options={experienceOptions.filter(o => o.value !== 'all')}
+              onToggle={band => setExperienceBandFilter(
+                experienceBandFilter.includes(band)
+                  ? experienceBandFilter.filter(b => b !== band)
+                  : [...experienceBandFilter, band],
+              )}
             />
           </Group>
-          <Group label="Workplace">
-            <Chips
-              value={workplaceFilter}
+          <Group label="Work mode">
+            <MultiChips
+              values={workplaceFilter}
               options={[
-                { value: 'all', label: 'All' },
                 { value: 'remote', label: 'Remote' },
                 { value: 'hybrid', label: 'Hybrid' },
                 { value: 'on-site', label: 'On-site' },
               ]}
-              onChange={v => { setWorkplaceFilter(v); setSp(sp => { sp.set('wp', v); sp.delete('page'); }); }}
+              onToggle={mode => setWorkplaceFilter(
+                workplaceFilter.includes(mode)
+                  ? workplaceFilter.filter(m => m !== mode)
+                  : [...workplaceFilter, mode],
+              )}
             />
           </Group>
           <Group label="Posted">
@@ -132,6 +176,50 @@ export default function DashboardFilterSheet({
               ]}
               onChange={v => { setDateFilter(v); setSp(sp => { sp.set('date', v); sp.delete('page'); }); }}
             />
+          </Group>
+          {facets.cities.length > 0 && (
+            <Group label={`Location${locationsFilter.length ? ` · ${locationsFilter.length}/${MAX_LOCATIONS}` : ''}`}>
+              <MultiChips
+                values={locationsFilter}
+                options={facets.cities.slice(0, 12).map(c => ({ value: c.city, label: c.city }))}
+                disabledWhenUnselected={locationsFilter.length >= MAX_LOCATIONS}
+                onToggle={city => setLocationsFilter(
+                  locationsFilter.includes(city)
+                    ? locationsFilter.filter(c => c !== city)
+                    : [...locationsFilter, city],
+                )}
+              />
+            </Group>
+          )}
+          {facets.techStack.length > 0 && (
+            <Group label="Tech stack">
+              <MultiChips
+                values={techStackFilter}
+                options={facets.techStack.slice(0, 18).map(t => ({ value: t.tag, label: t.tag }))}
+                onToggle={tag => setTechStackFilter(
+                  techStackFilter.includes(tag)
+                    ? techStackFilter.filter(t => t !== tag)
+                    : [...techStackFilter, tag],
+                )}
+              />
+            </Group>
+          )}
+          <Group label="Salary (₹ LPA)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number" inputMode="numeric" min={0} max={SALARY_MAX_LPA}
+                value={salMin} placeholder="Min"
+                onChange={e => setSalMin(clampLpa(e.target.value))}
+                style={salaryInputStyle}
+              />
+              <span style={{ color: 'var(--ink-muted)' }}>–</span>
+              <input
+                type="number" inputMode="numeric" min={0} max={SALARY_MAX_LPA}
+                value={salMax} placeholder="Max"
+                onChange={e => setSalMax(clampLpa(e.target.value))}
+                style={salaryInputStyle}
+              />
+            </div>
           </Group>
         </div>
 

@@ -7,6 +7,7 @@ import DashboardMobileFilters from '../DashboardMobileFilters';
 import DashboardFilterBar from '../DashboardFilterBar';
 import ActiveChips from './ActiveChips';
 import { ROLE_OPTIONS, EXPERIENCE_OPTIONS, desktopSelectStyle } from './constants';
+import type { JobFacets } from './useJobFacets';
 
 interface Props {
   isMobile: boolean;
@@ -19,20 +20,28 @@ interface Props {
   // Filters
   sel: string;
   roleCategoryFilter: string;
-  experienceBandFilter: string;
-  workplaceFilter: string;
+  experienceBandFilter: string[];
+  workplaceFilter: string[];
   dateFilter: string;
   entryLevelFilter: boolean;
   hideApplied: boolean;
   showNewOnly: boolean;
   newJobsCount: number;
   setRoleCategoryFilter: (v: string) => void;
-  setExperienceBandFilter: (v: string) => void;
-  setWorkplaceFilter: (v: string) => void;
+  setExperienceBandFilter: (v: string[]) => void;
+  setWorkplaceFilter: (v: string[]) => void;
   setDateFilter: (v: string) => void;
   setEntryLevelFilter: (v: boolean) => void;
   setHideApplied: (v: boolean) => void;
   setShowNewOnly: (v: boolean) => void;
+  facets: JobFacets;
+  locationsFilter: string[];
+  setLocationsFilter: (v: string[]) => void;
+  techStackFilter: string[];
+  setTechStackFilter: (v: string[]) => void;
+  salaryMinFilter: string;
+  salaryMaxFilter: string;
+  setSalaryFilter: (min: string, max: string) => void;
   // Chips
   activeFilters: { label: string; clear: () => void }[];
   onClearAllFilters: () => void;
@@ -77,6 +86,14 @@ export default function DashboardControls(p: Props) {
           setDateFilter={p.setDateFilter}
           setSel={() => { }} setCos={() => { }}
           setSp={p.setSp}
+          facets={p.facets}
+          locationsFilter={p.locationsFilter}
+          setLocationsFilter={p.setLocationsFilter}
+          techStackFilter={p.techStackFilter}
+          setTechStackFilter={p.setTechStackFilter}
+          salaryMinFilter={p.salaryMinFilter}
+          salaryMaxFilter={p.salaryMaxFilter}
+          setSalaryFilter={p.setSalaryFilter}
         />
       )}
       <ActiveChips filters={p.activeFilters} onClearAll={p.onClearAllFilters} />
