@@ -16,10 +16,25 @@ import type { IJob } from '../../../types';
 
 export const revalidate = 300;
 
+const JOBS_DESCRIPTION =
+  'All tech jobs from top Indian companies, updated daily. Filter by role, experience, salary, location, work mode and tech stack.';
+
 export const metadata: Metadata = {
   title: COPY.site.documentTitleJobs,
-  description: 'All tech jobs from top Indian companies, updated daily. Filter by role, experience and company.',
+  description: JOBS_DESCRIPTION,
+  // Filtered views live on query params; canonical keeps crawl equity on /jobs.
   alternates: { canonical: absoluteUrl('/jobs') },
+  openGraph: {
+    title: COPY.site.documentTitleJobs,
+    description: JOBS_DESCRIPTION,
+    url: absoluteUrl('/jobs'),
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: COPY.site.documentTitleJobs,
+    description: JOBS_DESCRIPTION,
+  },
 };
 
 export default async function JobsPage() {

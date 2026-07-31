@@ -6,6 +6,7 @@ import type { IJob } from '../../../types';
 import DashboardJobSheet from '../DashboardJobSheet';
 import DashboardFilterSheet from '../DashboardFilterSheet';
 import { ROLE_OPTIONS, EXPERIENCE_OPTIONS } from './constants';
+import type { JobFacets } from './useJobFacets';
 
 interface Props {
   // Job sheet
@@ -26,14 +27,22 @@ interface Props {
   visibleJobsCount: number;
   clearAllFilters: () => void;
   roleCategoryFilter: string;
-  experienceBandFilter: string;
-  workplaceFilter: string;
+  experienceBandFilter: string[];
+  workplaceFilter: string[];
   dateFilter: string;
   setRoleCategoryFilter: (v: string) => void;
-  setExperienceBandFilter: (v: string) => void;
-  setWorkplaceFilter: (v: string) => void;
+  setExperienceBandFilter: (v: string[]) => void;
+  setWorkplaceFilter: (v: string[]) => void;
   setDateFilter: (v: string) => void;
   setSp: (fn: (sp: URLSearchParams) => void) => void;
+  facets: JobFacets;
+  locationsFilter: string[];
+  setLocationsFilter: (v: string[]) => void;
+  techStackFilter: string[];
+  setTechStackFilter: (v: string[]) => void;
+  salaryMinFilter: string;
+  salaryMaxFilter: string;
+  setSalaryFilter: (min: string, max: string) => void;
 }
 
 export default function MobileSheets(p: Props) {
@@ -68,6 +77,14 @@ export default function MobileSheets(p: Props) {
         setWorkplaceFilter={p.setWorkplaceFilter}
         setDateFilter={p.setDateFilter}
         setSp={p.setSp}
+        facets={p.facets}
+        locationsFilter={p.locationsFilter}
+        setLocationsFilter={p.setLocationsFilter}
+        techStackFilter={p.techStackFilter}
+        setTechStackFilter={p.setTechStackFilter}
+        salaryMinFilter={p.salaryMinFilter}
+        salaryMaxFilter={p.salaryMaxFilter}
+        setSalaryFilter={p.setSalaryFilter}
       />
     </>
   );
