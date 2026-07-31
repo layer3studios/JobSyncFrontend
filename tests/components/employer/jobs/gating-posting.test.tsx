@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { ToastProvider } from '@/components/ui';
-import DetailSettings from '@/components/employer/jobs/DetailSettings';
+import PostingOverview from '@/components/employer/jobs/PostingOverview';
 import type { Posting } from '@/types/employer-jobs';
 
 let viewer: { company: { slug: string } | null; viewerRole: string | null };
@@ -14,24 +14,26 @@ const posting = {
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), postedAt: new Date().toISOString(),
 } as unknown as Posting;
 
-function renderSettings() {
-  return render(<ToastProvider><DetailSettings posting={posting} onReload={async () => {}} /></ToastProvider>);
+// Edit/Close moved from DetailSettings to the Overview tab (PostingOverview);
+// the gating contract is unchanged.
+function renderOverview() {
+  return render(<ToastProvider><PostingOverview posting={posting} onReload={async () => {}} /></ToastProvider>);
 }
 
-describe('DetailSettings posting gating', () => {
+describe('PostingOverview posting gating', () => {
   beforeEach(() => cleanup());
 
   it('hides Edit + Close posting for an Interviewer', () => {
     viewer = { company: { slug: 'acme' }, viewerRole: 'interviewer' };
-    renderSettings();
-    expect(screen.queryByText('Edit')).toBeNull();
+    renderOverview();
+    expect(screen.queryByLabelText('Edit posting')).toBeNull();
     expect(screen.queryByText('Close posting')).toBeNull();
   });
 
   it('shows Edit + Close posting for a Member', () => {
     viewer = { company: { slug: 'acme' }, viewerRole: 'member' };
-    renderSettings();
-    expect(screen.getByText('Edit')).toBeTruthy();
+    renderOverview();
+    expect(screen.getByLabelText('Edit posting')).toBeTruthy();
     expect(screen.getByText('Close posting')).toBeTruthy();
   });
 });

@@ -36,6 +36,17 @@ export function formatInterviewDateOnly(utcIso: string): string {
   return `${day} ${month} ${year}`;
 }
 
+/** e.g. "3:00 PM" — clock only, for rows already grouped under a date. */
+export function formatInterviewClockTime(utcIso: string): string {
+  return istParts(utcIso).time;
+}
+
+/** e.g. "Sat, 2 August 2026" — day-group heading (IST calendar day). */
+export function formatInterviewDayHeading(utcIso: string): string {
+  const { weekday, day, month, year } = istParts(utcIso);
+  return `${weekday.slice(0, 3)}, ${day} ${month} ${year}`;
+}
+
 /** e.g. "Mon 10 Aug, 3:00 PM IST" — for compact rows. */
 export function formatInterviewTimeShort(utcIso: string): string {
   const { weekday, day, month, time } = istParts(utcIso);

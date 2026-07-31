@@ -69,12 +69,13 @@ describe('InterviewSection role gating', () => {
     expect(screen.queryByText('Schedule interview')).toBeNull();
   });
 
-  it('member sees Send scheduling link only when defaults exist; disabled at zero pool', () => {
+  it('member: Send is disabled-with-pointer without defaults, enabled with pool, disabled at zero', () => {
     viewer = { viewerRole: 'member' };
     hookState = { interviews: [], activeInterview: null };
     pool = { hasDefaults: false, availableCount: 0 };
     renderSection();
-    expect(screen.queryByText('Send scheduling link')).toBeNull();
+    const noDefaults = screen.getByText('Send scheduling link').closest('button') as HTMLButtonElement;
+    expect(noDefaults.disabled).toBe(true);
     cleanup();
     pool = { hasDefaults: true, availableCount: 2 };
     renderSection();

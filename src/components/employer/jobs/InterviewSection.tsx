@@ -17,6 +17,13 @@ import { canScheduleInterview } from '@/lib/team-permissions';
 import ScheduleInterviewModal from './ScheduleInterviewModal';
 import InterviewCard from './InterviewCard';
 import CancelInterviewDialog from './CancelInterviewDialog';
+import PoolRescheduleDialog from './PoolRescheduleDialog';
+import type { Interview } from '@/types/employer-interviews';
+
+/** Pool interviews carry source 'pool'; older payloads lack the field, but a
+ *  pool interview is also the only kind with an empty proposedSlots. */
+const isPoolInterview = (interview: Interview): boolean =>
+  interview.source === 'pool' || interview.proposedSlots.length === 0;
 
 const CANCEL_ERROR = 'Could not cancel the interview. Please try again.';
 
@@ -35,6 +42,7 @@ export default function InterviewSection({
   const [sendingLink, setSendingLink] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [poolRescheduleOpen, setPoolRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -98,15 +106,24 @@ export default function InterviewSection({
           <InterviewCard
             interview={displayInterview}
             canManage={allowManage}
-            onReschedule={() => setRescheduleId(displayInterview.id)}
+            // Pool interviews reschedule via cancel + fresh link (no manual
+            // time entry); per-candidate ones keep the manual-slots modal.
+            onReschedule={() => (isPoolInterview(displayInterview)
+              ? setPoolRescheduleOpen(true)
+              : setRescheduleId(displayInterview.id))}
             onCancel={() => setCancelOpen(true)}
           />
         )}
         {!loading && !hasActiveInterview && allowManage && (
           <Stack dir="row" gap={8}>
-            {/* Pool fast-path (primary). Hidden entirely when defaults were
-                never configured — no error state, the button just isn't there. */}
-            {hasDefaults && (availableCount === 0 ? (
+            {/* Pool fast-path (primary). When defaults were never configured the
+                button shows disabled with a pointer to the settings tab — telling
+                the employer what to do instead of hiding the feature. */}
+            {!hasDefaults ? (
+              <Tooltip content="Set up interview scheduling on the posting settings tab.">
+                <Button size="sm" disabled>Send scheduling link</Button>
+              </Tooltip>
+            ) : availableCount === 0 ? (
               <Tooltip content="No available times — add more on the posting settings">
                 <Button size="sm" disabled>Send scheduling link</Button>
               </Tooltip>
@@ -119,9 +136,9 @@ export default function InterviewSection({
               >
                 Send scheduling link
               </Button>
-            ))}
+            )}
             {/* Manual escape hatch (secondary). */}
-            <Button variant={hasDefaults ? 'secondary' : 'primary'} size="sm" onClick={() => setScheduleOpen(true)}>Schedule interview</Button>
+            <Button variant="secondary" size="sm" onClick={() => setScheduleOpen(true)}>Schedule interview</Button>
           </Stack>
         )}
       </Stack>
@@ -147,6 +164,16 @@ export default function InterviewSection({
         onKeep={() => setCancelOpen(false)}
         onConfirm={(reason) => void handleConfirmCancel(reason)}
       />
+      {activeInterview && (
+        <PoolRescheduleDialog
+          open={poolRescheduleOpen}
+          interviewId={activeInterview.id}
+          applicationId={applicationId}
+          candidateFirstName={candidateFirstName}
+          onKeep={() => setPoolRescheduleOpen(false)}
+          onDone={() => { setPoolRescheduleOpen(false); void refetch(); void refetchPool(); }}
+        />
+      )}
     </Card>
   );
 }

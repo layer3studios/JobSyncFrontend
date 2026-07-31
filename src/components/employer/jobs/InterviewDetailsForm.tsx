@@ -1,8 +1,8 @@
 'use client';
-// FILE: src/components/employer/jobs/InterviewDefaultsForm.tsx
-// Inline defaults editor for pool scheduling (posting Settings tab). Not a
-// modal — matches the settings page's inline editing. Saving PUTs the defaults
-// and reports the saved shape up so the section can unlock the times manager.
+// FILE: src/components/employer/jobs/InterviewDetailsForm.tsx
+// Left-side interview details form (pool scheduling defaults): type, link/
+// phone/address, duration, its own Save. `meetingLinkInputId` lets the times
+// panel's "Change in details" jump straight to the link input.
 
 import { useState } from 'react';
 import { Button, Input, Textarea, Select, Radio, Stack, useToast } from '@/components/ui';
@@ -16,12 +16,13 @@ const MODE_OPTIONS = [
 ];
 const DURATION_OPTIONS = [15, 30, 45, 60, 90].map((minutes) => ({ value: String(minutes), label: `${minutes} minutes` }));
 
-export default function InterviewDefaultsForm({
-  postingId, initialDefaults, onSaved,
+export default function InterviewDetailsForm({
+  postingId, initialDefaults, onSaved, meetingLinkInputId,
 }: {
   postingId: string;
   initialDefaults: InterviewDefaults | null;
   onSaved: (defaults: InterviewDefaults) => void;
+  meetingLinkInputId?: string;
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<InterviewMode>(initialDefaults?.mode ?? 'video');
@@ -57,17 +58,13 @@ export default function InterviewDefaultsForm({
 
   return (
     <Stack gap={14}>
-      {!initialDefaults && (
-        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink-muted)' }}>
-          Set up your interview details to start using one-click scheduling.
-        </p>
-      )}
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8 }}>Interview type</legend>
         <Radio direction="horizontal" options={MODE_OPTIONS} value={mode} onChange={(value) => setMode(value as InterviewMode)} />
       </fieldset>
       {mode === 'video' && (
         <Input
+          id={meetingLinkInputId}
           label="Meeting link"
           placeholder="https://meet.google.com/..."
           hint="This link is shared with candidates after they confirm a time."
