@@ -13,6 +13,7 @@ import { useViewport } from './useViewport';
 import { useComeBack } from '../../../hooks/seeker/useComeBack';
 import { useDashboardJobs } from './useDashboardJobs';
 import { useDashboardFilters } from './useDashboardFilters';
+import { useJobFacets } from './useJobFacets';
 import DashboardControls from './DashboardControls';
 import DashboardBody from './DashboardBody';
 import MobileSheets from './MobileSheets';
@@ -43,7 +44,13 @@ export default function Dashboard() {
     workplaceFilter: f.workplaceFilter,
     dateFilter: f.dateFilter,
     debouncedSearch,
+    locationsFilter: f.locationsFilter,
+    techStackFilter: f.techStackFilter,
+    salaryMinFilter: f.salaryMinFilter,
+    salaryMaxFilter: f.salaryMaxFilter,
   });
+
+  const facets = useJobFacets();
 
   // Debounce search input → debouncedSearch → URL
   useEffect(() => {
@@ -142,6 +149,11 @@ export default function Dashboard() {
         hideApplied={f.hideApplied} setHideApplied={f.setHideApplied}
         showNewOnly={f.showNewOnly} setShowNewOnly={f.setShowNewOnly}
         newJobsCount={newJobsCount}
+        facets={facets}
+        locationsFilter={f.locationsFilter} setLocationsFilter={f.setLocationsFilter}
+        techStackFilter={f.techStackFilter} setTechStackFilter={f.setTechStackFilter}
+        salaryMinFilter={f.salaryMinFilter} salaryMaxFilter={f.salaryMaxFilter}
+        setSalaryFilter={f.setSalaryFilter}
         activeFilters={f.activeFilters}
         onClearAllFilters={f.clearAll}
         onOpenMobileFilters={() => setFilterSheetOpen(true)}
@@ -193,6 +205,11 @@ export default function Dashboard() {
           setWorkplaceFilter={f.setWorkplaceFilter}
           setDateFilter={f.setDateFilter}
           setSp={f.setSp}
+          facets={facets}
+          locationsFilter={f.locationsFilter} setLocationsFilter={f.setLocationsFilter}
+          techStackFilter={f.techStackFilter} setTechStackFilter={f.setTechStackFilter}
+          salaryMinFilter={f.salaryMinFilter} salaryMaxFilter={f.salaryMaxFilter}
+          setSalaryFilter={f.setSalaryFilter}
         />
       )}
     </Container>
