@@ -5,7 +5,7 @@ import { useId, useState } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 import { RADIUS, TYPE, MOTION } from '../../theme/tokens';
 
-export interface TabItem { id: string; label: string; content: ReactNode }
+export interface TabItem { id: string; label: ReactNode; content: ReactNode }
 
 export function Tabs({
   tabs, defaultTabId, onChange, variant = 'underline',

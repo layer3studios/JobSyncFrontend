@@ -15,6 +15,10 @@ export interface InterviewSlot {
 
 export interface Interview {
   id: string;
+  /** 'pool' when the candidate picks from the posting's availability pool.
+   *  Optional: the backend projection may not send it yet — pool interviews
+   *  are also identifiable by an empty proposedSlots. */
+  source?: 'pool' | 'manual' | null;
   applicationId: string | null;
   postingId: string | null;
   contactId: string | null;

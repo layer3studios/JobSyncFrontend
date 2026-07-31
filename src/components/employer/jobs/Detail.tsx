@@ -14,25 +14,43 @@ import {
 } from '@/components/ui';
 import type { TabItem } from '@/components/ui';
 import DetailSettings from '@/components/employer/jobs/DetailSettings';
+import PostingOverview from '@/components/employer/jobs/PostingOverview';
 import PipelineTab from '@/components/employer/jobs/PipelineTab';
 import RankedTab from '@/components/employer/jobs/RankedTab';
 import { getEmployerPosting, EmployerJobsApiError } from '@/api/employer-jobs-api';
+import { getInterviewTimeCount } from '@/api/employer-interview-times-api';
+import { Badge } from '@/components/ui';
 import type { Posting } from '@/types/employer-jobs';
 
 type LoadState = 'loading' | 'loaded' | 'error' | 'not_found';
 const LOAD_ERROR_MESSAGE = 'Could not load this posting.';
 
 // No magic strings for tab ids (C2) — shared with the ?tab query-param plumbing.
-const TAB_IDS = { SETTINGS: 'settings', PIPELINE: 'pipeline', RANKED: 'ranked' } as const;
+// Existing ?tab=pipeline / ?tab=ranked / ?tab=settings links stay valid.
+const TAB_IDS = { OVERVIEW: 'overview', SETTINGS: 'settings', PIPELINE: 'pipeline', RANKED: 'ranked' } as const;
 const VALID_TAB_IDS: string[] = Object.values(TAB_IDS);
+
+/** Settings tab label with a low-pool nudge: red "0", amber "1", nothing at 2+. */
+function settingsTabLabel(availableCount: number | null) {
+  if (availableCount === null || availableCount >= 2) return 'Settings';
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      Settings
+      <Badge variant={availableCount === 0 ? 'danger' : 'warning'}>{availableCount}</Badge>
+    </span>
+  );
+}
 
 export function PostingDetail({ postingId }: { postingId: string }) {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const defaultTabId = tabFromUrl && VALID_TAB_IDS.includes(tabFromUrl) ? tabFromUrl : TAB_IDS.SETTINGS;
+  // Overview first: the title + JD is what an employer expects on click-in;
+  // Pipeline and Ranked are one click away.
+  const defaultTabId = tabFromUrl && VALID_TAB_IDS.includes(tabFromUrl) ? tabFromUrl : TAB_IDS.OVERVIEW;
   const [posting, setPosting] = useState<Posting | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
+  const [availableCount, setAvailableCount] = useState<number | null>(null);
 
   const loadPosting = useCallback(async () => {
     if (!postingId) return;
@@ -52,6 +70,15 @@ export function PostingDetail({ postingId }: { postingId: string }) {
   }, [postingId]);
 
   useEffect(() => { void loadPosting(); }, [loadPosting]);
+
+  // Pool count feeds the Settings tab's low-availability badge. Best-effort:
+  // a failed load just means no badge.
+  useEffect(() => {
+    if (!postingId) return;
+    getInterviewTimeCount(postingId)
+      .then((count) => setAvailableCount(count.availableCount))
+      .catch(() => setAvailableCount(null));
+  }, [postingId]);
 
   function renderBody() {
     if (loadState === 'loading') return <SkeletonCard lines={4} />;
@@ -80,10 +107,13 @@ export function PostingDetail({ postingId }: { postingId: string }) {
       );
     }
 
+    // Overview (the JD) leads; Pipeline/Ranked are the working surfaces;
+    // Settings (rare configuration) sits last, with the low-pool badge.
     const tabs: TabItem[] = [
-      { id: TAB_IDS.SETTINGS, label: 'Settings', content: <DetailSettings posting={posting} onReload={loadPosting} /> },
+      { id: TAB_IDS.OVERVIEW, label: 'Overview', content: <PostingOverview posting={posting} onReload={loadPosting} /> },
       { id: TAB_IDS.PIPELINE, label: 'Pipeline', content: <PipelineTab postingId={posting.id} /> },
       { id: TAB_IDS.RANKED, label: 'Ranked', content: <RankedTab postingId={posting.id} /> },
+      { id: TAB_IDS.SETTINGS, label: settingsTabLabel(availableCount), content: <DetailSettings posting={posting} /> },
     ];
     return <Tabs tabs={tabs} defaultTabId={defaultTabId} />;
   }
