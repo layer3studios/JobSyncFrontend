@@ -75,6 +75,11 @@ export interface EventPropertyMap {
   team_invite_sent: { companyId: string; inviteId: string; role: InvitableRoleName; canMoveApplicants: boolean; canArchiveApplicants: boolean };
   // PII-safe: identifiers + enum only (inviteId optional — the accept flow never sees it; C2 sanitizes)
   team_invite_accepted: { companyId: string; inviteId?: string; role: InvitableRoleName };
+  // Funnel 7 — Candidate interview booking (public, unauthenticated). PII-safe:
+  // status/mode enums + slot position only — NEVER the booking token, the
+  // candidate's name, or a company id.
+  interview_booking_page_viewed: { status: string; mode?: string };
+  interview_slot_confirmed: { mode: string; slotIndex: number };
 }
 
 export type AnalyticsEvent = keyof EventPropertyMap;

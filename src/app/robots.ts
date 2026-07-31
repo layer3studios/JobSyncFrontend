@@ -19,6 +19,10 @@ export default function robots(): MetadataRoute.Robots {
         '/account/',
         '/login',
         '/apply/*/success',
+        // Booking tokens are live credentials — never crawled. The page ALSO
+        // exports noindex metadata: robots.txt alone cannot stop indexing of a
+        // URL linked from elsewhere.
+        '/interview/',
       ],
     },
     sitemap: absoluteUrl('/sitemap.xml'),

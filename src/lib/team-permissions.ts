@@ -86,6 +86,11 @@ export function canRescoreApplicant(currentRole: Role): boolean {
   return isMemberOrHigher(currentRole);
 }
 
+/** Frontend visibility only — backend enforces truth. Founder/Owner/Member may schedule, reschedule and cancel interviews. */
+export function canScheduleInterview(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
 /** Frontend visibility only — backend enforces truth. Only Founder/Owner may edit company settings. */
 export function canEditCompanySettings(currentRole: Role): boolean {
   return isOwnerOrHigher(currentRole);
