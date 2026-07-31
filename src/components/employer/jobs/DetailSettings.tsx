@@ -12,6 +12,7 @@ import { useEmployer } from '@/context/employer/EmployerContext';
 import { canEditPosting, canClosePosting } from '@/lib/team-permissions';
 import PostingForm from '@/components/employer/jobs/PostingForm';
 import PostingConfirmDialog from '@/components/employer/jobs/PostingConfirmDialog';
+import InterviewAvailabilitySection from '@/components/employer/jobs/InterviewAvailabilitySection';
 import type { ConfirmAction } from '@/components/employer/jobs/PostingConfirmDialog';
 import {
   updateEmployerPosting, closeEmployerPosting, reopenEmployerPosting, EmployerJobsApiError,
@@ -112,6 +113,7 @@ export default function DetailSettings({ posting, onReload }: {
     : null;
 
   return (
+    <Stack gap={16}>
     <Card>
       <Stack gap={18}>
         <Stack gap={8} dir="row" align="center" wrap>
@@ -166,5 +168,7 @@ export default function DetailSettings({ posting, onReload }: {
         onConfirm={handleConfirm}
       />
     </Card>
+    {allowEdit && <InterviewAvailabilitySection posting={posting} />}
+    </Stack>
   );
 }

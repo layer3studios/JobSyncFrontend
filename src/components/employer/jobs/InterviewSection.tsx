@@ -6,8 +6,11 @@
 // The backend 403s regardless; this gate only keeps the UI honest.
 
 import { useState } from 'react';
-import { Card, Button, Alert, Stack, useToast } from '@/components/ui';
+import { useParams } from 'next/navigation';
+import { Card, Button, Alert, Stack, Tooltip, useToast } from '@/components/ui';
 import { cancelInterview, EmployerInterviewsApiError } from '@/api/employer-interviews-api';
+import { sendPoolSchedulingLink, EmployerInterviewTimesApiError } from '@/api/employer-interview-times-api';
+import { useSchedulingPool } from './useSchedulingPool';
 import { useApplicantInterviews } from '@/hooks/employer/useApplicantInterviews';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canScheduleInterview } from '@/lib/team-permissions';
@@ -26,6 +29,10 @@ export default function InterviewSection({
   const { interviews, loading, error, refetch, activeInterview, hasActiveInterview } = useApplicantInterviews(applicationId);
   const { viewerRole } = useEmployer();
   const { showToast } = useToast();
+  const params = useParams<{ postingId: string }>();
+  const postingId = typeof params?.postingId === 'string' ? params.postingId : '';
+  const { hasDefaults, availableCount, refetchPool } = useSchedulingPool(postingId);
+  const [sendingLink, setSendingLink] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -41,6 +48,29 @@ export default function InterviewSection({
   function closeModals(): void {
     setScheduleOpen(false);
     setRescheduleId(null);
+  }
+
+  async function handleSendSchedulingLink(): Promise<void> {
+    if (sendingLink) return;
+    setSendingLink(true); setActionError(null);
+    try {
+      await sendPoolSchedulingLink(applicationId);
+      showToast('success', `Scheduling link sent to ${candidateFirstName}`);
+    } catch (caught) {
+      if (caught instanceof EmployerInterviewTimesApiError && caught.code === 'INTERVIEW_ALREADY_ACTIVE') {
+        showToast('error', 'An interview is already active for this applicant.');
+      } else if (caught instanceof EmployerInterviewTimesApiError && caught.code === 'NO_INTERVIEW_DEFAULTS') {
+        showToast('error', 'Set up interview details on the posting settings first.');
+      } else if (caught instanceof EmployerInterviewTimesApiError && caught.code === 'POOL_EMPTY') {
+        showToast('error', 'No available times remaining.');
+      } else {
+        showToast('error', 'Could not send the scheduling link. Try again.');
+      }
+    } finally {
+      setSendingLink(false);
+      await refetch();
+      await refetchPool();
+    }
   }
 
   async function handleConfirmCancel(cancelReason: string): Promise<void> {
@@ -73,7 +103,26 @@ export default function InterviewSection({
           />
         )}
         {!loading && !hasActiveInterview && allowManage && (
-          <div><Button size="sm" onClick={() => setScheduleOpen(true)}>Schedule interview</Button></div>
+          <Stack dir="row" gap={8}>
+            {/* Pool fast-path (primary). Hidden entirely when defaults were
+                never configured — no error state, the button just isn't there. */}
+            {hasDefaults && (availableCount === 0 ? (
+              <Tooltip content="No available times — add more on the posting settings">
+                <Button size="sm" disabled>Send scheduling link</Button>
+              </Tooltip>
+            ) : (
+              <Button
+                size="sm"
+                loading={sendingLink}
+                disabled={sendingLink}
+                onClick={() => void handleSendSchedulingLink()}
+              >
+                Send scheduling link
+              </Button>
+            ))}
+            {/* Manual escape hatch (secondary). */}
+            <Button variant={hasDefaults ? 'secondary' : 'primary'} size="sm" onClick={() => setScheduleOpen(true)}>Schedule interview</Button>
+          </Stack>
         )}
       </Stack>
 

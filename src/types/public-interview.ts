@@ -12,6 +12,14 @@ export interface PublicInterviewSlot {
   durationMinutes: number;
 }
 
+/** One pool time as the public GET exposes it — id + when, nothing else. */
+export interface PublicPoolTime {
+  id: string;
+  startAtUtc: string;
+  durationMinutes: number;
+  timezoneId: string;
+}
+
 /** GET payload for the booking page. */
 export interface CandidateBookingPage {
   id: string;
@@ -29,6 +37,9 @@ export interface CandidateBookingPage {
   companyLogoUrl: string | null;
   /** ISO string — lets the page state a real expiry date. */
   bookingTokenExpiresAt: string;
+  /** Pool interviews only: live bookable times (proposedSlots is empty then).
+   *  The booking page renders whichever of the two is non-empty. */
+  times?: PublicPoolTime[];
   /** Shown on the cancelled state when the employer gave one. */
   cancelReason: string | null;
 }

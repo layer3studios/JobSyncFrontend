@@ -89,6 +89,26 @@ export function InvalidState() {
   );
 }
 
+/** Pool interview whose times were all booked before this candidate chose. */
+export function AllTimesTakenState({
+  companyName, postingTitle,
+}: {
+  companyName: string | null;
+  postingTitle: string | null;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {companyName && <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--ink-muted)' }}>{companyName}</p>}
+      <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>
+        All available times{postingTitle ? ` for the ${postingTitle} role` : ' for this role'} have been taken
+      </h1>
+      <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)', lineHeight: 1.55 }}>
+        The team will reach out with new options.
+      </p>
+    </div>
+  );
+}
+
 export function CancelledState({
   companyName, cancelReason,
 }: {
