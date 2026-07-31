@@ -7,7 +7,7 @@
 import { apiUrl } from '../lib/api-base';
 import type {
   Applicant, ApplicantDetail, ApplicantNote, ResumeUrl, Stage, ArchiveReason,
-  ApplicantSort, BulkArchiveResult, RescoreResult,
+  ApplicantSort, BulkArchiveResult, RescoreResult, ApplicantFacets, SavedView,
 } from '../types/employer-applicants';
 
 export class EmployerApplicantsApiError extends Error {
@@ -53,13 +53,81 @@ const applicantPath = (applicationId: string) => `/employer/applicants/${encodeU
 
 export async function listApplicantsForPosting(
   postingId: string,
-  { sort }: { sort?: ApplicantSort } = {},
+  { sort, filters }: { sort?: ApplicantSort; filters?: Record<string, string> } = {},
 ): Promise<Applicant[]> {
-  const query = sort ? `?sort=${encodeURIComponent(sort)}` : '';
+  const params = new URLSearchParams();
+  if (sort) params.set('sort', sort);
+  for (const [key, value] of Object.entries(filters ?? {})) {
+    if (value) params.set(key, value);
+  }
+  const query = params.toString();
   const body = await request<{ applicants: Applicant[] }>(
-    `/employer/jobs/${encodeURIComponent(postingId)}/applicants${query}`,
+    `/employer/jobs/${encodeURIComponent(postingId)}/applicants${query ? `?${query}` : ''}`,
   );
   return body.applicants;
+}
+
+/** Filter facets (top skills + cities) scoped to one posting's applicant pool. */
+export async function fetchApplicantFacets(postingId: string): Promise<ApplicantFacets> {
+  return request<ApplicantFacets>(
+    `/employer/jobs/${encodeURIComponent(postingId)}/applicants/facets`,
+  );
+}
+
+// ─── Saved views (per-recruiter, per-posting) ────────────────────────
+// Listed once per page load and cached in-memory; mutations write through the
+// cache so chips update without a refetch.
+
+const savedViewsPath = (postingId: string) =>
+  `/employer/jobs/${encodeURIComponent(postingId)}/saved-views`;
+
+const savedViewsCache = new Map<string, SavedView[]>();
+
+export async function listSavedViews(postingId: string, { fresh = false } = {}): Promise<SavedView[]> {
+  if (!fresh && savedViewsCache.has(postingId)) return savedViewsCache.get(postingId)!;
+  const body = await request<{ views: SavedView[] }>(savedViewsPath(postingId));
+  savedViewsCache.set(postingId, body.views);
+  return body.views;
+}
+
+/** Throws EmployerApplicantsApiError with status 409 when the 10-view cap is hit. */
+export async function createSavedView(
+  postingId: string,
+  input: { name: string; filters: Record<string, unknown> },
+): Promise<SavedView> {
+  const body = await request<{ view: SavedView }>(savedViewsPath(postingId), {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  savedViewsCache.set(postingId, [body.view, ...(savedViewsCache.get(postingId) ?? [])]);
+  return body.view;
+}
+
+export async function updateSavedView(
+  postingId: string,
+  viewId: string,
+  input: { name?: string; filters?: Record<string, unknown> },
+): Promise<SavedView> {
+  const body = await request<{ view: SavedView }>(
+    `${savedViewsPath(postingId)}/${encodeURIComponent(viewId)}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+  );
+  savedViewsCache.set(
+    postingId,
+    (savedViewsCache.get(postingId) ?? []).map((view) => (view.id === viewId ? body.view : view)),
+  );
+  return body.view;
+}
+
+export async function deleteSavedView(postingId: string, viewId: string): Promise<void> {
+  await request<{ message: string }>(
+    `${savedViewsPath(postingId)}/${encodeURIComponent(viewId)}`,
+    { method: 'DELETE' },
+  );
+  savedViewsCache.set(
+    postingId,
+    (savedViewsCache.get(postingId) ?? []).filter((view) => view.id !== viewId),
+  );
 }
 
 export async function fetchApplicantDetail(applicationId: string): Promise<ApplicantDetail> {

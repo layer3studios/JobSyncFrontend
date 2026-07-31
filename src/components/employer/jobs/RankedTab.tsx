@@ -4,8 +4,9 @@
 // with client-side filtering and a floating bulk-archive bar. Chunk 5 hides the row
 // selection + bulk bar entirely when the viewer can't archive (D_impl_ui5_9).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card, Button, Alert, Stack, Select, EmptyState, SkeletonCard, useToast,
 } from '@/components/ui';
@@ -13,14 +14,20 @@ import { Table } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import {
   listApplicantsForPosting, listStages, listArchiveReasons,
-  bulkArchiveApplicants, EmployerApplicantsApiError,
+  bulkArchiveApplicants, fetchApplicantFacets, EmployerApplicantsApiError,
 } from '@/api/employer-applicants-api';
-import type { Applicant, ArchiveReason, Stage, ApplicantSort } from '@/types/employer-applicants';
+import type { Applicant, ApplicantFacets, ArchiveReason, SavedView, Stage, ApplicantSort } from '@/types/employer-applicants';
 import { formatRelativeTime } from '@/components/employer/jobs/applicant-view-helpers';
 import { summarizeBulkResult, resolveBulkErrorMessage } from '@/components/employer/jobs/ranked-bulk-helpers';
-import { filterRankedApplicants, createInitialRankedFilterState, toggleSetValue } from '@/components/employer/jobs/ranked-filter-helpers';
-import type { RankedFilterState } from '@/components/employer/jobs/ranked-filter-helpers';
+import {
+  filterRankedApplicants, createInitialRankedFilterState, toggleSetValue,
+  createInitialServerFilterState, isServerFilterActive, serverFiltersToQuery,
+  readServerFiltersFromSearchParams, writeServerFiltersToSearchParams,
+  serverFiltersToViewPayload, serverFiltersFromViewPayload,
+} from '@/components/employer/jobs/ranked-filter-helpers';
+import type { RankedFilterState, ServerFilterState } from '@/components/employer/jobs/ranked-filter-helpers';
 import RankedFilterBar from '@/components/employer/jobs/RankedFilterBar';
+import SavedViewsRow from '@/components/employer/jobs/SavedViewsRow';
 import ScoreCell from '@/components/employer/jobs/RankedScoreCell';
 import BulkArchiveBar from '@/components/employer/jobs/BulkArchiveBar';
 import BulkArchiveDialog from '@/components/employer/jobs/BulkArchiveDialog';
@@ -37,14 +44,25 @@ const SORT_OPTIONS = [
 ];
 
 export default function RankedTab({ postingId }: { postingId: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [reasons, setReasons] = useState<ArchiveReason[]>([]);
+  const [facets, setFacets] = useState<ApplicantFacets>({ skills: [], cities: [] });
   const [sort, setSort] = useState<ApplicantSort>('score');
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filterState, setFilterState] = useState<RankedFilterState>(createInitialRankedFilterState);
+  // Server-side advanced filters — initialized from the URL so a pasted link
+  // restores the exact filtered list (Chunk 1).
+  const [serverFilters, setServerFilters] = useState<ServerFilterState>(
+    () => readServerFiltersFromSearchParams(new URLSearchParams(searchParams?.toString() ?? '')),
+  );
+  const hasLoadedOnce = useRef(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
@@ -57,7 +75,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     setLoadState('loading');
     try {
       const [applicantsResult, stagesResult, reasonsResult] = await Promise.all([
-        listApplicantsForPosting(postingId, { sort: activeSort }),
+        listApplicantsForPosting(postingId, { sort: activeSort, filters: serverFiltersToQuery(serverFilters) }),
         listStages(),
         listArchiveReasons(),
       ]);
@@ -67,14 +85,48 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       // Prune selection to ids still present after a reload (hygiene, D5).
       const presentIds = new Set(applicantsResult.map((item) => item.application.id));
       setSelectedIds((prev) => new Set([...prev].filter((id) => presentIds.has(id))));
+      hasLoadedOnce.current = true;
       setLoadState('loaded');
     } catch (error) {
       setLastError(error instanceof EmployerApplicantsApiError ? error.message : LOAD_ERROR_MESSAGE);
       setLoadState('error');
     }
+  }, [postingId, serverFilters]);
+
+  // First load fires immediately; filter changes are debounced 300ms so rapid
+  // chip toggling collapses into one request.
+  useEffect(() => {
+    if (!hasLoadedOnce.current) { void load(sort); return; }
+    const timer = setTimeout(() => { void load(sort); }, 300);
+    return () => clearTimeout(timer);
+  }, [load, sort]);
+
+  // Facets (top skills + cities for this posting) — fetched once.
+  useEffect(() => {
+    let cancelled = false;
+    fetchApplicantFacets(postingId)
+      .then((result) => { if (!cancelled) setFacets(result); })
+      .catch(() => { /* facet rows simply don't render */ });
+    return () => { cancelled = true; };
   }, [postingId]);
 
-  useEffect(() => { void load(sort); }, [load, sort]);
+  // Keep the posting URL shareable: filter state → query params (tab etc. preserved).
+  const handleServerFiltersChange = useCallback((next: ServerFilterState) => {
+    setServerFilters(next);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    writeServerFiltersToSearchParams(next, params);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  // A saved view is "active" when its stored payload matches the live filters.
+  const activePayloadJson = JSON.stringify(serverFiltersToViewPayload(serverFilters));
+  const handleApplyView = useCallback((view: SavedView) => {
+    handleServerFiltersChange(serverFiltersFromViewPayload(view.filters));
+  }, [handleServerFiltersChange]);
+  const isViewActive = useCallback((view: SavedView) =>
+    JSON.stringify(serverFiltersToViewPayload(serverFiltersFromViewPayload(view.filters))) === activePayloadJson,
+  [activePayloadJson]);
 
   const handleToggleRow = (id: string) => setSelectedIds((prev) => toggleSetValue(prev, id));
   const filteredApplicants = useMemo(
@@ -146,7 +198,10 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     ) },
   ];
 
-  if (loadState === 'loading') return <SkeletonCard lines={5} />;
+  // Full skeleton only before the first load; refetches keep the table visible
+  // with a subtle dim (Chunk 1: no full-page spinner on filter change).
+  if (loadState === 'loading' && !hasLoadedOnce.current) return <SkeletonCard lines={5} />;
+  const isRefetching = loadState === 'loading';
   if (loadState === 'error') {
     return (
       <Alert type="error">
@@ -157,12 +212,21 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       </Alert>
     );
   }
-  if (applicants.length === 0) {
+  // Zero rows with no server filter → truly no applications. With filters
+  // active the empty state must offer a way out instead of a dead end.
+  if (applicants.length === 0 && !isServerFilterActive(serverFilters)) {
     return <EmptyState title="No applications yet" description="Share your apply URL to start receiving applications." />;
   }
 
   return (
     <Stack gap={12}>
+      <SavedViewsRow
+        postingId={postingId}
+        isViewActive={isViewActive}
+        canSave={isServerFilterActive(serverFilters)}
+        onApply={handleApplyView}
+        onSaveCurrent={() => serverFiltersToViewPayload(serverFilters)}
+      />
       <Stack gap={16} dir="row" align="center" wrap>
         <div style={{ maxWidth: 240 }}>
           <Select aria-label="Sort applicants" value={sort} options={SORT_OPTIONS} onChange={(event) => setSort(event.target.value as ApplicantSort)} />
@@ -178,13 +242,21 @@ export default function RankedTab({ postingId }: { postingId: string }) {
           </label>
         )}
       </Stack>
-      <RankedFilterBar value={filterState} stages={stages} onChange={setFilterState} />
+      <RankedFilterBar
+        value={filterState} stages={stages} onChange={setFilterState}
+        serverValue={serverFilters} facets={facets} onServerChange={handleServerFiltersChange}
+      />
       {filteredApplicants.length === 0 ? (
         <EmptyState title="No applicants match these filters"
           description="Try a different search term, or clear the filters to see everyone."
-          action={{ label: 'Clear filters', onClick: () => setFilterState(createInitialRankedFilterState()) }} />
+          action={{ label: 'Clear filters', onClick: () => {
+            setFilterState(createInitialRankedFilterState());
+            handleServerFiltersChange(createInitialServerFilterState());
+          } }} />
       ) : (
-        <Card padding="sm"><Table columns={columns} data={filteredApplicants} /></Card>
+        <div style={{ opacity: isRefetching ? 0.55 : 1, transition: 'opacity 0.15s ease' }} aria-busy={isRefetching}>
+          <Card padding="sm"><Table columns={columns} data={filteredApplicants} /></Card>
+        </div>
       )}
       {allowArchive && (
         <>
