@@ -8,9 +8,8 @@
 // crawling but not indexing of an externally-linked URL; the meta tag is what
 // actually prevents listing. This route must never enter sitemap.ts.
 import type { Metadata } from 'next';
-import { publicServerFetch } from '@/lib/public-server-fetch';
-import { ServerFetchError } from '@/lib/server-fetch';
-import type { CandidateBookingPage } from '@/types/public-interview';
+import { serverApiUrl } from '@/lib/server-fetch';
+import type { CandidateBookingPage, PublicInterviewErrorBody } from '@/types/public-interview';
 import InterviewBookingClient from '@/components/interview/InterviewBookingClient';
 import InterviewPageTracker from '@/components/interview/InterviewPageTracker';
 import { ExpiredState, InvalidState } from '@/components/interview/InterviewBookingStates';
@@ -25,20 +24,24 @@ export const metadata: Metadata = {
 
 type LoadResult =
   | { kind: 'ok'; page: CandidateBookingPage }
-  | { kind: 'expired' }
+  | { kind: 'expired'; companyName: string | null }
   | { kind: 'invalid' };
 
+// Own fetch rather than publicServerFetch: the 410 body carries the company
+// name inside its error object, and ServerFetchError discards response bodies.
+// no-store matches revalidate 0 — booking state must always be fresh.
 async function loadBookingPage(bookingToken: string): Promise<LoadResult> {
-  try {
-    const body = await publicServerFetch<{ data: CandidateBookingPage }>(
-      `/public/interviews/${encodeURIComponent(bookingToken)}`, 0,
-    );
-    return { kind: 'ok', page: body.data };
-  } catch (error) {
-    if (error instanceof ServerFetchError && error.status === 410) return { kind: 'expired' };
-    if (error instanceof ServerFetchError && error.status === 404) return { kind: 'invalid' };
-    throw error;
+  const response = await fetch(
+    serverApiUrl(`/public/interviews/${encodeURIComponent(bookingToken)}`),
+    { cache: 'no-store' },
+  );
+  const body: unknown = await response.json().catch(() => ({}));
+  if (response.ok) return { kind: 'ok', page: (body as { data: CandidateBookingPage }).data };
+  if (response.status === 410) {
+    return { kind: 'expired', companyName: (body as PublicInterviewErrorBody)?.error?.companyName ?? null };
   }
+  if (response.status === 404) return { kind: 'invalid' };
+  throw new Error(`Booking page fetch failed (${response.status})`);
 }
 
 const CONTAINER_STYLE = { maxWidth: 560, width: '100%', margin: '0 auto', padding: '32px 16px' };
@@ -53,7 +56,7 @@ export default async function InterviewBookingPage(
     return (
       <div style={CONTAINER_STYLE}>
         <InterviewPageTracker status="expired" />
-        <ExpiredState companyName={null} />
+        <ExpiredState companyName={result.companyName} />
       </div>
     );
   }

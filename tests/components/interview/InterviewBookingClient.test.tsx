@@ -31,6 +31,7 @@ function pageData(overrides: Partial<CandidateBookingPage> = {}): CandidateBooki
     selectedSlotIndex: null, startAtUtc: null, timezoneId: 'Asia/Kolkata',
     durationMinutes: 45, mode: 'video', locationText: null,
     companyName: 'Acme', postingTitle: 'Backend Engineer', companyLogoUrl: null,
+    bookingTokenExpiresAt: '2030-08-07T09:30:00.000Z', cancelReason: null,
     ...overrides,
   };
 }

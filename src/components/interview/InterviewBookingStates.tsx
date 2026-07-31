@@ -89,10 +89,22 @@ export function InvalidState() {
   );
 }
 
-export function CancelledState({ companyName }: { companyName: string | null }) {
+export function CancelledState({
+  companyName, cancelReason,
+}: {
+  companyName: string | null;
+  cancelReason: string | null;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>This interview was cancelled</h1>
+      {/* Untrusted employer text — rendered as text (React escapes), never HTML.
+          When null, nothing renders: silence reads better than "No reason given". */}
+      {cancelReason && (
+        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)', lineHeight: 1.55 }}>
+          Reason given: {cancelReason}
+        </p>
+      )}
       <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)', lineHeight: 1.55 }}>
         {companyName ? `${companyName} has` : 'The company has'} cancelled this interview. If you have questions, contact them by replying to their email.
       </p>

@@ -5,21 +5,24 @@
 // (these routes envelope errors as { error: { code, message } }).
 
 import { apiUrl } from '../lib/api-base';
-import type { CandidateBookingPage, CandidateBookedInterview } from '../types/public-interview';
+import type {
+  CandidateBookingPage, CandidateBookedInterview, PublicInterviewErrorBody,
+} from '../types/public-interview';
 
 export class PublicInterviewsApiError extends Error {
   status: number;
   code: string | null;
+  /** Present on 410 responses only — who the candidate should contact. */
+  companyName: string | null;
 
-  constructor(status: number, code: string | null, message: string) {
+  constructor(status: number, code: string | null, message: string, companyName: string | null = null) {
     super(message);
     this.name = 'PublicInterviewsApiError';
     this.status = status;
     this.code = code;
+    this.companyName = companyName;
   }
 }
-
-interface PublicErrorBody { error?: { code?: string; message?: string } }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), {
@@ -28,11 +31,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const body: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const errorBody = body as PublicErrorBody;
+    const errorBody = body as PublicInterviewErrorBody;
     throw new PublicInterviewsApiError(
       response.status,
       errorBody?.error?.code ?? null,
       errorBody?.error?.message ?? `Request failed (${response.status})`,
+      errorBody?.error?.companyName ?? null,
     );
   }
   return body as T;

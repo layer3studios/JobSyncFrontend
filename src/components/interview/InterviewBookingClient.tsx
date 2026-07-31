@@ -9,6 +9,7 @@ import { Button } from '@/components/ui';
 import { bookInterviewSlot, fetchBookingPage, PublicInterviewsApiError } from '@/api/public-interviews-api';
 import type { CandidateBookingPage } from '@/types/public-interview';
 import { trackEvent } from '@/lib/analytics-events';
+import { formatInterviewDateOnly } from '@/utils/format-interview-time';
 import InterviewSlotPicker from './InterviewSlotPicker';
 import {
   BookingPageHeader, ConfirmedState, ExpiredState, InvalidState, CancelledState, describeInterview,
@@ -33,6 +34,13 @@ export default function InterviewBookingClient({
   const [terminal, setTerminal] = useState<TerminalView>(null);
   const [slotErrorIndex, setSlotErrorIndex] = useState<number | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [expiredCompanyName, setExpiredCompanyName] = useState<string | null>(null);
+
+  // Real date when the payload carries a parseable expiry; vague copy otherwise
+  // — never "Invalid Date".
+  const expiryDate = initial.bookingTokenExpiresAt && !Number.isNaN(new Date(initial.bookingTokenExpiresAt).getTime())
+    ? formatInterviewDateOnly(initial.bookingTokenExpiresAt)
+    : null;
 
   async function refetchAfterConflict(): Promise<void> {
     try {
@@ -56,7 +64,7 @@ export default function InterviewBookingClient({
     } catch (caught) {
       if (caught instanceof PublicInterviewsApiError) {
         if (caught.status === 409) await refetchAfterConflict();
-        else if (caught.status === 410) setTerminal('expired');
+        else if (caught.status === 410) { setExpiredCompanyName(caught.companyName); setTerminal('expired'); }
         else if (caught.status === 404) setTerminal('invalid');
         else if (caught.code === 'SLOT_TOO_SOON') setSlotErrorIndex(selectedIndex);
         else if (caught.status === 429) setGlobalError(RATE_LIMIT_MESSAGE);
@@ -69,7 +77,7 @@ export default function InterviewBookingClient({
     }
   }
 
-  if (terminal === 'expired') return <ExpiredState companyName={page.companyName} />;
+  if (terminal === 'expired') return <ExpiredState companyName={expiredCompanyName ?? page.companyName} />;
   if (terminal === 'invalid') return <InvalidState />;
 
   const confirmedTime = justBookedAtUtc ?? page.startAtUtc;
@@ -86,7 +94,7 @@ export default function InterviewBookingClient({
       </div>
     );
   }
-  if (page.status === 'cancelled') return <CancelledState companyName={page.companyName} />;
+  if (page.status === 'cancelled') return <CancelledState companyName={page.companyName} cancelReason={page.cancelReason} />;
   if (page.status !== 'proposed') return <InvalidState />;
 
   return (
@@ -127,7 +135,8 @@ export default function InterviewBookingClient({
           Confirm this time
         </Button>
         <p style={{ margin: '10px 0 0', fontSize: '0.8rem', color: 'var(--ink-muted)', textAlign: 'center' }}>
-          You&apos;ll receive a calendar invitation by email. This link expires if unused.
+          You&apos;ll receive a calendar invitation by email.{' '}
+          {expiryDate ? `This link expires on ${expiryDate}.` : 'This link expires if unused.'}
         </p>
       </div>
     </div>
