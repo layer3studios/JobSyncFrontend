@@ -12,9 +12,11 @@ import { useEffect, useState } from 'react';
 import { Button, Input, Stack, Switch } from '@/components/ui';
 import {
   createInitialRankedFilterState, isRankedFilterActive, toggleSetValue, SCORE_FILTER_VALUES,
+  createInitialServerFilterState, isServerFilterActive,
+  EXPERIENCE_BUCKET_OPTIONS, APPLIED_WITHIN_OPTIONS,
 } from '@/components/employer/jobs/ranked-filter-helpers';
-import type { RankedFilterState, ScoreFilterValue } from '@/components/employer/jobs/ranked-filter-helpers';
-import type { Stage } from '@/types/employer-applicants';
+import type { RankedFilterState, ScoreFilterValue, ServerFilterState, AppliedWithin } from '@/components/employer/jobs/ranked-filter-helpers';
+import type { Stage, ApplicantFacets } from '@/types/employer-applicants';
 
 const SEARCH_DEBOUNCE_MILLISECONDS = 200;
 const SEARCH_PLACEHOLDER = 'Search name or email';
@@ -62,10 +64,13 @@ function ChipRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-export default function RankedFilterBar({ value, stages, onChange }: {
+export default function RankedFilterBar({ value, stages, onChange, serverValue, facets, onServerChange }: {
   value: RankedFilterState;
   stages: Stage[];
   onChange: (next: RankedFilterState) => void;
+  serverValue: ServerFilterState;
+  facets: ApplicantFacets;
+  onServerChange: (next: ServerFilterState) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(value.searchText);
 
@@ -93,7 +98,13 @@ export default function RankedFilterBar({ value, stages, onChange }: {
   const handleClearFilters = () => {
     setLocalSearch('');
     onChange(createInitialRankedFilterState());
+    onServerChange(createInitialServerFilterState());
   };
+
+  const toggleServerSet = (key: 'experience' | 'skills' | 'locations', item: string) =>
+    onServerChange({ ...serverValue, [key]: toggleSetValue(serverValue[key], item) });
+
+  const anyFilterActive = isRankedFilterActive(value) || isServerFilterActive(serverValue);
 
   return (
     <Stack gap={10}>
@@ -108,7 +119,15 @@ export default function RankedFilterBar({ value, stages, onChange }: {
           label="Include archived" checked={value.includeArchived}
           onChange={(checked) => onChange({ ...value, includeArchived: checked })}
         />
-        {isRankedFilterActive(value) && (
+        <Switch
+          label="Has resume" checked={serverValue.hasResume}
+          onChange={(checked) => onServerChange({ ...serverValue, hasResume: checked })}
+        />
+        <Switch
+          label="Has notes" checked={serverValue.hasNotes}
+          onChange={(checked) => onServerChange({ ...serverValue, hasNotes: checked })}
+        />
+        {anyFilterActive && (
           <div style={{ marginLeft: 'auto' }}>
             <Button variant="ghost" size="sm" onClick={handleClearFilters}>Clear filters</Button>
           </div>
@@ -133,6 +152,53 @@ export default function RankedFilterBar({ value, stages, onChange }: {
             key={scoreValue} label={SCORE_CHIP_LABEL[scoreValue]} accent={CHIP_COLOR[scoreValue]}
             isActive={value.scoreValues.has(scoreValue)}
             onToggle={() => handleToggleScore(scoreValue)}
+          />
+        ))}
+      </ChipRow>
+
+      <ChipRow label="Exp">
+        {EXPERIENCE_BUCKET_OPTIONS.map((option) => (
+          <FilterChip
+            key={option.value} label={option.label} accent="var(--accent)"
+            isActive={serverValue.experience.has(option.value)}
+            onToggle={() => toggleServerSet('experience', option.value)}
+          />
+        ))}
+      </ChipRow>
+
+      {facets.skills.length > 0 && (
+        <ChipRow label="Skills">
+          {facets.skills.map((facet) => (
+            <FilterChip
+              key={facet.skill} label={`${facet.skill} (${facet.count})`} accent="var(--accent)"
+              isActive={serverValue.skills.has(facet.skill)}
+              onToggle={() => toggleServerSet('skills', facet.skill)}
+            />
+          ))}
+        </ChipRow>
+      )}
+
+      {facets.cities.length > 0 && (
+        <ChipRow label="City">
+          {facets.cities.map((facet) => (
+            <FilterChip
+              key={facet.city} label={`${facet.city} (${facet.count})`} accent="var(--accent)"
+              isActive={serverValue.locations.has(facet.city)}
+              onToggle={() => toggleServerSet('locations', facet.city)}
+            />
+          ))}
+        </ChipRow>
+      )}
+
+      <ChipRow label="Applied">
+        {APPLIED_WITHIN_OPTIONS.map((option) => (
+          <FilterChip
+            key={option.value} label={option.label} accent="var(--accent)"
+            isActive={serverValue.appliedWithin === option.value}
+            onToggle={() => onServerChange({
+              ...serverValue,
+              appliedWithin: (serverValue.appliedWithin === option.value ? 'all' : option.value) as AppliedWithin,
+            })}
           />
         ))}
       </ChipRow>

@@ -148,3 +148,18 @@ export interface BulkArchiveResult {
   successCount: number;
   failureCount: number;
 }
+
+/** Filter facets scoped to one posting's applicant pool (Chunk 1). */
+export interface ApplicantFacets {
+  skills: Array<{ skill: string; count: number }>;
+  cities: Array<{ city: string; count: number }>;
+}
+
+/** A recruiter's saved filter combination for one posting (per-user, not shared). */
+export interface SavedView {
+  id: string;
+  name: string;
+  filters: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
