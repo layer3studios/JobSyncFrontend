@@ -9,6 +9,12 @@ import type { Interview } from '@/types/employer-interviews';
 
 let viewer: { viewerRole: string | null };
 vi.mock('@/context/employer/EmployerContext', () => ({ useEmployer: () => viewer }));
+vi.mock('next/navigation', () => ({ useParams: () => ({ postingId: 'p1' }) }));
+
+let pool: { hasDefaults: boolean; availableCount: number };
+vi.mock('@/components/employer/jobs/useSchedulingPool', () => ({
+  useSchedulingPool: () => ({ ...pool, refetchPool: async () => {} }),
+}));
 
 let hookState: { interviews: Interview[]; activeInterview: Interview | null };
 vi.mock('@/hooks/employer/useApplicantInterviews', () => ({
@@ -42,6 +48,7 @@ function renderSection() {
 
 describe('InterviewSection role gating', () => {
   it('interviewer sees no Schedule button; a member does', () => {
+    pool = { hasDefaults: false, availableCount: 0 };
     viewer = { viewerRole: 'interviewer' };
     hookState = { interviews: [], activeInterview: null };
     renderSection();
@@ -53,7 +60,35 @@ describe('InterviewSection role gating', () => {
     expect(screen.getByText('Schedule interview')).toBeTruthy();
   });
 
+  it('interviewer sees neither Send scheduling link nor Schedule interview', () => {
+    pool = { hasDefaults: true, availableCount: 3 };
+    viewer = { viewerRole: 'interviewer' };
+    hookState = { interviews: [], activeInterview: null };
+    renderSection();
+    expect(screen.queryByText('Send scheduling link')).toBeNull();
+    expect(screen.queryByText('Schedule interview')).toBeNull();
+  });
+
+  it('member sees Send scheduling link only when defaults exist; disabled at zero pool', () => {
+    viewer = { viewerRole: 'member' };
+    hookState = { interviews: [], activeInterview: null };
+    pool = { hasDefaults: false, availableCount: 0 };
+    renderSection();
+    expect(screen.queryByText('Send scheduling link')).toBeNull();
+    cleanup();
+    pool = { hasDefaults: true, availableCount: 2 };
+    renderSection();
+    const enabled = screen.getByText('Send scheduling link').closest('button') as HTMLButtonElement;
+    expect(enabled.disabled).toBe(false);
+    cleanup();
+    pool = { hasDefaults: true, availableCount: 0 };
+    renderSection();
+    const disabled = screen.getByText('Send scheduling link').closest('button') as HTMLButtonElement;
+    expect(disabled.disabled).toBe(true);
+  });
+
   it('interviewer sees no Reschedule or Cancel on an existing interview', () => {
+    pool = { hasDefaults: true, availableCount: 3 };
     viewer = { viewerRole: 'interviewer' };
     hookState = { interviews: [scheduledInterview], activeInterview: scheduledInterview };
     renderSection();

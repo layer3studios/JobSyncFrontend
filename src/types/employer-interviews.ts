@@ -37,6 +37,35 @@ export interface Interview {
   createdAt: string;
 }
 
+/** Posting-level interview configuration for pool scheduling. */
+export interface InterviewDefaults {
+  meetingUrl: string | null;
+  durationMinutes: number;
+  mode: InterviewMode;
+  locationText: string | null;
+  timezoneId: string;
+}
+
+export type InterviewTimeStatus = 'available' | 'booked' | 'cancelled' | 'past';
+
+/** One bookable pool time (employer view — snapshots included). */
+export interface InterviewTime {
+  id: string;
+  startAtUtc: string;
+  durationMinutes: number;
+  timezoneId: string;
+  status: InterviewTimeStatus;
+  mode: InterviewMode;
+  meetingUrl: string | null;
+  locationText: string | null;
+  bookedByApplicationId: string | null;
+  bookedAt: string | null;
+}
+
+export interface InterviewTimeCount {
+  availableCount: number;
+}
+
 export interface ProposeInterviewInput {
   proposedSlots: InterviewSlot[];
   durationMinutes: number;

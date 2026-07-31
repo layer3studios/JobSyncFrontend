@@ -49,13 +49,15 @@ export async function fetchBookingPage(bookingToken: string): Promise<CandidateB
   return body.data;
 }
 
+/** Body shape depends on the interview flow: { slotIndex } for per-candidate
+ *  interviews, { timeId } for pool interviews. Exactly one must be given. */
 export async function bookInterviewSlot(
   bookingToken: string,
-  slotIndex: number,
+  selection: { slotIndex: number } | { timeId: string },
 ): Promise<CandidateBookedInterview> {
   const body = await request<{ data: CandidateBookedInterview }>(
     `/public/interviews/${encodeURIComponent(bookingToken)}/book`,
-    { method: 'POST', body: JSON.stringify({ slotIndex }) },
+    { method: 'POST', body: JSON.stringify(selection) },
   );
   return body.data;
 }

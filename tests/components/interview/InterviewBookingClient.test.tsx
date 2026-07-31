@@ -66,7 +66,7 @@ describe('InterviewBookingClient', () => {
     fireEvent.click(confirmButton());
     await waitFor(() => expect(screen.getByText("You're confirmed ✓")).toBeTruthy());
     expect(bookInterviewSlot).toHaveBeenCalledTimes(1);
-    expect(bookInterviewSlot).toHaveBeenCalledWith(TOKEN, 1);
+    expect(bookInterviewSlot).toHaveBeenCalledWith(TOKEN, { slotIndex: 1 });
   });
 
   it('a second rapid click does not fire a second request', async () => {
@@ -134,5 +134,47 @@ describe('InterviewBookingClient', () => {
   it('never renders the booking token', () => {
     const { container } = renderClient();
     expect(container.innerHTML).not.toContain(TOKEN);
+  });
+
+  // ─── Pool interviews ──────────────────────────────────────────────
+  const POOL_TIMES = [
+    { id: 't1', startAtUtc: '2030-08-10T09:30:00.000Z', durationMinutes: 45, timezoneId: 'Asia/Kolkata' },
+    { id: 't2', startAtUtc: '2030-08-11T09:30:00.000Z', durationMinutes: 45, timezoneId: 'Asia/Kolkata' },
+  ];
+
+  it('pool: renders the times array and confirms with timeId, not slotIndex', async () => {
+    bookInterviewSlot.mockResolvedValue({ ...pageData(), status: 'scheduled', startAtUtc: POOL_TIMES[1].startAtUtc });
+    renderClient({ proposedSlots: [], times: POOL_TIMES });
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(bookInterviewSlot).toHaveBeenCalledWith(TOKEN, { timeId: 't2' }));
+  });
+
+  it('pool: empty times and empty slots shows the all-taken state', () => {
+    renderClient({ proposedSlots: [], times: [] });
+    expect(screen.getByText(/have been taken/)).toBeTruthy();
+    expect(screen.getByText('The team will reach out with new options.')).toBeTruthy();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+  });
+
+  it('pool: TIME_ALREADY_BOOKED refetches; a drained pool shows the all-taken state', async () => {
+    bookInterviewSlot.mockRejectedValue(new PublicInterviewsApiError(409, 'TIME_ALREADY_BOOKED', 'taken'));
+    fetchBookingPage.mockResolvedValue(pageData({ proposedSlots: [], times: [] }));
+    renderClient({ proposedSlots: [], times: POOL_TIMES });
+    fireEvent.click(screen.getAllByRole('radio')[0]);
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(fetchBookingPage).toHaveBeenCalledWith(TOKEN));
+    await waitFor(() => expect(screen.getByText(/have been taken/)).toBeTruthy());
+    expect(screen.queryByText('taken')).toBeNull(); // no raw error shown
+  });
+
+  it('pool: TIME_ALREADY_BOOKED with remaining times keeps them selectable after refetch', async () => {
+    bookInterviewSlot.mockRejectedValue(new PublicInterviewsApiError(409, 'TIME_ALREADY_BOOKED', 'taken'));
+    fetchBookingPage.mockResolvedValue(pageData({ proposedSlots: [], times: [POOL_TIMES[1]] }));
+    renderClient({ proposedSlots: [], times: POOL_TIMES });
+    fireEvent.click(screen.getAllByRole('radio')[0]);
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(screen.getAllByRole('radio')).toHaveLength(1));
   });
 });

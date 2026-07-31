@@ -6,6 +6,8 @@ export type PostingStatus = 'draft' | 'active' | 'closed';
 export type WorkplaceType = 'remote' | 'hybrid' | 'onsite';
 export type EmploymentType = 'full-time' | 'part-time' | 'contract' | 'internship';
 
+import type { InterviewDefaults } from './employer-interviews';
+
 export interface Posting {
   id: string;
   slug: string;
@@ -22,6 +24,8 @@ export interface Posting {
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Pool-scheduling configuration; null/absent until configured. */
+  interviewDefaults?: InterviewDefaults | null;
 }
 
 export interface PostingCreateInput {

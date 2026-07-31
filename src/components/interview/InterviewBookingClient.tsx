@@ -12,7 +12,8 @@ import { trackEvent } from '@/lib/analytics-events';
 import { formatInterviewDateOnly } from '@/utils/format-interview-time';
 import InterviewSlotPicker from './InterviewSlotPicker';
 import {
-  BookingPageHeader, ConfirmedState, ExpiredState, InvalidState, CancelledState, describeInterview,
+  BookingPageHeader, ConfirmedState, ExpiredState, InvalidState, CancelledState,
+  AllTimesTakenState, describeInterview,
 } from './InterviewBookingStates';
 
 const RATE_LIMIT_MESSAGE = 'Too many attempts — please wait a few minutes and try again.';
@@ -54,11 +55,20 @@ export default function InterviewBookingClient({
     }
   }
 
+  // Pool interviews carry a live `times` array (proposedSlots is empty); the
+  // per-candidate flow carries proposedSlots. Render whichever is present.
+  const poolTimes = page.times ?? [];
+  const isPool = poolTimes.length > 0 || (page.times !== undefined && page.proposedSlots.length === 0);
+  const pickerSlots = isPool ? poolTimes : page.proposedSlots;
+
   async function handleConfirm(): Promise<void> {
     if (submitting || selectedIndex === null) return;
     setSubmitting(true); setSlotErrorIndex(null); setGlobalError(null);
     try {
-      const booked = await bookInterviewSlot(bookingToken, selectedIndex);
+      const selection = isPool
+        ? { timeId: poolTimes[selectedIndex].id }
+        : { slotIndex: selectedIndex };
+      const booked = await bookInterviewSlot(bookingToken, selection);
       setJustBookedAtUtc(booked.startAtUtc);
       trackEvent('interview_slot_confirmed', { mode: page.mode, slotIndex: selectedIndex });
     } catch (caught) {
@@ -96,6 +106,14 @@ export default function InterviewBookingClient({
   }
   if (page.status === 'cancelled') return <CancelledState companyName={page.companyName} cancelReason={page.cancelReason} />;
   if (page.status !== 'proposed') return <InvalidState />;
+  if (pickerSlots.length === 0) {
+    // A pool interview whose times were all booked (or a refetch drained them).
+    return (
+      <div aria-live="polite">
+        <AllTimesTakenState companyName={page.companyName} postingTitle={page.postingTitle} />
+      </div>
+    );
+  }
 
   return (
     <div aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -108,7 +126,7 @@ export default function InterviewBookingClient({
       )}
 
       <InterviewSlotPicker
-        slots={page.proposedSlots}
+        slots={pickerSlots}
         selectedIndex={selectedIndex}
         onSelect={(index) => { setSelectedIndex(index); setSlotErrorIndex(null); }}
         slotErrorIndex={slotErrorIndex}
