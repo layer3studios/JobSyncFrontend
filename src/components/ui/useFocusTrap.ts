@@ -12,6 +12,15 @@ const FOCUSABLE = [
 export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: () => void) {
   const ref = useRef<T>(null);
 
+  // Latest-ref pattern: callers routinely pass inline onClose closures whose
+  // identity changes every render. If onClose were an effect dependency, every
+  // parent re-render (e.g. each keystroke in a controlled field) would tear the
+  // trap down and re-run it — and the initial focusables()[0].focus() would
+  // steal focus from the field being typed in. The effect must re-run on
+  // `active` transitions ONLY.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+
   useEffect(() => {
     if (!active) return;
     const node = ref.current;
@@ -21,7 +30,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
     focusables()[0]?.focus();
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); return; }
       if (e.key !== 'Tab') return;
       const items = focusables();
       if (items.length === 0) return;
@@ -43,7 +52,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
       document.body.style.overflow = prevOverflow;
       previouslyFocused?.focus?.();
     };
-  }, [active, onClose]);
+  }, [active]);
 
   return ref;
 }

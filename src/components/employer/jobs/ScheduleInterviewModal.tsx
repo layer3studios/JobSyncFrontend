@@ -43,7 +43,7 @@ export default function ScheduleInterviewModal({
   const fieldError = form.conditionalFieldError();
   // Reschedule sends only new times; the type/link fields are hidden and must
   // not gate submission.
-  const canSubmit = form.times.filter(Boolean).length >= MINIMUM_SLOT_COUNT
+  const canSubmit = form.times.filter((row) => row.value).length >= MINIMUM_SLOT_COUNT
     && slotErrors.length === 0
     && (isReschedule || fieldError === null);
 
@@ -143,17 +143,19 @@ export default function ScheduleInterviewModal({
 
         <Stack gap={8}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Proposed times</span>
-          {form.times.map((time, index) => {
+          {form.times.map((row, index) => {
             const rowError = errorForRow(index);
             const errorId = `${errorIdBase}-slot-${index}`;
+            // Keyed by the row's stable identity, NOT the index: removing a
+            // middle row must not re-associate the surviving DOM inputs.
             return (
-              <div key={index}>
+              <div key={row.rowId}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <label style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
                     {`Option ${index + 1}`}
                     <input
                       type="datetime-local"
-                      value={time}
+                      value={row.value}
                       aria-invalid={rowError ? true : undefined}
                       aria-describedby={rowError ? errorId : undefined}
                       onChange={(event) => form.setTimeAt(index, event.target.value)}

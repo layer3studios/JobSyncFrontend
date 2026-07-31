@@ -13,13 +13,20 @@ const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\/\S+$/i;
 
 export interface SlotError { index: number; message: string }
 
+/** One proposed-time row: value + a stable identity for React keys. Index keys
+ *  would re-associate DOM inputs when a middle row is removed. */
+export interface TimeRow { rowId: string; value: string }
+
+let nextRowIdCounter = 0;
+const createTimeRow = (): TimeRow => ({ rowId: `time-row-${nextRowIdCounter++}`, value: '' });
+
 export function useScheduleInterviewForm() {
   const [mode, setModeState] = useState<InterviewMode>('video');
   const [meetingUrl, setMeetingUrl] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(45);
-  const [times, setTimes] = useState<string[]>(['', '']);
+  const [times, setTimes] = useState<TimeRow[]>(() => [createTimeRow(), createTimeRow()]);
 
   /** Leaving video clears the meeting link so a stale URL is never submitted. */
   function setMode(nextMode: InterviewMode): void {
@@ -28,10 +35,10 @@ export function useScheduleInterviewForm() {
   }
 
   function setTimeAt(index: number, value: string): void {
-    setTimes((current) => current.map((time, i) => (i === index ? value : time)));
+    setTimes((current) => current.map((row, i) => (i === index ? { ...row, value } : row)));
   }
   function addTimeRow(): void {
-    setTimes((current) => (current.length < MAXIMUM_SLOT_COUNT ? [...current, ''] : current));
+    setTimes((current) => (current.length < MAXIMUM_SLOT_COUNT ? [...current, createTimeRow()] : current));
   }
   function removeTimeRow(index: number): void {
     setTimes((current) => (index >= MINIMUM_SLOT_COUNT ? current.filter((_, i) => i !== index) : current));
@@ -41,9 +48,9 @@ export function useScheduleInterviewForm() {
   function slotErrors(now: Date = new Date()): SlotError[] {
     const errors: SlotError[] = [];
     const seen = new Map<string, number>();
-    times.forEach((time, index) => {
-      if (!time) return;
-      const utcIso = istLocalToUtcIso(time);
+    times.forEach((row, index) => {
+      if (!row.value) return;
+      const utcIso = istLocalToUtcIso(row.value);
       if (!utcIso) { errors.push({ index, message: 'Enter a valid date and time.' }); return; }
       if (new Date(utcIso) <= now) { errors.push({ index, message: 'This time is in the past.' }); return; }
       if (seen.has(utcIso)) errors.push({ index, message: 'This time is the same as another option.' });
@@ -62,7 +69,7 @@ export function useScheduleInterviewForm() {
     return null;
   }
 
-  const enteredTimes = times.filter(Boolean);
+  const enteredTimes = times.map((row) => row.value).filter(Boolean);
   const canSubmit = enteredTimes.length >= MINIMUM_SLOT_COUNT
     && slotErrors().length === 0
     && conditionalFieldError() === null;
