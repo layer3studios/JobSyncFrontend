@@ -16,8 +16,9 @@ export const ROLE_OPTIONS = [
   { value: 'Mobile', label: 'Mobile' },
 ];
 
+// Multi-select bands: OR within the category. No 'all' sentinel — an empty
+// selection means no experience filter.
 export const EXPERIENCE_OPTIONS = [
-  { value: 'all', label: 'All experience' },
   { value: 'Fresher (0-1y)', label: 'Fresher (0-1y)' },
   { value: 'Junior (1-3y)', label: 'Junior (1-3y)' },
   { value: 'Mid (3-5y)', label: 'Mid (3-5y)' },
@@ -25,7 +26,19 @@ export const EXPERIENCE_OPTIONS = [
   { value: 'Staff+ (8y+)', label: 'Staff+ (8y+)' },
 ];
 
+export const WORKPLACE_OPTIONS = [
+  { value: 'remote', label: 'Remote' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'on-site', label: 'On-site' },
+];
+
 export const PAGE_SIZE = 30;
+
+/** Salary filter bounds, in INR lakhs per annum. */
+export const SALARY_MAX_LPA = 100;
+
+/** Location filter allows at most this many cities at once. */
+export const MAX_LOCATIONS = 5;
 
 export const desktopSelectStyle: CSSProperties = {
   padding: '8px 28px 8px 12px',
