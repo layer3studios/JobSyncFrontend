@@ -27,6 +27,20 @@ export interface CandidateBookingPage {
   companyName: string | null;
   postingTitle: string | null;
   companyLogoUrl: string | null;
+  /** ISO string — lets the page state a real expiry date. */
+  bookingTokenExpiresAt: string;
+  /** Shown on the cancelled state when the employer gave one. */
+  cancelReason: string | null;
+}
+
+/** The { error } envelope the public interview routes return on non-2xx.
+ *  companyName rides along ONLY on the 410 (expired) response. */
+export interface PublicInterviewErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+    companyName?: string | null;
+  };
 }
 
 /** POST /book response — the candidate projection without the page extras. */

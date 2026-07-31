@@ -29,6 +29,13 @@ export function formatInterviewTime(utcIso: string): string {
   return `${weekday}, ${day} ${month} ${year}, ${time} IST`;
 }
 
+/** e.g. "10 August 2026" — date only, IST calendar day. For expiry copy, where
+ *  a time-of-day reads as threatening precision. */
+export function formatInterviewDateOnly(utcIso: string): string {
+  const { day, month, year } = istParts(utcIso);
+  return `${day} ${month} ${year}`;
+}
+
 /** e.g. "Mon 10 Aug, 3:00 PM IST" — for compact rows. */
 export function formatInterviewTimeShort(utcIso: string): string {
   const { weekday, day, month, time } = istParts(utcIso);
