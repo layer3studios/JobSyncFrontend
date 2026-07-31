@@ -109,6 +109,17 @@ describe('InterviewBookingClient', () => {
     await waitFor(() => expect(screen.getByText("This interview link isn't valid")).toBeTruthy());
   });
 
+  it('SLOT_TOO_SOON disables confirm until a different time is chosen', async () => {
+    bookInterviewSlot.mockRejectedValue(new PublicInterviewsApiError(400, 'SLOT_TOO_SOON', 'too soon'));
+    renderClient();
+    fireEvent.click(screen.getAllByRole('radio')[0]);
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(screen.getByText(/too close to book/)).toBeTruthy());
+    expect(confirmButton().disabled).toBe(true);
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+    expect(confirmButton().disabled).toBe(false);
+  });
+
   it('in_person shows the address before the slot list; video shows no link anywhere', () => {
     const { container } = renderClient({ mode: 'in_person', locationText: 'WeWork, Koramangala, Bengaluru' });
     const text = container.textContent ?? '';

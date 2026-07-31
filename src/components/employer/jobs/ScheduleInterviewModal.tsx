@@ -126,7 +126,7 @@ export default function ScheduleInterviewModal({
         {!isReschedule && form.mode === 'in_person' && (
           <Textarea
             label="Address"
-            hint="The candidate sees this before choosing a slot, so they can judge travel."
+            hint="The candidate sees this before choosing a time, so they can judge travel."
             value={form.address}
             onChange={(event) => form.setAddress(event.target.value)}
           />

@@ -128,7 +128,9 @@ export default function InterviewBookingClient({
         <Button
           style={{ width: '100%' }}
           loading={submitting}
-          disabled={selectedIndex === null || submitting}
+          // A time flagged too-soon stays disabled until a DIFFERENT time is
+          // chosen — retrying the same one would just repeat the error.
+          disabled={selectedIndex === null || submitting || slotErrorIndex === selectedIndex}
           aria-busy={submitting || undefined}
           onClick={() => void handleConfirm()}
         >
