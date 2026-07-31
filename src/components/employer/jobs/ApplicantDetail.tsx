@@ -164,7 +164,7 @@ export default function ApplicantDetail() {
     );
   }
   return (
-    <Container size="xl" style={{ paddingTop: 32, paddingBottom: 60 }}>
+    <Container size="wide" style={{ paddingTop: 32, paddingBottom: 60 }}>
       {header}
       {body}
     </Container>

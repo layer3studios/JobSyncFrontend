@@ -123,7 +123,21 @@ describe('InterviewSchedulingSettings', () => {
     await waitFor(() => expect(screen.getByText('+ Add more times to this date')).toBeTruthy());
     fireEvent.click(screen.getByText('+ Add more times to this date'));
     expect((screen.getByLabelText('Pick a date') as HTMLInputElement).value).toBe('2030-08-02');
-    expect(screen.getByText('1 time already on this date')).toBeTruthy();
+    // The heading names the working date — the feedback that the click landed.
+    expect(screen.getByText('Add times for Fri, 2 August 2030')).toBeTruthy();
+    expect(screen.getByText('1 time already on this date (1 available, 0 booked)')).toBeTruthy();
+  });
+
+  it('stepping the date forward with the arrow shows the next day heading and chips', async () => {
+    listInterviewTimes.mockResolvedValue([]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByText('9:30 AM')).toBeTruthy());
+    const before = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
+    fireEvent.click(screen.getByLabelText('Next day'));
+    const after = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
+    expect(new Date(after).getTime() - new Date(before).getTime()).toBe(86400000);
+    expect(screen.getByText(/^Add times for /)).toBeTruthy();
+    expect(screen.getByText('9:30 AM')).toBeTruthy(); // next day's grid rendered
   });
 
   it('selecting chips and Add all posts the UTC timestamps', async () => {
@@ -134,7 +148,7 @@ describe('InterviewSchedulingSettings', () => {
     fireEvent.click(screen.getByText('9:30 AM'));
     fireEvent.click(screen.getByText('10:15 AM'));
     expect(screen.getByText('2 times selected across 1 day')).toBeTruthy();
-    fireEvent.click(screen.getByText('Add all'));
+    fireEvent.click(screen.getByText('Add 2 times'));
     await waitFor(() => expect(addInterviewTimes).toHaveBeenCalledTimes(1));
     const [, sent] = addInterviewTimes.mock.calls[0] as [string, { startAtUtc: string }[]];
     expect(sent.map((entry) => entry.startAtUtc).sort()).toEqual([

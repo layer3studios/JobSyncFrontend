@@ -40,11 +40,15 @@ beforeEach(() => {
 
 describe('PostingDetail tabs', () => {
   it('orders tabs Overview | Pipeline | Ranked | Settings, defaulting to Overview', async () => {
-    render(<PostingDetail postingId="p1" />);
+    const { container } = render(<PostingDetail postingId="p1" />);
     await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(4));
     const labels = screen.getAllByRole('tab').map((tab) => tab.textContent);
     expect(labels).toEqual(['Overview', 'Pipeline', 'Ranked', 'Settings']);
     expect(screen.getByText('overview-body')).toBeTruthy();
+    // Full-width fix: the page container allows 1536px — well past 1000px on a
+    // 1400px viewport (the old 'lg' cap was 1024px).
+    const pageContainer = container.firstElementChild as HTMLElement;
+    expect(pageContainer.style.maxWidth).toBe('1536px');
   });
 
   it('?tab=ranked still lands on the Ranked tab (deep links stay stable)', async () => {

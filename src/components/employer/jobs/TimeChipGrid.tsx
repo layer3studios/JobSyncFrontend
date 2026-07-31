@@ -8,7 +8,7 @@
 import type { TimeChip } from './time-chip-helpers';
 
 const CHIP_BASE_STYLE = {
-  minWidth: 70, padding: '6px 10px', borderRadius: 999, fontSize: '0.8rem',
+  minWidth: 70, padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem',
   cursor: 'pointer', border: '1px solid var(--border)',
 } as const;
 
@@ -35,9 +35,9 @@ export default function TimeChipGrid({
             onClick={() => onToggle(chip.istLocal)}
             style={{
               ...CHIP_BASE_STYLE,
-              background: selected ? 'var(--accent)' : 'var(--surface-raised)',
+              background: selected ? 'var(--accent)' : chip.alreadyAdded ? 'var(--surface-sunken)' : 'var(--surface-raised)',
               color: selected ? 'var(--text-on-accent)' : chip.alreadyAdded ? 'var(--ink-faint)' : 'var(--ink)',
-              borderColor: selected ? 'var(--accent)' : 'var(--border)',
+              border: chip.alreadyAdded ? 'none' : `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
               cursor: chip.alreadyAdded ? 'not-allowed' : 'pointer',
               fontWeight: selected ? 700 : 500,
             }}
