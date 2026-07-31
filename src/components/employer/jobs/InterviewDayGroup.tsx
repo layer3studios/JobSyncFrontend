@@ -35,11 +35,16 @@ export default function InterviewDayGroup({
 
       {expanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10 }}>
-          {group.activeTimes.map((time) => (
-            <InterviewTimeRow key={time.id} time={time} onRemove={onRemove} />
+          {group.activeTimes.map((time, index) => (
+            <InterviewTimeRow
+              key={time.id}
+              time={time}
+              onRemove={onRemove}
+              withSeparator={index < group.activeTimes.length - 1 || showCancelled}
+            />
           ))}
-          {showCancelled && group.cancelledTimes.map((time) => (
-            <InterviewTimeRow key={time.id} time={time} onRemove={onRemove} />
+          {showCancelled && group.cancelledTimes.map((time, index) => (
+            <InterviewTimeRow key={time.id} time={time} onRemove={onRemove} withSeparator={index < group.cancelledTimes.length - 1} />
           ))}
           <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
             <Button variant="link" size="sm" onClick={() => onAddMoreToDate(group.dateIso)}>

@@ -87,7 +87,7 @@ export default function JobsList() {
   }
 
   return (
-    <Container size="lg" style={{ paddingTop: 32, paddingBottom: 60 }}>
+    <Container size="wide" style={{ paddingTop: 32, paddingBottom: 60 }}>
       <PageHeader
         label="EMPLOYER"
         title="Postings"

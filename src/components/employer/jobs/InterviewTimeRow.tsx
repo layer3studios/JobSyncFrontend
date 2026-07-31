@@ -15,15 +15,20 @@ const DOT_COLOR: Record<string, string> = {
 };
 
 export default function InterviewTimeRow({
-  time, onRemove,
+  time, onRemove, withSeparator = false,
 }: {
   time: InterviewTime;
   onRemove: (timeId: string) => void;
+  /** Light border-b between rows so the list scans; last row omits it. */
+  withSeparator?: boolean;
 }) {
   const isCancelled = time.status !== 'available' && time.status !== 'booked';
   const clock = formatInterviewClockTime(time.startAtUtc);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: isCancelled ? 0.55 : 1, minHeight: 32 }}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, opacity: isCancelled ? 0.55 : 1, minHeight: 32,
+      borderBottom: withSeparator ? '1px solid var(--border)' : 'none', paddingBottom: withSeparator ? 4 : 0,
+    }}>
       <span style={{ width: 74, fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink)' }}>{clock}</span>
       <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: DOT_COLOR[time.status] ?? 'var(--ink-faint)' }} />
       <span style={{ flex: 1, fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
