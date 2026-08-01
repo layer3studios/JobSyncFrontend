@@ -126,7 +126,7 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
         <p style={{ fontSize: TYPE.sm, fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>
           Salary (₹ LPA, optional)
         </p>
-        <Stack gap={8} dir="row" align="center" wrap>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Input
             type="number" placeholder="Min" inputMode="numeric" aria-label="Salary minimum" value={values.salaryMinStr}
             onKeyDown={submitOnEnter} onBlur={handleSalaryBlur}
@@ -137,7 +137,7 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
             onKeyDown={submitOnEnter} onBlur={handleSalaryBlur}
             onChange={(event) => setField('salaryMaxStr', event.target.value)}
           />
-        </Stack>
+        </div>
         {errors.salary && (
           <p role="alert" style={{ color: 'var(--danger)', fontSize: TYPE.xs, marginTop: 5, fontWeight: 500 }}>
             {errors.salary}
@@ -152,8 +152,9 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
         <JobDescriptionTextarea
           label="Job description" required value={values.description} error={errors.description}
           hint={descriptionHint}
+          style={{ resize: 'vertical' }}
           placeholder="Describe the role, responsibilities, requirements, and what you offer..."
-          minRows={9}
+          minRows={9} maxRows={12} /* caps at ~300px; longer JDs scroll inside */
           onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
           onChange={(event) => setField('description', event.target.value)}
         />

@@ -5,6 +5,7 @@
 // Table primitive needing an onRowClick (R5). Status maps to a Badge variant.
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Table, Badge } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
@@ -20,7 +21,11 @@ const columns: Column<Posting>[] = [
     key: 'title',
     header: 'Title',
     render: (posting) => (
-      <Link href={`/employer/jobs/${posting.id}`} style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>
+      <Link
+        href={`/employer/jobs/${posting.id}`}
+        onClick={(event) => event.stopPropagation()}
+        style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}
+      >
         {posting.title}
       </Link>
     ),
@@ -40,5 +45,6 @@ const columns: Column<Posting>[] = [
 ];
 
 export default function JobsTable({ postings }: { postings: Posting[] }) {
-  return <Table columns={columns} data={postings} />;
+  const router = useRouter();
+  return <Table columns={columns} data={postings} onRowClick={(posting) => router.push(`/employer/jobs/${posting.id}`)} />;
 }

@@ -10,9 +10,10 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  Container, Card, Button, Alert, PageHeader, Stack, Tabs, SkeletonCard,
+  Container, Card, Button, Alert, Stack, Tabs, SkeletonCard,
 } from '@/components/ui';
 import type { TabItem } from '@/components/ui';
+import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import DetailSettings from '@/components/employer/jobs/DetailSettings';
 import PostingOverview from '@/components/employer/jobs/PostingOverview';
 import PipelineTab from '@/components/employer/jobs/PipelineTab';
@@ -115,12 +116,14 @@ export function PostingDetail({ postingId }: { postingId: string }) {
       { id: TAB_IDS.RANKED, label: 'Ranked', content: <RankedTab postingId={posting.id} /> },
       { id: TAB_IDS.SETTINGS, label: settingsTabLabel(availableCount), content: <DetailSettings posting={posting} /> },
     ];
-    return <Tabs tabs={tabs} defaultTabId={defaultTabId} />;
+    return <Tabs tabs={tabs} defaultTabId={defaultTabId} compact />;
   }
 
   return (
-    <Container size="full" style={{ padding: '32px 16px 60px' }}>
-      <PageHeader label="EMPLOYER" title={posting?.title ?? 'Posting'} />
+    <Container size="full" style={{ padding: '24px 16px' }}>
+      {/* The breadcrumb carries the posting title — no separate page title (it
+          would duplicate both the crumb and the form's title field on edit). */}
+      <Breadcrumbs items={[{ label: 'Jobs', href: '/employer/jobs' }, { label: posting?.title ?? 'Posting' }]} />
       {renderBody()}
     </Container>
   );

@@ -14,6 +14,8 @@ import { useEmployer } from '@/context/employer/EmployerContext';
 import { trackEvent } from '@/lib/analytics-events';
 import { scoreToDecile } from '@/lib/score-decile';
 import { fetchApplicantDetail, listApplicantsForPosting, listStages, listArchiveReasons, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
+import { getEmployerPosting } from '@/api/employer-jobs-api';
+import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import type { Applicant, ApplicantDetail, ApplicantSort, Stage, ArchiveReason } from '@/types/employer-applicants';
 import { useViewport } from '@/hooks/shared/useViewport';
 import { useApplicantKeyboardNav } from '@/hooks/employer/useApplicantKeyboardNav';
@@ -65,6 +67,13 @@ export default function ApplicantDetail() {
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
   const [listApplicants, setListApplicants] = useState<Applicant[]>([]);
   const [, setListStatus] = useState<ListStatus>('idle');
+  const [postingTitle, setPostingTitle] = useState<string | null>(null);
+
+  // Breadcrumb label only — a failed load just falls back to "Posting".
+  useEffect(() => {
+    if (!postingId) return;
+    getEmployerPosting(postingId).then((p) => setPostingTitle(p.title)).catch(() => setPostingTitle(null));
+  }, [postingId]);
 
   const load = useCallback(async () => {
     if (!appId) return;
@@ -141,6 +150,14 @@ export default function ApplicantDetail() {
   const name = detail?.contact?.fullName ?? 'Applicant';
   const email = detail?.contact?.email;
 
+  const crumbs = (
+    <Breadcrumbs items={[
+      { label: 'Jobs', href: '/employer/jobs' },
+      { label: postingTitle ?? 'Posting', href: backHref },
+      { label: name },
+    ]} />
+  );
+
   // Desktop pins a sticky bar with the back-CTA + identity (P2.1/P2.4); mobile keeps PageHeader.
   const header = twoColumn ? (
     <ApplicantStickyHeader
@@ -149,7 +166,7 @@ export default function ApplicantDetail() {
     />
   ) : (
     <PageHeader
-      label="APPLICANT" title={name} subtitle={email}
+      title={name} subtitle={email}
       actions={<Link href={backHref}><Button variant="ghost" size="sm">{backLabel}</Button></Link>}
     />
   );
@@ -158,13 +175,15 @@ export default function ApplicantDetail() {
   if (twoColumn) {
     return (
       <div style={WRAPPER_STYLE}>
+        {crumbs}
         {header}
         {body}
       </div>
     );
   }
   return (
-    <Container size="full" style={{ padding: '32px 16px 60px' }}>
+    <Container size="full" style={{ padding: '24px 16px' }}>
+      {crumbs}
       {header}
       {body}
     </Container>

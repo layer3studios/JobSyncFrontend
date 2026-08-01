@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Card, PageHeader, useToast } from '@/components/ui';
+import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import PostingForm from '@/components/employer/jobs/PostingForm';
 import PostingLivePreview from '@/components/employer/jobs/PostingLivePreview';
 import type { PostingFormValues } from '@/components/employer/jobs/posting-form-helpers';
@@ -40,13 +41,13 @@ export default function EmployerJobsNew() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--surface-sunken)', padding: '48px 0' }}>
+    <div style={{ background: 'var(--surface-sunken)', padding: '24px 0' }}>
       <Container size="wide">
-        <PageHeader label="EMPLOYER" title="New posting" />
+        <Breadcrumbs items={[{ label: 'Jobs', href: '/employer/jobs' }, { label: 'New posting' }]} />
+        <PageHeader title="New posting" compact />
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ flex: '3 1 420px', minWidth: 340 }}>
             <Card variant="raised">
-              <p style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 500, color: 'var(--ink)' }}>New posting</p>
               <PostingForm
                 submitLabel="Create posting"
                 onSubmit={handleCreate}

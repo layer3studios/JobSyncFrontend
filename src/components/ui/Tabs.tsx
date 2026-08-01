@@ -8,12 +8,14 @@ import { RADIUS, TYPE, MOTION } from '../../theme/tokens';
 export interface TabItem { id: string; label: ReactNode; content: ReactNode }
 
 export function Tabs({
-  tabs, defaultTabId, onChange, variant = 'underline',
+  tabs, defaultTabId, onChange, variant = 'underline', compact,
 }: {
   tabs: TabItem[];
   defaultTabId?: string;
   onChange?: (id: string) => void;
   variant?: 'underline' | 'pill';
+  /** Tighter gap between the tab strip and the panel content. */
+  compact?: boolean;
 }) {
   const baseId = useId();
   const [active, setActive] = useState(defaultTabId ?? tabs[0]?.id);
@@ -70,7 +72,7 @@ export function Tabs({
           role="tabpanel"
           aria-labelledby={`${baseId}-tab-${t.id}`}
           hidden={t.id !== active}
-          style={{ paddingTop: 16, color: 'var(--ink)' }}
+          style={{ paddingTop: compact ? 8 : 16, color: 'var(--ink)' }}
         >
           {t.id === active && t.content}
         </div>
