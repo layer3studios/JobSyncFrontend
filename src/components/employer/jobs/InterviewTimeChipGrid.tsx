@@ -2,15 +2,19 @@
 // FILE: src/components/employer/jobs/InterviewTimeChipGrid.tsx
 // The add-times workspace. Heading names the working date ("Add times for
 // Sat, 2 August 2026"); arrows step a day at a time; a date change flashes the
-// picker and fades the grid in (CSS only). The meeting-link note above the
-// picker is the honest v1: all new times snapshot the link saved in details —
-// [Update link] jumps there. Per-time links are a later backend enhancement.
+// picker and fades the grid in (CSS only). The MEETING LINK is entered here
+// (Greenhouse style — link at scheduling time): it rides in the POST body per
+// time and persists across date changes; each batch snapshots whatever the
+// field holds when Add is clicked. Video mode only — phone/address live in the
+// details form and apply to all times.
 
 import { useState } from 'react';
-import { Button, Stack, useToast } from '@/components/ui';
+import { CalendarPlus } from 'lucide-react';
+import { Button, Input, Stack, useToast } from '@/components/ui';
 import { addInterviewTimes, EmployerInterviewTimesApiError } from '@/api/employer-interview-times-api';
 import { istLocalToUtcIso, utcIsoToIstLocal } from '@/utils/ist-datetime';
 import { formatInterviewDayHeading } from '@/utils/format-interview-time';
+import type { InterviewMode } from '@/types/employer-interviews';
 import { buildTimeChips, type ExistingPoolTime } from './time-chip-helpers';
 import TimeChipGrid from './TimeChipGrid';
 
@@ -20,7 +24,6 @@ const INPUT_STYLE = {
 } as const;
 const MUTED = { margin: 0, fontSize: '0.78rem', color: 'var(--ink-muted)' } as const;
 
-const truncateLink = (url: string) => (url.length > 40 ? `${url.slice(0, 40)}…` : url);
 const stepDate = (dateIso: string, days: number) =>
   new Date(new Date(`${dateIso}T00:00:00Z`).getTime() + days * 86400000).toISOString().slice(0, 10);
 /** Heading for an IST calendar day (noon avoids any boundary ambiguity). */
@@ -30,17 +33,20 @@ const dayHeading = (dateIso: string) => {
 };
 
 export default function InterviewTimeChipGrid({
-  postingId, durationMinutes, defaultsSaved, meetingUrl, existingTimes,
-  selectedDate, onDateChange, onFocusMeetingLink, onAdded,
+  postingId, durationMinutes, defaultsSaved, mode, meetingLink, onMeetingLinkChange,
+  existingTimes, selectedDate, onDateChange, onAdded,
 }: {
   postingId: string;
   durationMinutes: number;
   defaultsSaved: boolean;
-  meetingUrl: string | null;
+  mode: InterviewMode;
+  /** Lifted to the settings container: persists across date changes and doubles
+   *  as the video default when the details form saves. */
+  meetingLink: string;
+  onMeetingLinkChange: (value: string) => void;
   existingTimes: ExistingPoolTime[];
   selectedDate: string;
   onDateChange: (dateIso: string) => void;
-  onFocusMeetingLink: () => void;
   onAdded: () => Promise<void>;
 }) {
   const { showToast } = useToast();
@@ -76,12 +82,18 @@ export default function InterviewTimeChipGrid({
     setCustomOpen(false);
   }
 
+  const linkRequired = mode === 'video';
+  const linkValid = !linkRequired || /^https?:\/\/\S+$/i.test(meetingLink.trim());
+
   async function handleAddAll(): Promise<void> {
-    if (busy || selectedCount === 0 || !defaultsSaved) return;
+    if (busy || selectedCount === 0 || !defaultsSaved || !linkValid) return;
     setBusy(true);
     try {
       const { insertedCount } = await addInterviewTimes(postingId, [...selectedIstLocals].map((value) => ({
         startAtUtc: istLocalToUtcIso(value) as string,
+        // Snapshot the link on each time (backend enhancement pending; the
+        // body shape is forward-compatible and harmless if ignored).
+        meetingUrl: linkRequired ? meetingLink.trim() : null,
       })));
       showToast('success', `${insertedCount} time${insertedCount === 1 ? '' : 's'} added.`);
       setSelectedIstLocals(new Set());
@@ -94,21 +106,24 @@ export default function InterviewTimeChipGrid({
   }
 
   return (
+    <div style={{ background: 'var(--surface-raised)', border: '0.5px solid var(--border-strong)', borderRadius: 12, padding: 16 }}>
     <Stack gap={10}>
       {/* CSS-only feedback: the picker flashes and the grid fades on date change. */}
       <style>{`
         @keyframes chipDateFlash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
         @keyframes chipGridFade { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
-      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)' }}>
-        Add times for {dayHeading(selectedDate)}
+      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <CalendarPlus size={15} /> Add times for {dayHeading(selectedDate)}
       </p>
-      {meetingUrl && (
-        <Stack gap={2}>
-          <p style={MUTED}>Meeting link: {truncateLink(meetingUrl)}</p>
-          <p style={MUTED}>ℹ All times use the link saved in interview details. Need a different link? Update it before adding times.</p>
-          <div><Button variant="link" size="sm" onClick={onFocusMeetingLink}>Update link</Button></div>
-        </Stack>
+      {linkRequired && (
+        <Input
+          label="Meeting link for this date"
+          placeholder="https://meet.google.com/abc-defg-hij"
+          hint="Shared with candidates after they confirm a time."
+          value={meetingLink}
+          onChange={(event) => onMeetingLinkChange(event.target.value)}
+        />
       )}
       <Stack dir="row" gap={6} align="center">
         <Button variant="ghost" size="sm" aria-label="Previous day" onClick={() => onDateChange(stepDate(selectedDate, -1))}>◀</Button>
@@ -137,19 +152,23 @@ export default function InterviewTimeChipGrid({
         </p>
       )}
       {customOpen ? (
-        <Stack dir="row" gap={8} align="center">
+        <Stack dir="row" gap={8} align="center" justify="flex-end">
           <input type="datetime-local" aria-label="Custom time" value={customValue} style={INPUT_STYLE} onChange={(event) => setCustomValue(event.target.value)} />
           <Button variant="ghost" size="sm" onClick={addCustomTime}>Add to selection</Button>
         </Stack>
       ) : (
-        <div><Button variant="link" size="sm" onClick={() => setCustomOpen(true)}>Custom time</Button></div>
+        <div style={{ textAlign: 'right' }}><Button variant="link" size="sm" onClick={() => setCustomOpen(true)}>Custom time</Button></div>
       )}
       {!defaultsSaved && <p style={MUTED}>Save interview details first.</p>}
+      {defaultsSaved && !linkValid && selectedCount > 0 && (
+        <p style={MUTED}>Enter a full meeting link (https://…) to add these times.</p>
+      )}
       <div>
-        <Button size="sm" loading={busy} disabled={busy || !defaultsSaved || selectedCount === 0} onClick={() => void handleAddAll()}>
+        <Button size="sm" loading={busy} disabled={busy || !defaultsSaved || selectedCount === 0 || !linkValid} onClick={() => void handleAddAll()}>
           {selectedCount > 0 ? `Add ${selectedCount} time${selectedCount === 1 ? '' : 's'}` : 'Add times'}
         </Button>
       </div>
     </Stack>
+    </div>
   );
 }

@@ -28,12 +28,22 @@ export default function InterviewCard({
   onCancel: () => void;
 }) {
   const { status } = interview;
-  const showActions = canManage && (status === 'proposed' || status === 'scheduled');
-  const actions = showActions && (
+  // Same-day guard (Greenhouse rule): a PAST interview may already have
+  // happened — hide Reschedule/Cancel entirely; mark-no-show / mark-completed
+  // are the future actions there. (The today-warning lives in the dialog.)
+  const isPastScheduled = status === 'scheduled'
+    && interview.startAtUtc !== null
+    && new Date(interview.startAtUtc) < new Date();
+  const showActions = canManage && !isPastScheduled && (status === 'proposed' || status === 'scheduled');
+  const actions = showActions ? (
     <Stack dir="row" gap={8}>
       <Button variant="secondary" size="sm" onClick={onReschedule}>Reschedule</Button>
       <Button variant="danger" size="sm" onClick={onCancel}>Cancel</Button>
     </Stack>
+  ) : isPastScheduled && (
+    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-muted)' }}>
+      This interview&apos;s time has passed.
+    </p>
   );
 
   if (status === 'proposed') {

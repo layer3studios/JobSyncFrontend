@@ -1,8 +1,10 @@
 'use client';
 // FILE: src/components/employer/jobs/InterviewDetailsForm.tsx
-// Left-side interview details form (pool scheduling defaults): type, link/
-// phone/address, duration, its own Save. `meetingLinkInputId` lets the times
-// panel's "Change in details" jump straight to the link input.
+// Left-side interview details form: type, duration, and phone/address for the
+// non-video modes. The MEETING LINK is not configured here any more — it lives
+// in the Add-times panel (link at scheduling time, Greenhouse style). The
+// backend's defaults endpoint still requires a video meetingUrl, so a video
+// save sends the panel's current link (`currentMeetingLink`) as the default.
 
 import { useState } from 'react';
 import { Button, Input, Textarea, Select, Radio, Stack, useToast } from '@/components/ui';
@@ -17,23 +19,24 @@ const MODE_OPTIONS = [
 const DURATION_OPTIONS = [15, 30, 45, 60, 90].map((minutes) => ({ value: String(minutes), label: `${minutes} minutes` }));
 
 export default function InterviewDetailsForm({
-  postingId, initialDefaults, onSaved, meetingLinkInputId,
+  postingId, initialDefaults, currentMeetingLink, onSaved,
 }: {
   postingId: string;
   initialDefaults: InterviewDefaults | null;
+  /** The Add-times panel's link — used as the saved default for video mode. */
+  currentMeetingLink: string;
   onSaved: (defaults: InterviewDefaults) => void;
-  meetingLinkInputId?: string;
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<InterviewMode>(initialDefaults?.mode ?? 'video');
-  const [meetingUrl, setMeetingUrl] = useState(initialDefaults?.meetingUrl ?? '');
   const [phoneNumber, setPhoneNumber] = useState(initialDefaults?.mode === 'phone' ? initialDefaults.locationText ?? '' : '');
   const [address, setAddress] = useState(initialDefaults?.mode === 'in_person' ? initialDefaults.locationText ?? '' : '');
   const [durationMinutes, setDurationMinutes] = useState(initialDefaults?.durationMinutes ?? 45);
   const [saving, setSaving] = useState(false);
 
   const locationText = mode === 'phone' ? phoneNumber.trim() : mode === 'in_person' ? address.trim() : null;
-  const canSave = mode === 'video' ? /^https?:\/\/\S+$/i.test(meetingUrl.trim()) : Boolean(locationText);
+  const linkValid = /^https?:\/\/\S+$/i.test(currentMeetingLink.trim());
+  const canSave = mode === 'video' ? linkValid : Boolean(locationText);
 
   async function handleSave(): Promise<void> {
     if (saving || !canSave) return;
@@ -41,7 +44,7 @@ export default function InterviewDetailsForm({
     try {
       const defaults: InterviewDefaults = {
         mode,
-        meetingUrl: mode === 'video' ? meetingUrl.trim() : null,
+        meetingUrl: mode === 'video' ? currentMeetingLink.trim() : null,
         locationText,
         durationMinutes,
         timezoneId: 'Asia/Kolkata',
@@ -62,21 +65,11 @@ export default function InterviewDetailsForm({
         <legend style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8 }}>Interview type</legend>
         <Radio direction="horizontal" options={MODE_OPTIONS} value={mode} onChange={(value) => setMode(value as InterviewMode)} />
       </fieldset>
-      {mode === 'video' && (
-        <Input
-          id={meetingLinkInputId}
-          label="Meeting link"
-          placeholder="https://meet.google.com/..."
-          hint="This link is shared with candidates after they confirm a time."
-          value={meetingUrl}
-          onChange={(event) => setMeetingUrl(event.target.value)}
-        />
-      )}
       {mode === 'phone' && (
-        <Input label="Phone number" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
+        <Input label="Phone number" hint="Applies to all interview times." value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
       )}
       {mode === 'in_person' && (
-        <Textarea label="Address" value={address} onChange={(event) => setAddress(event.target.value)} />
+        <Textarea label="Address" hint="Applies to all interview times." value={address} onChange={(event) => setAddress(event.target.value)} />
       )}
       <Select
         label="Duration"
@@ -84,6 +77,11 @@ export default function InterviewDetailsForm({
         options={DURATION_OPTIONS}
         onChange={(event) => setDurationMinutes(Number(event.target.value))}
       />
+      {mode === 'video' && !linkValid && (
+        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-muted)' }}>
+          Enter a meeting link in the Add times panel to save video details.
+        </p>
+      )}
       <div><Button size="sm" loading={saving} disabled={!canSave || saving} onClick={() => void handleSave()}>Save interview details</Button></div>
     </Stack>
   );

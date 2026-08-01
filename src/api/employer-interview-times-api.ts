@@ -60,9 +60,12 @@ export async function updateInterviewDefaults(
   return body.data;
 }
 
+/** Each entry may carry its own meetingUrl (snapshot at creation, Greenhouse
+ *  style). Until the backend reads it, it's ignored and the posting default
+ *  applies — the body shape is forward-compatible either way. */
 export async function addInterviewTimes(
   postingId: string,
-  times: { startAtUtc: string }[],
+  times: { startAtUtc: string; meetingUrl?: string | null }[],
 ): Promise<{ insertedCount: number }> {
   const body = await request<{ data: { insertedCount: number } }>(
     timesPath(postingId),

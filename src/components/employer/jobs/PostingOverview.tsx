@@ -17,6 +17,7 @@ import type { ConfirmAction } from '@/components/employer/jobs/PostingConfirmDia
 import {
   updateEmployerPosting, closeEmployerPosting, reopenEmployerPosting, EmployerJobsApiError,
 } from '@/api/employer-jobs-api';
+import { listInterviewTimes } from '@/api/employer-interview-times-api';
 import type { Posting, PostingStatus, PostingCreateInput } from '@/types/employer-jobs';
 import { trackEvent } from '@/lib/analytics-events';
 
@@ -50,6 +51,19 @@ export default function PostingOverview({ posting, onReload }: {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [isMutating, setIsMutating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<ConfirmAction | null>(null);
+  const [bookedInterviewCount, setBookedInterviewCount] = useState(0);
+
+  // Booked pool times ≈ scheduled interviews on this posting; loaded when the
+  // close dialog opens so its warning can be concrete. Best-effort — 0 on error.
+  async function openCloseConfirm(): Promise<void> {
+    try {
+      const booked = await listInterviewTimes(posting.id, { status: 'booked' });
+      setBookedInterviewCount(booked.length);
+    } catch {
+      setBookedInterviewCount(0);
+    }
+    setConfirmOpen('close');
+  }
 
   const applyUrl = `${window.location.origin}/apply/${company?.slug ?? ''}/${posting.slug}`;
 
@@ -155,7 +169,7 @@ export default function PostingOverview({ posting, onReload }: {
 
         <Stack gap={8} dir="row" wrap>
           {allowClose && (posting.status === 'draft' || posting.status === 'active') && (
-            <Button variant="danger" loading={isMutating} onClick={() => setConfirmOpen('close')}>Close posting</Button>
+            <Button variant="danger" loading={isMutating} onClick={() => void openCloseConfirm()}>Close posting</Button>
           )}
           {allowClose && posting.status === 'closed' && (
             <Button variant="secondary" loading={isMutating} onClick={() => setConfirmOpen('reopen')}>Reopen posting</Button>
@@ -168,6 +182,9 @@ export default function PostingOverview({ posting, onReload }: {
         isMutating={isMutating}
         onCancel={() => setConfirmOpen(null)}
         onConfirm={handleConfirm}
+        extraWarning={confirmOpen === 'close' && bookedInterviewCount > 0
+          ? `${bookedInterviewCount} scheduled interview${bookedInterviewCount === 1 ? '' : 's'} will be cancelled and candidates will be notified.`
+          : null}
       />
     </Card>
   );

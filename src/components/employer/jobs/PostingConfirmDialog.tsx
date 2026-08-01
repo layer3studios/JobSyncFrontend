@@ -23,12 +23,14 @@ const COPY: Record<ConfirmAction, { title: string; body: string; confirmLabel: s
 };
 
 export default function PostingConfirmDialog({
-  action, isMutating, onCancel, onConfirm,
+  action, isMutating, onCancel, onConfirm, extraWarning = null,
 }: {
   action: ConfirmAction | null;
   isMutating: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Extra consequence line (e.g. scheduled-interview cancellation on close). */
+  extraWarning?: string | null;
 }) {
   if (action === null) return null;
   const copy = COPY[action];
@@ -54,6 +56,9 @@ export default function PostingConfirmDialog({
       )}
     >
       {copy.body}
+      {extraWarning && (
+        <p style={{ margin: '10px 0 0', fontWeight: 600 }}>{extraWarning}</p>
+      )}
     </Modal>
   );
 }

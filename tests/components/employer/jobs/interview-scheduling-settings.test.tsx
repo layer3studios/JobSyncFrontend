@@ -120,8 +120,8 @@ describe('InterviewSchedulingSettings', () => {
   it('"+ Add more times to this date" points the date picker at that date', async () => {
     listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
     renderSettings();
-    await waitFor(() => expect(screen.getByText('+ Add more times to this date')).toBeTruthy());
-    fireEvent.click(screen.getByText('+ Add more times to this date'));
+    await waitFor(() => expect(screen.getByText('Add more times to this date')).toBeTruthy());
+    fireEvent.click(screen.getByText('Add more times to this date'));
     expect((screen.getByLabelText('Pick a date') as HTMLInputElement).value).toBe('2030-08-02');
     // The heading names the working date — the feedback that the click landed.
     expect(screen.getByText('Add times for Fri, 2 August 2030')).toBeTruthy();
@@ -140,20 +140,102 @@ describe('InterviewSchedulingSettings', () => {
     expect(screen.getByText('9:30 AM')).toBeTruthy(); // next day's grid rendered
   });
 
-  it('selecting chips and Add all posts the UTC timestamps', async () => {
+  it('the link field lives in the add panel (video) and NOT in the left details form', () => {
+    renderSettings();
+    const linkFields = screen.getAllByLabelText(/Meeting link/);
+    expect(linkFields).toHaveLength(1);
+    expect(screen.getByLabelText('Meeting link for this date')).toBeTruthy();
+    expect(screen.getByText('Shared with candidates after they confirm a time.')).toBeTruthy();
+  });
+
+  it('phone mode shows NO link field in the add panel', () => {
+    renderSettings({ interviewDefaults: { ...DEFAULTS, mode: 'phone', meetingUrl: null, locationText: '+91 98765' } });
+    expect(screen.queryByLabelText(/Meeting link/)).toBeNull();
+  });
+
+  it('the link persists when switching dates', async () => {
+    renderSettings();
+    await waitFor(() => expect(screen.getByLabelText('Meeting link for this date')).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Meeting link for this date'), { target: { value: 'https://meet.google.com/day-link' } });
+    fireEvent.click(screen.getByLabelText('Next day'));
+    expect((screen.getByLabelText('Meeting link for this date') as HTMLInputElement).value).toBe('https://meet.google.com/day-link');
+  });
+
+  it('selecting chips and Add all posts the UTC timestamps WITH the current link', async () => {
     addInterviewTimes.mockResolvedValue({ insertedCount: 2 });
     renderSettings();
     await waitFor(() => expect(screen.getByText('9:30 AM')).toBeTruthy());
     const day = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
+    fireEvent.change(screen.getByLabelText('Meeting link for this date'), { target: { value: 'https://meet.google.com/new-link' } });
     fireEvent.click(screen.getByText('9:30 AM'));
     fireEvent.click(screen.getByText('10:15 AM'));
     expect(screen.getByText('2 times selected across 1 day')).toBeTruthy();
     fireEvent.click(screen.getByText('Add 2 times'));
     await waitFor(() => expect(addInterviewTimes).toHaveBeenCalledTimes(1));
-    const [, sent] = addInterviewTimes.mock.calls[0] as [string, { startAtUtc: string }[]];
+    const [, sent] = addInterviewTimes.mock.calls[0] as [string, { startAtUtc: string; meetingUrl?: string | null }[]];
+    expect(sent.every((entry) => entry.meetingUrl === 'https://meet.google.com/new-link')).toBe(true);
     expect(sent.map((entry) => entry.startAtUtc).sort()).toEqual([
       istLocalToUtcIso(`${day}T09:30`), istLocalToUtcIso(`${day}T10:15`),
     ].sort());
+  });
+
+  it('rows show truncated links on every row; the variant link is warning-coloured', async () => {
+    listInterviewTimes.mockResolvedValue([
+      { ...time('a', '2030-08-02T04:00:00.000Z'), meetingUrl: 'https://meet.acme.in/main' },
+      { ...time('b', '2030-08-02T05:00:00.000Z'), meetingUrl: 'https://meet.acme.in/main' },
+      { ...time('c', '2030-08-02T06:00:00.000Z'), meetingUrl: 'https://meet.acme.in/OTHER' },
+    ]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByText('Fri, 2 August 2030')).toBeTruthy());
+    expect(screen.getAllByText('meet.acme.in/main')).toHaveLength(2); // shown, muted
+    const variant = screen.getByText('meet.acme.in/OTHER') as HTMLElement;
+    expect(variant.style.color).toBe('var(--warning)');
+    expect((screen.getAllByText('meet.acme.in/main')[0] as HTMLElement).style.color).toBe('var(--ink-faint)');
+  });
+
+  it('row anatomy: available has trash, booked has none and reads booked, cancelled is greyed with no action', async () => {
+    listInterviewTimes.mockResolvedValue([
+      { ...time('a', '2030-08-02T04:00:00.000Z'), meetingUrl: 'https://meet.acme.in/x' },
+      { ...time('b', '2030-08-02T05:00:00.000Z', 'booked'), meetingUrl: 'https://meet.acme.in/x' },
+      { ...time('c', '2030-08-02T06:00:00.000Z', 'cancelled') },
+    ]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByText('Fri, 2 August 2030')).toBeTruthy());
+    expect(screen.getByLabelText('Remove 9:30 AM')).toBeTruthy();
+    expect(screen.getByText('booked')).toBeTruthy(); // no candidate name from this endpoint
+    expect(screen.queryByLabelText('Remove 10:30 AM')).toBeNull(); // booked row: no trash
+    fireEvent.click(screen.getByText('Show 1 cancelled'));
+    expect(screen.queryByLabelText('Remove 11:30 AM')).toBeNull(); // cancelled row: no action
+    const cancelledText = screen.getByText('cancelled') as HTMLElement;
+    expect(cancelledText.style.color).toBe('var(--ink-faint)');
+  });
+
+  it('the left summary card shows correct counts and the next available time', async () => {
+    listInterviewTimes.mockResolvedValue([
+      time('a', '2030-08-02T04:00:00.000Z'),
+      time('b', '2030-08-04T04:30:00.000Z'),
+      time('c', '2030-08-02T05:00:00.000Z', 'booked'),
+    ]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByText('2 times available across 2 days')).toBeTruthy());
+    expect(screen.getByText('1 interview booked')).toBeTruthy();
+    expect(screen.getByText('Next available: Fri 2 Aug, 9:30 AM IST')).toBeTruthy();
+  });
+
+  it('the sticky summary bar is present with sticky positioning', async () => {
+    listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByTestId('times-summary-bar')).toBeTruthy());
+    expect((screen.getByTestId('times-summary-bar') as HTMLElement).style.position).toBe('sticky');
+  });
+
+  it('day group cards carry the card styling', async () => {
+    listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByTestId('day-group-2030-08-02')).toBeTruthy());
+    const card = screen.getByTestId('day-group-2030-08-02') as HTMLElement;
+    expect(card.style.borderRadius).toBe('12px');
+    expect(card.style.border).toContain('0.5px solid');
   });
 
   it('renders full width: no max-width narrower than the container', async () => {
