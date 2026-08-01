@@ -21,8 +21,10 @@
     "posthog-js": "^1.405.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
     "react-textarea-autosize": "^8.5.9",
-    "recharts": "^3.10.0"
+    "recharts": "^3.10.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

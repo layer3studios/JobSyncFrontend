@@ -6,6 +6,7 @@
 
 import Link from 'next/link';
 import { Container, Card, Stack, EmptyState } from '@/components/ui';
+import AssignmentBadge from './AssignmentBadge';
 import type { PublicCompany, PublicJobSummary } from '@/types/public-apply';
 
 interface Props {
@@ -41,6 +42,14 @@ export default function CompanyView({ company, jobs }: Props) {
                   <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginTop: 2 }}>
                     {[job.location, job.employmentType].filter(Boolean).join(' · ')}
                   </p>
+                  {/* The cost has to be visible BEFORE the click. Finding out a
+                      role wants two hours of unpaid work halfway through the form
+                      is the worst possible moment to learn it. */}
+                  {job.assignment && (
+                    <div style={{ marginTop: 6 }}>
+                      <AssignmentBadge estimatedHours={job.assignment.estimatedHours} size="sm" />
+                    </div>
+                  )}
                 </Card>
               </Link>
             ))}

@@ -23,12 +23,35 @@ export interface PublicJob {
   postedAt: string | null;
 }
 
+/** List surface (company page) — badge data only, no task text. */
+export interface PublicAssignmentSummary {
+  estimatedHours: number;
+  allowedFileTypes: string[];
+}
+
+/**
+ * Detail surface (job page) — the whole task. The backend returns this in full on
+ * a public endpoint by design: the apply page is unauthenticated and take-homes
+ * circulate publicly anyway, so hiding it would only inconvenience the candidate
+ * deciding whether to invest the hours.
+ */
+export interface PublicAssignment {
+  id: string;
+  title: string;
+  publicSummary: string;
+  descriptionMarkdown: string;
+  submissionInstructionsMarkdown: string;
+  estimatedHours: number;
+  allowedFileTypes: string[];
+}
+
 export interface PublicJobSummary {
   id: string;
   slug: string;
   title: string;
   location: string;
   employmentType: string;
+  assignment: PublicAssignmentSummary | null;
 }
 
 export interface ApplyFormData {

@@ -13,7 +13,7 @@ import { useViewport } from '@/hooks/shared/useViewport';
 import { submitApplication, PublicApiError } from '@/api/public-api';
 import { validateApplyForm, fieldError, mapServerError } from './apply-form-helpers';
 import type { ApplyErrors } from './apply-form-helpers';
-import type { ApplyFormData, PublicCompany, PublicJob } from '@/types/public-apply';
+import type { ApplyFormData, PublicCompany, PublicJob, PublicAssignment } from '@/types/public-apply';
 import { trackEvent } from '@/lib/analytics-events';
 
 const EMPTY: ApplyFormData = {
@@ -43,6 +43,8 @@ interface Props {
   job: PublicJob;
   companySlug: string;
   jobSlug: string;
+  /** Accepted but unused in 7a — 7b builds the submission fields on top of it. */
+  assignment?: PublicAssignment | null;
 }
 
 export default function ApplyFormClient({ company, job, companySlug, jobSlug }: Props) {
