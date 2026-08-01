@@ -18,7 +18,7 @@ const STATUS_COLOR: Record<string, string> = { available: 'var(--ink-2)', booked
 const truncateLink = (url: string) => url.replace(/^https?:\/\//, '');
 
 export default function InterviewTimeRow({
-  time, onRemove, withSeparator = false, majorityLink = null,
+  time, onRemove, withSeparator = false, majorityLink = null, readOnly = false,
 }: {
   time: InterviewTime;
   onRemove: (timeId: string) => void;
@@ -26,6 +26,8 @@ export default function InterviewTimeRow({
   withSeparator?: boolean;
   /** The date's most common link — a differing row link renders in warning. */
   majorityLink?: string | null;
+  /** Past dates: view only, no trash even on available rows. */
+  readOnly?: boolean;
 }) {
   const isCancelled = time.status !== 'available' && time.status !== 'booked';
   const linkDiffers = time.meetingUrl !== null && majorityLink !== null && time.meetingUrl !== majorityLink;
@@ -56,7 +58,7 @@ export default function InterviewTimeRow({
         </span>
       )}
       <span style={{ flex: 1 }} />
-      {time.status === 'available' && (
+      {time.status === 'available' && !readOnly && (
         <Button variant="ghost" size="sm" aria-label={`Remove ${formatInterviewClockTime(time.startAtUtc)}`} onClick={() => onRemove(time.id)}>
           <Trash2 size={14} style={{ color: 'var(--ink-2)' }} />
         </Button>

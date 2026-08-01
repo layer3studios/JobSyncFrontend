@@ -1,0 +1,51 @@
+'use client';
+// FILE: src/components/employer/jobs/RankedTableToolbar.tsx
+// The line above the table: "{N} applicants · {M} filters active" on the left,
+// select-all + sort on the right. Sort options are unchanged from the old tab.
+
+import { Select } from '@/components/ui';
+import type { ApplicantSort } from '@/types/employer-applicants';
+
+const SORT_OPTIONS = [
+  { value: 'score', label: 'Score: high to low' },
+  { value: 'date', label: 'Applied: newest first' },
+];
+
+export default function RankedTableToolbar({
+  applicantCount, activeFilterCount, sort, onSortChange,
+  showSelect, allSelected, someSelected, onTogglePage,
+}: {
+  applicantCount: number;
+  activeFilterCount: number;
+  sort: ApplicantSort;
+  onSortChange: (sort: ApplicantSort) => void;
+  showSelect: boolean;
+  allSelected: boolean;
+  someSelected: boolean;
+  onTogglePage: () => void;
+}) {
+  const summary = activeFilterCount > 0
+    ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'} · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} active`
+    : `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}`;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+      <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>{summary}</span>
+      {showSelect && (
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-muted)', cursor: 'pointer' }}>
+          <input
+            type="checkbox" checked={allSelected} aria-label="Select all applicants on this page"
+            ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+            onChange={onTogglePage}
+            style={{ accentColor: 'var(--accent)' }}
+          />
+          Select all
+        </label>
+      )}
+      <div style={{ width: 200 }}>
+        <Select aria-label="Sort applicants" value={sort} options={SORT_OPTIONS}
+          onChange={(event) => onSortChange(event.target.value as ApplicantSort)} />
+      </div>
+    </div>
+  );
+}

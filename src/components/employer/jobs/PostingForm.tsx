@@ -7,7 +7,8 @@
 // the click closure during a rapid double-click) (R1).
 
 import { useMemo, useRef, useState } from 'react';
-import { Input, Select, Button, Badge, Alert, Stack } from '@/components/ui';
+import { Input, Button, Alert, Stack } from '@/components/ui';
+import { PillToggleGroup } from './PillToggle';
 import { TYPE } from '@/theme/tokens';
 import { JobDescriptionTextarea } from '@/components/employer/JobDescriptionTextarea';
 import { EmployerJobsApiError } from '@/api/employer-jobs-api';
@@ -22,17 +23,21 @@ interface Props {
   submitLabel: string;
   onSubmit: (input: PostingCreateInput) => Promise<void>;
   onCancel?: () => void;
+  /** Fired on every field change — feeds the New page's live preview. */
+  onValuesChange?: (values: PostingFormValues) => void;
 }
 
 const WORKPLACE_OPTIONS = [
-  { value: 'remote', label: 'Remote' }, { value: 'hybrid', label: 'Hybrid' }, { value: 'onsite', label: 'Onsite' },
+  { value: 'remote', label: 'Remote' }, { value: 'hybrid', label: 'Hybrid' }, { value: 'onsite', label: 'On-site' },
 ];
+// Internship stays as a fourth pill — dropping it would remove the ability to
+// create internship postings (the API value set is unchanged).
 const EMPLOYMENT_OPTIONS = [
   { value: 'full-time', label: 'Full-time' }, { value: 'part-time', label: 'Part-time' },
   { value: 'contract', label: 'Contract' }, { value: 'internship', label: 'Internship' },
 ];
 
-export default function PostingForm({ initialValues, submitLabel, onSubmit, onCancel }: Props) {
+export default function PostingForm({ initialValues, submitLabel, onSubmit, onCancel, onValuesChange }: Props) {
   const [values, setValues] = useState<PostingFormValues>(() => ({
     title: initialValues?.title ?? '',
     description: initialValues?.description ?? '',
@@ -48,7 +53,11 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
   const submittingRef = useRef(false);
 
   const setField = <K extends keyof PostingFormValues>(key: K, value: PostingFormValues[K]) =>
-    setValues((previous) => ({ ...previous, [key]: value }));
+    setValues((previous) => {
+      const next = { ...previous, [key]: value };
+      onValuesChange?.(next);
+      return next;
+    });
 
   const canSubmit = useMemo(() => (
     values.title.trim().length >= 2 && values.description.trim().length >= 50
@@ -97,21 +106,15 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
         onKeyDown={submitOnEnter} onChange={(event) => setField('title', event.target.value)}
       />
 
-      <Stack gap={12} dir="row" wrap>
-        <div style={{ flex: '1 1 200px' }}>
-          <Select
-            label="Workplace type" required placeholder="Select…" options={WORKPLACE_OPTIONS}
-            value={values.workplaceType} error={errors.workplaceType}
-            onChange={(event) => setField('workplaceType', event.target.value as PostingFormValues['workplaceType'])}
-          />
-        </div>
-        <div style={{ flex: '1 1 200px' }}>
-          <Select
-            label="Employment type" required placeholder="Select…" options={EMPLOYMENT_OPTIONS}
-            value={values.employmentType} error={errors.employmentType}
-            onChange={(event) => setField('employmentType', event.target.value as PostingFormValues['employmentType'])}
-          />
-        </div>
+      <Stack gap={16} dir="row" wrap>
+        <PillToggleGroup
+          label="Workplace" options={WORKPLACE_OPTIONS} value={values.workplaceType} error={errors.workplaceType}
+          onChange={(value) => setField('workplaceType', value as PostingFormValues['workplaceType'])}
+        />
+        <PillToggleGroup
+          label="Employment type" options={EMPLOYMENT_OPTIONS} value={values.employmentType} error={errors.employmentType}
+          onChange={(value) => setField('employmentType', value as PostingFormValues['employmentType'])}
+        />
       </Stack>
 
       <Input
@@ -121,20 +124,19 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
 
       <div>
         <p style={{ fontSize: TYPE.sm, fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>
-          Salary (annual, optional)
+          Salary (₹ LPA, optional)
         </p>
         <Stack gap={8} dir="row" align="center" wrap>
           <Input
-            type="number" placeholder="Min" inputMode="numeric" value={values.salaryMinStr}
+            type="number" placeholder="Min" inputMode="numeric" aria-label="Salary minimum" value={values.salaryMinStr}
             onKeyDown={submitOnEnter} onBlur={handleSalaryBlur}
             onChange={(event) => setField('salaryMinStr', event.target.value)}
           />
           <Input
-            type="number" placeholder="Max" inputMode="numeric" value={values.salaryMaxStr}
+            type="number" placeholder="Max" inputMode="numeric" aria-label="Salary maximum" value={values.salaryMaxStr}
             onKeyDown={submitOnEnter} onBlur={handleSalaryBlur}
             onChange={(event) => setField('salaryMaxStr', event.target.value)}
           />
-          <Badge variant="neutral">₹ INR</Badge>
         </Stack>
         {errors.salary && (
           <p role="alert" style={{ color: 'var(--danger)', fontSize: TYPE.xs, marginTop: 5, fontWeight: 500 }}>
@@ -143,16 +145,23 @@ export default function PostingForm({ initialValues, submitLabel, onSubmit, onCa
         )}
       </div>
 
-      <JobDescriptionTextarea
-        label="Job description" required value={values.description} error={errors.description}
-        hint={descriptionHint} placeholder="Paste the full job description here…"
-        onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
-        onChange={(event) => setField('description', event.target.value)}
-      />
+      <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 14 }}>
+        {/* Label row is a flex row so the AI-generate button can slot in later
+            without restructuring. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} />
+        <JobDescriptionTextarea
+          label="Job description" required value={values.description} error={errors.description}
+          hint={descriptionHint}
+          placeholder="Describe the role, responsibilities, requirements, and what you offer..."
+          minRows={9}
+          onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
+          onChange={(event) => setField('description', event.target.value)}
+        />
+      </div>
 
       <Stack gap={8} dir="row" wrap>
         <Button onClick={handleSubmit} loading={isSubmitting} disabled={!canSubmit}>{submitLabel}</Button>
-        {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+        {onCancel && <Button variant="secondary" onClick={onCancel}>Cancel</Button>}
       </Stack>
     </Stack>
   );

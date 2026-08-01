@@ -42,7 +42,7 @@ export default function TimeChipGrid({
               fontWeight: selected ? 700 : 500,
             }}
           >
-            {chip.alreadyAdded ? `${chip.label} · Added` : selected ? `${chip.label} ✓` : chip.label}
+            {chip.alreadyAdded ? `${chip.label} · ${chip.existingStatus === 'booked' ? 'booked' : 'added'}` : selected ? `${chip.label} ✓` : chip.label}
           </button>
         );
       })}

@@ -6,7 +6,8 @@
 // toast an error. Archived applicants are filtered out of the board (R3). dnd-kit
 // provides keyboard + screen-reader support; announcements are stage-aware (C11).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
@@ -32,6 +33,10 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
   const [activeApplicantId, setActiveApplicantId] = useState<string | null>(null);
   const { showToast } = useToast();
+  const router = useRouter();
+  // dnd-kit fires a click after a real drag's pointer-up; this ref suppresses
+  // that click so dropping a card never also navigates (cleared next tick).
+  const recentDragRef = useRef(false);
   // UX gate only — the backend still enforces the move. Unknown role → allow.
   const { viewerRole, viewerCanMoveApplicants, company } = useEmployer();
   const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
@@ -65,11 +70,19 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   );
 
   function handleDragStart(event: DragStartEvent) {
+    recentDragRef.current = true;
     setActiveApplicantId(String(event.active.id));
+  }
+
+  /** Plain click (no drag movement) opens the applicant detail page. */
+  function handleOpenApplicant(applicantId: string) {
+    if (recentDragRef.current) return;
+    router.push(`/employer/jobs/${postingId}/applicants/${applicantId}?from=pipeline`);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     setActiveApplicantId(null);
+    setTimeout(() => { recentDragRef.current = false; }, 0);
     if (!canMove) return; // defence-in-depth: cards are already non-draggable
     const { active, over } = event;
     if (!over) return;
@@ -126,9 +139,18 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div style={{ display: 'flex', overflowX: 'auto', gap: 12, paddingBottom: 8 }}>
+      {/* ≤6 stages: equal columns across the FULL width. More: horizontal scroll. */}
+      <div
+        data-testid="pipeline-grid"
+        style={stages.length > 6
+          ? { display: 'flex', overflowX: 'auto', gap: 10, paddingBottom: 8 }
+          : { display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))`, gap: 10 }}
+      >
         {stages.map((stage) => (
-          <PipelineColumn key={stage.id} stage={stage} applicants={byStage.get(stage.id) ?? []} canMove={canMove} />
+          <PipelineColumn
+            key={stage.id} stage={stage} applicants={byStage.get(stage.id) ?? []}
+            canMove={canMove} onOpen={handleOpenApplicant} scrollMode={stages.length > 6}
+          />
         ))}
       </div>
       <DragOverlay>

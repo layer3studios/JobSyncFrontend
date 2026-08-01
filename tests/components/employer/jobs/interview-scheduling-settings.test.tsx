@@ -1,15 +1,15 @@
 // FILE: tests/components/employer/jobs/interview-scheduling-settings.test.tsx
-// The overhauled Settings workspace: day-grouped times, cancelled-hidden
-// toggle, summary bar, chip-grid Added semantics, one-click date jump, and the
-// full-width two-column layout. Also carries the DetailSettings/PostingOverview
-// content-boundary tests.
+// Calendar-edition Settings tab: month grid + dots, day detail panel, chip
+// semantics, pill toggles, past-date read-only. Carries the content-boundary
+// tests for DetailSettings/PostingOverview.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 import InterviewSchedulingSettings from '@/components/employer/jobs/InterviewSchedulingSettings';
 import DetailSettings from '@/components/employer/jobs/DetailSettings';
 import PostingOverview from '@/components/employer/jobs/PostingOverview';
 import { ToastProvider } from '@/components/ui/Toast';
 import { istLocalToUtcIso, utcIsoToIstLocal } from '@/utils/ist-datetime';
+import { monthLabel, stepMonth } from '@/components/employer/jobs/interview-calendar-helpers';
 import type { Posting } from '@/types/employer-jobs';
 import type { InterviewTime } from '@/types/employer-interviews';
 
@@ -55,7 +55,9 @@ function time(id: string, startAtUtc: string, status: InterviewTime['status'] = 
   };
 }
 
-const tomorrow = () => utcIsoToIstLocal(new Date(Date.now() + 86400000).toISOString()).slice(0, 10);
+const todayIst = () => utcIsoToIstLocal(new Date().toISOString()).slice(0, 10);
+const tomorrowIst = () => utcIsoToIstLocal(new Date(Date.now() + 86400000).toISOString()).slice(0, 10);
+const atIst = (dateIso: string, hhmm: string) => istLocalToUtcIso(`${dateIso}T${hhmm}`) as string;
 
 function renderSettings(postingOverrides: Partial<Posting> = {}) {
   return render(
@@ -72,183 +74,126 @@ beforeEach(() => {
   cleanup();
 });
 
-describe('InterviewSchedulingSettings', () => {
-  it('cancelled times are hidden by default; "Show N cancelled" reveals them', async () => {
+describe('calendar grid', () => {
+  it('renders 7 columns with a whole number of week rows', async () => {
+    renderSettings();
+    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    const cellCount = screen.getByTestId('calendar-grid').children.length;
+    expect(cellCount % 7).toBe(0);
+    expect(cellCount).toBeGreaterThanOrEqual(28);
+  });
+
+  it('dates with available times show green dots; booked show blue', async () => {
+    const day = tomorrowIst();
     listInterviewTimes.mockResolvedValue([
-      time('a', '2030-08-02T04:00:00.000Z'),
-      time('gone', '2030-08-02T06:00:00.000Z', 'cancelled'),
+      time('a', atIst(day, '09:30')),
+      time('b', atIst(day, '11:00'), 'booked'),
     ]);
     renderSettings();
-    await waitFor(() => expect(screen.getByText('Fri, 2 August 2030')).toBeTruthy());
-    expect(screen.queryByText('cancelled', { selector: 'span' })).toBeNull();
-    fireEvent.click(screen.getByText('Show 1 cancelled'));
-    expect(screen.getByText('cancelled', { selector: 'span' })).toBeTruthy();
-    fireEvent.click(screen.getByText('Hide cancelled'));
-    expect(screen.queryByText('cancelled', { selector: 'span' })).toBeNull();
+    await waitFor(() => {
+      const cell = screen.getByTestId(`calendar-cell-${day}`);
+      expect(within(cell).getAllByTestId('dot-available')).toHaveLength(1);
+      expect(within(cell).getAllByTestId('dot-booked')).toHaveLength(1);
+    });
   });
 
-  it('the summary bar shows correct counts', async () => {
-    listInterviewTimes.mockResolvedValue([
-      time('a', '2030-08-02T04:00:00.000Z'),
-      time('b', '2030-08-02T05:00:00.000Z', 'booked'),
-      time('c', '2030-08-04T04:00:00.000Z'),
-      time('d', '2030-08-04T06:00:00.000Z', 'cancelled'),
+  it('the month navigation arrows change the displayed month', async () => {
+    renderSettings();
+    const today = todayIst();
+    const current = { year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) };
+    await waitFor(() => expect(screen.getByText(monthLabel(current.year, current.month))).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('Next month'));
+    const next = stepMonth(current.year, current.month, 1);
+    expect(screen.getByText(monthLabel(next.year, next.month))).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Previous month'));
+    expect(screen.getByText(monthLabel(current.year, current.month))).toBeTruthy();
+  });
+});
+
+describe('day detail panel', () => {
+  it('defaults to the next available date and switches when a date is clicked', async () => {
+    const day = tomorrowIst();
+    listInterviewTimes.mockResolvedValue([time('a', atIst(day, '09:30')), time('b', atIst(day, '14:15'), 'booked')]);
+    renderSettings();
+    await waitFor(() => expect(screen.getByTestId('day-detail-panel')).toBeTruthy());
+    const panel = screen.getByTestId('day-detail-panel');
+    expect(within(panel).getByText('9:30 AM')).toBeTruthy();
+    expect(within(panel).getByText('1 available · 1 booked')).toBeTruthy();
+    fireEvent.click(screen.getByTestId(`calendar-cell-${todayIst()}`));
+    await waitFor(() => expect(within(screen.getByTestId('day-detail-panel')).getByText(/No times on this date/)).toBeTruthy());
+  });
+
+  it('chips reflect added/booked; adding posts the link and updates the dots', async () => {
+    const day = tomorrowIst();
+    listInterviewTimes.mockResolvedValueOnce([
+      time('a', atIst(day, '09:30')),
+      time('bk', atIst(day, '12:30'), 'booked'),
     ]);
+    addInterviewTimes.mockResolvedValue({ insertedCount: 1 });
     renderSettings();
-    await waitFor(() => expect(
-      screen.getByText('4 times across 2 days · 2 available · 1 booked · 1 cancelled'),
-    ).toBeTruthy());
-  });
-
-  it('chip grid marks available/booked as Added but leaves cancelled selectable (Bug 1)', async () => {
-    const day = tomorrow();
+    await waitFor(() => expect(screen.getByText('9:30 AM · added')).toBeTruthy());
+    expect(screen.getByText('12:30 PM · booked')).toBeTruthy();
     listInterviewTimes.mockResolvedValue([
-      time('avail', istLocalToUtcIso(`${day}T09:30`) as string),
-      time('booked', istLocalToUtcIso(`${day}T11:00`) as string, 'booked'),
-      time('gone', istLocalToUtcIso(`${day}T12:30`) as string, 'cancelled'),
+      time('a', atIst(day, '09:30')),
+      time('bk', atIst(day, '12:30'), 'booked'),
+      time('b', atIst(day, '11:00')),
     ]);
-    renderSettings();
-    await waitFor(() => expect(screen.getByText('9:30 AM · Added')).toBeTruthy());
-    expect((screen.getByText('9:30 AM · Added').closest('button') as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByText('11:00 AM · Added').closest('button') as HTMLButtonElement).disabled).toBe(true);
-    const cancelledChip = screen.getByText('12:30 PM').closest('button') as HTMLButtonElement;
-    expect(cancelledChip.disabled).toBe(false);
-    fireEvent.click(cancelledChip);
-    expect(screen.getByText('12:30 PM ✓')).toBeTruthy();
-  });
-
-  it('"+ Add more times to this date" points the date picker at that date', async () => {
-    listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
-    renderSettings();
-    await waitFor(() => expect(screen.getByText('Add more times to this date')).toBeTruthy());
-    fireEvent.click(screen.getByText('Add more times to this date'));
-    expect((screen.getByLabelText('Pick a date') as HTMLInputElement).value).toBe('2030-08-02');
-    // The heading names the working date — the feedback that the click landed.
-    expect(screen.getByText('Add times for Fri, 2 August 2030')).toBeTruthy();
-    expect(screen.getByText('1 time already on this date (1 available, 0 booked)')).toBeTruthy();
-  });
-
-  it('stepping the date forward with the arrow shows the next day heading and chips', async () => {
-    listInterviewTimes.mockResolvedValue([]);
-    renderSettings();
-    await waitFor(() => expect(screen.getByText('9:30 AM')).toBeTruthy());
-    const before = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
-    fireEvent.click(screen.getByLabelText('Next day'));
-    const after = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
-    expect(new Date(after).getTime() - new Date(before).getTime()).toBe(86400000);
-    expect(screen.getByText(/^Add times for /)).toBeTruthy();
-    expect(screen.getByText('9:30 AM')).toBeTruthy(); // next day's grid rendered
-  });
-
-  it('the link field lives in the add panel (video) and NOT in the left details form', () => {
-    renderSettings();
-    const linkFields = screen.getAllByLabelText(/Meeting link/);
-    expect(linkFields).toHaveLength(1);
-    expect(screen.getByLabelText('Meeting link for this date')).toBeTruthy();
-    expect(screen.getByText('Shared with candidates after they confirm a time.')).toBeTruthy();
-  });
-
-  it('phone mode shows NO link field in the add panel', () => {
-    renderSettings({ interviewDefaults: { ...DEFAULTS, mode: 'phone', meetingUrl: null, locationText: '+91 98765' } });
-    expect(screen.queryByLabelText(/Meeting link/)).toBeNull();
-  });
-
-  it('the link persists when switching dates', async () => {
-    renderSettings();
-    await waitFor(() => expect(screen.getByLabelText('Meeting link for this date')).toBeTruthy());
-    fireEvent.change(screen.getByLabelText('Meeting link for this date'), { target: { value: 'https://meet.google.com/day-link' } });
-    fireEvent.click(screen.getByLabelText('Next day'));
-    expect((screen.getByLabelText('Meeting link for this date') as HTMLInputElement).value).toBe('https://meet.google.com/day-link');
-  });
-
-  it('selecting chips and Add all posts the UTC timestamps WITH the current link', async () => {
-    addInterviewTimes.mockResolvedValue({ insertedCount: 2 });
-    renderSettings();
-    await waitFor(() => expect(screen.getByText('9:30 AM')).toBeTruthy());
-    const day = (screen.getByLabelText('Pick a date') as HTMLInputElement).value;
-    fireEvent.change(screen.getByLabelText('Meeting link for this date'), { target: { value: 'https://meet.google.com/new-link' } });
-    fireEvent.click(screen.getByText('9:30 AM'));
-    fireEvent.click(screen.getByText('10:15 AM'));
-    expect(screen.getByText('2 times selected across 1 day')).toBeTruthy();
-    fireEvent.click(screen.getByText('Add 2 times'));
+    fireEvent.click(screen.getByText('11:00 AM'));
+    fireEvent.click(screen.getByText('Add 1 time'));
     await waitFor(() => expect(addInterviewTimes).toHaveBeenCalledTimes(1));
     const [, sent] = addInterviewTimes.mock.calls[0] as [string, { startAtUtc: string; meetingUrl?: string | null }[]];
-    expect(sent.every((entry) => entry.meetingUrl === 'https://meet.google.com/new-link')).toBe(true);
-    expect(sent.map((entry) => entry.startAtUtc).sort()).toEqual([
-      istLocalToUtcIso(`${day}T09:30`), istLocalToUtcIso(`${day}T10:15`),
-    ].sort());
+    expect(sent).toEqual([{ startAtUtc: atIst(day, '11:00'), meetingUrl: 'https://meet.acme.in/x' }]);
+    await waitFor(() => {
+      const cell = screen.getByTestId(`calendar-cell-${day}`);
+      expect(within(cell).getAllByTestId('dot-available')).toHaveLength(2);
+    });
   });
 
-  it('rows show truncated links on every row; the variant link is warning-coloured', async () => {
-    listInterviewTimes.mockResolvedValue([
-      { ...time('a', '2030-08-02T04:00:00.000Z'), meetingUrl: 'https://meet.acme.in/main' },
-      { ...time('b', '2030-08-02T05:00:00.000Z'), meetingUrl: 'https://meet.acme.in/main' },
-      { ...time('c', '2030-08-02T06:00:00.000Z'), meetingUrl: 'https://meet.acme.in/OTHER' },
-    ]);
+  it('past dates show a read-only panel with no add controls', async () => {
+    const yesterday = utcIsoToIstLocal(new Date(Date.now() - 86400000).toISOString()).slice(0, 10);
+    listInterviewTimes.mockResolvedValue([time('old', atIst(yesterday, '10:00'))]);
     renderSettings();
-    await waitFor(() => expect(screen.getByText('Fri, 2 August 2030')).toBeTruthy());
-    expect(screen.getAllByText('meet.acme.in/main')).toHaveLength(2); // shown, muted
-    const variant = screen.getByText('meet.acme.in/OTHER') as HTMLElement;
-    expect(variant.style.color).toBe('var(--warning)');
-    expect((screen.getAllByText('meet.acme.in/main')[0] as HTMLElement).style.color).toBe('var(--ink-faint)');
+    await waitFor(() => expect(screen.getByTestId(`calendar-cell-${yesterday}`)).toBeTruthy());
+    // On the 1st of a month, yesterday sits in the previous month's view where
+    // it is a CURRENT-month (clickable) cell — trailing cells are inert.
+    if (yesterday.slice(0, 7) !== todayIst().slice(0, 7)) {
+      fireEvent.click(screen.getByLabelText('Previous month'));
+    }
+    fireEvent.click(screen.getByTestId(`calendar-cell-${yesterday}`));
+    await waitFor(() => expect(within(screen.getByTestId('day-detail-panel')).getByText('This date is in the past.')).toBeTruthy());
+    const panel = screen.getByTestId('day-detail-panel');
+    expect(within(panel).getByText('10:00 AM')).toBeTruthy();
+    expect(within(panel).queryByText('Select times to add')).toBeNull();
+    expect(within(panel).queryByLabelText(/Remove/)).toBeNull();
   });
+});
 
-  it('row anatomy: available has trash, booked has none and reads booked, cancelled is greyed with no action', async () => {
-    listInterviewTimes.mockResolvedValue([
-      { ...time('a', '2030-08-02T04:00:00.000Z'), meetingUrl: 'https://meet.acme.in/x' },
-      { ...time('b', '2030-08-02T05:00:00.000Z', 'booked'), meetingUrl: 'https://meet.acme.in/x' },
-      { ...time('c', '2030-08-02T06:00:00.000Z', 'cancelled') },
-    ]);
+describe('details form pills', () => {
+  it('type and duration pills are one-of (selecting one deselects the others)', async () => {
     renderSettings();
-    await waitFor(() => expect(screen.getByText('Fri, 2 August 2030')).toBeTruthy());
-    expect(screen.getByLabelText('Remove 9:30 AM')).toBeTruthy();
-    expect(screen.getByText('booked')).toBeTruthy(); // no candidate name from this endpoint
-    expect(screen.queryByLabelText('Remove 10:30 AM')).toBeNull(); // booked row: no trash
-    fireEvent.click(screen.getByText('Show 1 cancelled'));
-    expect(screen.queryByLabelText('Remove 11:30 AM')).toBeNull(); // cancelled row: no action
-    const cancelledText = screen.getByText('cancelled') as HTMLElement;
-    expect(cancelledText.style.color).toBe('var(--ink-faint)');
+    const video = screen.getByText('Video').closest('button') as HTMLButtonElement;
+    const phone = screen.getByText('Phone').closest('button') as HTMLButtonElement;
+    expect(video.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(phone);
+    expect(phone.getAttribute('aria-pressed')).toBe('true');
+    expect(video.getAttribute('aria-pressed')).toBe('false');
+    const m60 = screen.getByText('60m').closest('button') as HTMLButtonElement;
+    const m45 = screen.getByText('45m').closest('button') as HTMLButtonElement;
+    expect(m45.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(m60);
+    expect(m60.getAttribute('aria-pressed')).toBe('true');
+    expect(m45.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('the left summary card shows correct counts and the next available time', async () => {
-    listInterviewTimes.mockResolvedValue([
-      time('a', '2030-08-02T04:00:00.000Z'),
-      time('b', '2030-08-04T04:30:00.000Z'),
-      time('c', '2030-08-02T05:00:00.000Z', 'booked'),
-    ]);
+  it('the meeting link field hides for Phone and In person', async () => {
     renderSettings();
-    await waitFor(() => expect(screen.getByText('2 times available across 2 days')).toBeTruthy());
-    expect(screen.getByText('1 interview booked')).toBeTruthy();
-    expect(screen.getByText('Next available: Fri 2 Aug, 9:30 AM IST')).toBeTruthy();
-  });
-
-  it('the sticky summary bar is present with sticky positioning', async () => {
-    listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
-    renderSettings();
-    await waitFor(() => expect(screen.getByTestId('times-summary-bar')).toBeTruthy());
-    expect((screen.getByTestId('times-summary-bar') as HTMLElement).style.position).toBe('sticky');
-  });
-
-  it('day group cards carry the card styling', async () => {
-    listInterviewTimes.mockResolvedValue([time('a', '2030-08-02T04:00:00.000Z')]);
-    renderSettings();
-    await waitFor(() => expect(screen.getByTestId('day-group-2030-08-02')).toBeTruthy());
-    const card = screen.getByTestId('day-group-2030-08-02') as HTMLElement;
-    expect(card.style.borderRadius).toBe('12px');
-    expect(card.style.border).toContain('0.5px solid');
-  });
-
-  it('renders full width: no max-width narrower than the container', async () => {
-    const { container } = renderSettings();
-    await waitFor(() => expect(screen.getByText('Interview scheduling')).toBeTruthy());
-    const card = container.firstElementChild as HTMLElement;
-    expect(card.style.width).toBe('100%');
-    expect(card.style.maxWidth).toBe('');
-  });
-
-  it('empty state prompts toward the date picker', async () => {
-    renderSettings();
-    await waitFor(() => expect(screen.getByText(/No interview times yet/)).toBeTruthy());
+    expect(screen.getByLabelText('Meeting link')).toBeTruthy();
+    fireEvent.click(screen.getByText('Phone'));
+    expect(screen.queryByLabelText('Meeting link')).toBeNull();
+    expect(screen.getByLabelText('Phone number')).toBeTruthy();
+    fireEvent.click(screen.getByText('In person'));
+    expect(screen.queryByLabelText('Meeting link')).toBeNull();
+    expect(screen.getByLabelText('Address')).toBeTruthy();
   });
 });
 

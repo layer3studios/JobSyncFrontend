@@ -164,7 +164,7 @@ export default function ApplicantDetail() {
     );
   }
   return (
-    <Container size="wide" style={{ paddingTop: 32, paddingBottom: 60 }}>
+    <Container size="full" style={{ padding: '32px 16px 60px' }}>
       {header}
       {body}
     </Container>
