@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Table, Badge } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
+import { withOrigin, NAV_ORIGINS } from '@/lib/nav-origin';
 
 const STATUS_VARIANT: Record<PostingStatus, 'success' | 'warning' | 'neutral'> = {
   active: 'success',
@@ -22,7 +23,7 @@ const columns: Column<Posting>[] = [
     header: 'Title',
     render: (posting) => (
       <Link
-        href={`/employer/jobs/${posting.id}`}
+        href={withOrigin(`/employer/jobs/${posting.id}`, NAV_ORIGINS.JOBS)}
         onClick={(event) => event.stopPropagation()}
         style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}
       >
@@ -46,5 +47,11 @@ const columns: Column<Posting>[] = [
 
 export default function JobsTable({ postings }: { postings: Posting[] }) {
   const router = useRouter();
-  return <Table columns={columns} data={postings} onRowClick={(posting) => router.push(`/employer/jobs/${posting.id}`)} />;
+  return (
+    <Table
+      columns={columns}
+      data={postings}
+      onRowClick={(posting) => router.push(withOrigin(`/employer/jobs/${posting.id}`, NAV_ORIGINS.JOBS))}
+    />
+  );
 }

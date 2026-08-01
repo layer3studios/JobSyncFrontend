@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Container, Button, PageHeader } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
@@ -19,6 +18,7 @@ import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import type { Applicant, ApplicantDetail, ApplicantSort, Stage, ArchiveReason } from '@/types/employer-applicants';
 import { useViewport } from '@/hooks/shared/useViewport';
 import { useApplicantKeyboardNav } from '@/hooks/employer/useApplicantKeyboardNav';
+import { useBackOrFallback } from '@/hooks/employer/useBackOrFallback';
 import ApplicantStickyHeader from './ApplicantStickyHeader';
 import ApplicantDetailBody, { type LoadState } from './ApplicantDetailBody';
 
@@ -118,6 +118,9 @@ export default function ApplicantDetail() {
   const backTabQuery = fromTab && RETURNABLE_TAB_IDS.includes(fromTab) ? `?tab=${fromTab}` : '';
   const backHref = postingId ? `/employer/jobs/${postingId}${backTabQuery}` : '/employer/jobs';
   const backLabel = resolveBackLabel(fromTab);
+  // Back pops the history stack (returns the user to the exact list + scroll
+  // they came from); backHref stays the fallback for direct URL access.
+  const goBack = useBackOrFallback(backHref);
   // Prev/next (PP2): fetch the source-tab-ordered list; failure degrades silently (D2).
   useEffect(() => {
     if (!postingId) return undefined;
@@ -162,12 +165,12 @@ export default function ApplicantDetail() {
   const header = twoColumn ? (
     <ApplicantStickyHeader
       backHref={backHref} backLabel={backLabel} candidateName={name} candidateEmail={email ?? null}
-      previousHref={previousHref} nextHref={nextHref} positionText={positionText}
+      previousHref={previousHref} nextHref={nextHref} positionText={positionText} onBack={goBack}
     />
   ) : (
     <PageHeader
       title={name} subtitle={email}
-      actions={<Link href={backHref}><Button variant="ghost" size="sm">{backLabel}</Button></Link>}
+      actions={<Button variant="ghost" size="sm" onClick={goBack}>{backLabel}</Button>}
     />
   );
 

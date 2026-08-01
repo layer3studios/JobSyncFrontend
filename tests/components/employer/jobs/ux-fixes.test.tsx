@@ -76,7 +76,7 @@ describe('JobsTable row click', () => {
   it('navigates to the posting detail when clicking anywhere on the row', () => {
     render(<JobsTable postings={[posting()]} />);
     fireEvent.click(screen.getByText('Bengaluru')); // a non-link cell
-    expect(routerPush).toHaveBeenCalledWith('/employer/jobs/p1');
+    expect(routerPush).toHaveBeenCalledWith('/employer/jobs/p1?from=jobs');
   });
 });
 

@@ -24,7 +24,7 @@ function NavIcon({ href, label, children }: { href: string | null; label: string
 
 export default function ApplicantStickyHeader({
   backHref, backLabel, candidateName, candidateEmail,
-  previousHref, nextHref, positionText,
+  previousHref, nextHref, positionText, onBack,
 }: {
   backHref: string;
   backLabel: string;
@@ -33,6 +33,9 @@ export default function ApplicantStickyHeader({
   previousHref?: string | null;
   nextHref?: string | null;
   positionText?: string;
+  /** History-aware back. Intercepts the click; backHref stays the real fallback
+   *  target so middle-click / open-in-new-tab still work. */
+  onBack?: () => void;
 }) {
   // Right cluster only when there's prev/next nav to show — otherwise render exactly
   // as P2 did (backward compat for callers that pass none of these).
@@ -53,6 +56,7 @@ export default function ApplicantStickyHeader({
     >
       <Link
         href={backHref}
+        onClick={onBack ? (event) => { event.preventDefault(); onBack(); } : undefined}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500,

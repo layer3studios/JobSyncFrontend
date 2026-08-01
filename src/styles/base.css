@@ -45,6 +45,44 @@ a { color: inherit; }
 *::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); background-clip: padding-box; }
 .thin-scroll { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 
+/* Panel scroll — for INTERNAL scroll areas (cards, sidebars, feeds) where the
+   global 12px bar reads as heavy. A slim 4px pill in the brand accent: soft
+   (--accent-mid) at rest so it is discoverable without shouting, solid on
+   panel hover, --accent-hover on the thumb itself. All three are theme tokens,
+   so light and dark follow automatically. `overscroll-behavior: contain` stops
+   the scroll chaining to the page once the panel hits its end. */
+.panel-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-mid) transparent;
+  transition: scrollbar-color 180ms ease;
+}
+.panel-scroll:hover,
+.panel-scroll:focus-within { scrollbar-color: var(--accent) transparent; }
+.panel-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.panel-scroll::-webkit-scrollbar-track { background: transparent; }
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent-mid);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+  transition: background-color 180ms ease;
+}
+.panel-scroll:hover::-webkit-scrollbar-thumb,
+.panel-scroll:focus-within::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+  background-clip: padding-box;
+}
+/* Smooth keyboard / programmatic scrolling, opt-out for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .panel-scroll { scroll-behavior: smooth; }
+}
+
 .font-display {
   font-family: 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, ui-serif, serif;
   font-feature-settings: 'liga', 'kern';

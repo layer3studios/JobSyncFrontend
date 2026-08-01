@@ -6,7 +6,11 @@ import EmployerJobsNew from '@/components/employer/jobs/New';
 import { ToastProvider } from '@/components/ui/Toast';
 
 const routerPush = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: routerPush }) }));
+// useSearchParams: Breadcrumbs reads ?from= to root the trail at the origin.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: routerPush, back: vi.fn() }),
+  useSearchParams: () => ({ get: () => null }),
+}));
 vi.mock('@/context/employer/EmployerContext', () => ({
   useEmployer: () => ({ company: { name: 'Acme Labs', slug: 'acme' } }),
 }));

@@ -15,6 +15,7 @@ import { createEmployerPosting } from '@/api/employer-jobs-api';
 import type { PostingCreateInput } from '@/types/employer-jobs';
 import { trackEvent } from '@/lib/analytics-events';
 import { getFromRoute } from '@/lib/from-route';
+import { useBackOrFallback } from '@/hooks/employer/useBackOrFallback';
 
 const EMPTY_VALUES: PostingFormValues = {
   title: '', description: '', location: '', workplaceType: '', employmentType: '',
@@ -25,6 +26,9 @@ export default function EmployerJobsNew() {
   const router = useRouter();
   const { showToast } = useToast();
   const [previewValues, setPreviewValues] = useState<PostingFormValues>(EMPTY_VALUES);
+  // Cancel returns to wherever the user opened the form from (Dashboard, Jobs,
+  // a posting) — not a hard-coded route. Direct URL access falls back to Jobs.
+  const cancel = useBackOrFallback('/employer/jobs');
 
   // New-posting form opened.
   useEffect(() => { trackEvent('posting_form_opened', { fromRoute: getFromRoute() }); }, []);
@@ -51,7 +55,7 @@ export default function EmployerJobsNew() {
               <PostingForm
                 submitLabel="Create posting"
                 onSubmit={handleCreate}
-                onCancel={() => router.push('/employer/jobs')}
+                onCancel={cancel}
                 onValuesChange={setPreviewValues}
               />
             </Card>
