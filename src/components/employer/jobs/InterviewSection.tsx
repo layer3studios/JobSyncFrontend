@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, Button, Alert, Stack, Tooltip, useToast } from '@/components/ui';
-import { cancelInterview, EmployerInterviewsApiError } from '@/api/employer-interviews-api';
 import { sendPoolSchedulingLink, EmployerInterviewTimesApiError } from '@/api/employer-interview-times-api';
 import { useSchedulingPool } from './useSchedulingPool';
 import { useApplicantInterviews } from '@/hooks/employer/useApplicantInterviews';
@@ -17,15 +16,19 @@ import { canScheduleInterview } from '@/lib/team-permissions';
 import ScheduleInterviewModal from './ScheduleInterviewModal';
 import InterviewCard from './InterviewCard';
 import CancelInterviewDialog from './CancelInterviewDialog';
-import PoolRescheduleDialog from './PoolRescheduleDialog';
+import PoolReschedulePanel from './PoolReschedulePanel';
 import type { Interview } from '@/types/employer-interviews';
+import { utcIsoToIstLocal } from '@/utils/ist-datetime';
 
 /** Pool interviews carry source 'pool'; older payloads lack the field, but a
  *  pool interview is also the only kind with an empty proposedSlots. */
 const isPoolInterview = (interview: Interview): boolean =>
   interview.source === 'pool' || interview.proposedSlots.length === 0;
 
-const CANCEL_ERROR = 'Could not cancel the interview. Please try again.';
+/** True when the interview's start falls on today's IST calendar day. */
+const startsTodayIst = (interview: Interview): boolean =>
+  interview.startAtUtc !== null
+  && utcIsoToIstLocal(interview.startAtUtc).slice(0, 10) === utcIsoToIstLocal(new Date().toISOString()).slice(0, 10);
 
 export default function InterviewSection({
   applicationId, candidateName,
@@ -44,7 +47,6 @@ export default function InterviewSection({
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [poolRescheduleOpen, setPoolRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   // UX gate only — the backend enforces truth. Unknown role → allow.
@@ -78,21 +80,6 @@ export default function InterviewSection({
       setSendingLink(false);
       await refetch();
       await refetchPool();
-    }
-  }
-
-  async function handleConfirmCancel(cancelReason: string): Promise<void> {
-    if (!activeInterview) return;
-    setCancelling(true); setActionError(null);
-    try {
-      await cancelInterview(activeInterview.id, { cancelReason });
-      setCancelOpen(false);
-      showToast('success', 'Interview cancelled.');
-      await refetch();
-    } catch (caught) {
-      setActionError(caught instanceof EmployerInterviewsApiError ? caught.message : CANCEL_ERROR);
-    } finally {
-      setCancelling(false);
     }
   }
 
@@ -158,18 +145,28 @@ export default function InterviewSection({
           onViewExisting={() => { closeModals(); void refetch(); }}
         />
       )}
-      <CancelInterviewDialog
-        open={cancelOpen}
-        isSubmitting={cancelling}
-        onKeep={() => setCancelOpen(false)}
-        onConfirm={(reason) => void handleConfirmCancel(reason)}
-      />
       {activeInterview && (
-        <PoolRescheduleDialog
-          open={poolRescheduleOpen}
+        <CancelInterviewDialog
+          open={cancelOpen}
           interviewId={activeInterview.id}
           applicationId={applicationId}
           candidateFirstName={candidateFirstName}
+          isToday={startsTodayIst(activeInterview)}
+          canResend={hasDefaults && availableCount > 0}
+          resendDisabledReason={!hasDefaults
+            ? 'Set up interview scheduling on the posting settings tab.'
+            : 'No available times — add more on the posting settings'}
+          onKeep={() => setCancelOpen(false)}
+          onDone={() => { setCancelOpen(false); void refetch(); void refetchPool(); }}
+        />
+      )}
+      {activeInterview && (
+        <PoolReschedulePanel
+          open={poolRescheduleOpen}
+          postingId={postingId}
+          interviewId={activeInterview.id}
+          applicationId={applicationId}
+          candidateName={candidateFirstName}
           onKeep={() => setPoolRescheduleOpen(false)}
           onDone={() => { setPoolRescheduleOpen(false); void refetch(); void refetchPool(); }}
         />

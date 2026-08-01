@@ -5,6 +5,7 @@
 // "+ Add more times to this date" points the shared date picker at that day.
 
 import { useRef } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Stack, Alert, useToast } from '@/components/ui';
 import { removeInterviewTime, EmployerInterviewTimesApiError } from '@/api/employer-interview-times-api';
 import type { InterviewTime } from '@/types/employer-interviews';
@@ -13,18 +14,19 @@ import InterviewDayGroup from './InterviewDayGroup';
 import InterviewTimeChipGrid from './InterviewTimeChipGrid';
 
 export default function InterviewTimesPanel({
-  postingId, times, refetch, defaultsSaved, durationMinutes, meetingUrl,
-  selectedDate, onDateChange, onFocusMeetingLink,
+  postingId, times, refetch, defaultsSaved, durationMinutes, mode,
+  meetingLink, onMeetingLinkChange, selectedDate, onDateChange,
 }: {
   postingId: string;
   times: InterviewTime[];
   refetch: () => Promise<void>;
   defaultsSaved: boolean;
   durationMinutes: number;
-  meetingUrl: string | null;
+  mode: import('@/types/employer-interviews').InterviewMode;
+  meetingLink: string;
+  onMeetingLinkChange: (value: string) => void;
   selectedDate: string;
   onDateChange: (dateIso: string) => void;
-  onFocusMeetingLink: () => void;
 }) {
   const { showToast } = useToast();
   const addPanelRef = useRef<HTMLDivElement>(null);
@@ -56,16 +58,23 @@ export default function InterviewTimesPanel({
   return (
     <Stack gap={14}>
       {summary.total > 0 && (
-        // Sticky: stays visible while scrolling long day-group lists.
-        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--ink-muted)', position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1, padding: '4px 0' }}>
+        // Sticky: stays visible above the scrolling day groups.
+        <p data-testid="times-summary-bar" style={{
+          margin: 0, fontSize: 12, color: 'var(--ink-2)', position: 'sticky', top: 0,
+          background: 'var(--surface-sunken)', borderBottom: '0.5px solid var(--border)',
+          zIndex: 2, padding: '8px 0',
+        }}>
           {summaryLine}
         </p>
       )}
       {defaultsSaved && summary.available <= 1 && (
         <Alert type="warning">
-          {summary.available === 0
-            ? 'No interview times available. Add more to keep scheduling.'
-            : 'Only 1 interview time remaining. Add more to keep scheduling.'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={15} />
+            {summary.available === 0
+              ? 'No interview times available. Add more to keep scheduling.'
+              : 'Only 1 interview time remaining. Add more to keep scheduling.'}
+          </span>
         </Alert>
       )}
 
@@ -91,11 +100,12 @@ export default function InterviewTimesPanel({
           postingId={postingId}
           durationMinutes={durationMinutes}
           defaultsSaved={defaultsSaved}
-          meetingUrl={meetingUrl}
+          mode={mode}
+          meetingLink={meetingLink}
+          onMeetingLinkChange={onMeetingLinkChange}
           existingTimes={times}
           selectedDate={selectedDate}
           onDateChange={onDateChange}
-          onFocusMeetingLink={onFocusMeetingLink}
           onAdded={refetch}
         />
       </div>

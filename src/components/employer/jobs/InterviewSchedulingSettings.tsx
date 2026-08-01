@@ -13,9 +13,8 @@ import type { Posting } from '@/types/employer-jobs';
 import type { InterviewDefaults, InterviewTime } from '@/types/employer-interviews';
 import { utcIsoToIstLocal } from '@/utils/ist-datetime';
 import InterviewDetailsForm from './InterviewDetailsForm';
+import InterviewPoolSummary from './InterviewPoolSummary';
 import InterviewTimesPanel from './InterviewTimesPanel';
-
-const MEETING_LINK_INPUT_ID = 'interview-defaults-meeting-link';
 
 /** Tomorrow as an IST calendar day ('YYYY-MM-DD') — the most useful default. */
 const tomorrowIstDate = () => utcIsoToIstLocal(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()).slice(0, 10);
@@ -25,6 +24,9 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
   const [defaults, setDefaults] = useState<InterviewDefaults | null>(posting.interviewDefaults ?? null);
   const [times, setTimes] = useState<InterviewTime[]>([]);
   const [selectedDate, setSelectedDate] = useState(tomorrowIstDate);
+  // The link lives with the ADD flow (Greenhouse: link at scheduling time),
+  // pre-filled from the saved default as a convenience; persists across dates.
+  const [meetingLink, setMeetingLink] = useState(posting.interviewDefaults?.meetingUrl ?? '');
 
   const refetch = useCallback(async () => {
     try {
@@ -34,12 +36,6 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
     }
   }, [posting.id, showToast]);
   useEffect(() => { void refetch(); }, [refetch]);
-
-  function focusMeetingLink(): void {
-    const input = document.getElementById(MEETING_LINK_INPUT_ID);
-    input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    (input as HTMLInputElement | null)?.focus();
-  }
 
   return (
     <Card style={{ width: '100%' }}>
@@ -53,11 +49,12 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', width: '100%' }}>
           {/* Left — configuration: set once, change rarely. */}
           <div style={{ flex: '2 1 280px', minWidth: 280 }}>
+            <InterviewPoolSummary times={times} />
             <InterviewDetailsForm
               postingId={posting.id}
               initialDefaults={defaults}
+              currentMeetingLink={meetingLink}
               onSaved={setDefaults}
-              meetingLinkInputId={MEETING_LINK_INPUT_ID}
             />
           </div>
           {/* Right — the active scheduling workspace. */}
@@ -68,10 +65,11 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
               refetch={refetch}
               defaultsSaved={defaults !== null}
               durationMinutes={defaults?.durationMinutes ?? 45}
-              meetingUrl={defaults?.meetingUrl ?? null}
+              mode={defaults?.mode ?? 'video'}
+              meetingLink={meetingLink}
+              onMeetingLinkChange={setMeetingLink}
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
-              onFocusMeetingLink={focusMeetingLink}
             />
           </div>
         </div>
