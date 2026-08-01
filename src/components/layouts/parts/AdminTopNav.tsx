@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, Sparkles } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { ADMIN_ROUTES } from './routes';
@@ -60,11 +60,11 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + '/');
 
-  const renderNavLink = (path: string, label: string) => (
+  const renderNavLink = (path: string, label: string, icon?: React.ReactNode) => (
     <Link
       href={path}
       style={{
-        display: 'inline-flex', alignItems: 'center',
+        display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '7px 12px', borderRadius: 8,
         textDecoration: 'none', fontSize: '0.875rem',
         fontWeight: isActive(path) ? 600 : 500,
@@ -75,7 +75,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
       onMouseEnter={e => { if (!isActive(path)) (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; }}
       onMouseLeave={e => { if (!isActive(path)) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
     >
-      {label}
+      {icon}{label}
     </Link>
   );
 
@@ -109,6 +109,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(ADMIN_ROUTES.EMPLOYER_ACCESS, 'Employer Access')}
           {renderNavLink(ADMIN_ROUTES.ANALYTICS, 'Analytics')}
+          {renderNavLink(ADMIN_ROUTES.AI_USAGE, 'AI Usage', <Sparkles size={14} />)}
           {/* Literal path: ADMIN_ROUTES lives in routes.ts, outside this chunk's allowlist. */}
           {renderNavLink('/admin/team', 'Team')}
         </nav>
