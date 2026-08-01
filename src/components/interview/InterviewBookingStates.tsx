@@ -5,6 +5,7 @@
 
 import type { PublicInterviewMode } from '../../types/public-interview';
 import { formatInterviewTime } from '../../utils/format-interview-time';
+import { googleMapsUrl } from '../../lib/maps-url';
 
 const MODE_NOUNS: Record<PublicInterviewMode, string> = {
   video: 'video call', phone: 'phone call', in_person: 'in-person interview',
@@ -34,14 +35,55 @@ export function BookingPageHeader({
   );
 }
 
+/** Type-specific "what happens next" lines for the confirmed state. */
+function confirmedModeBlock(
+  mode: PublicInterviewMode,
+  { locationText, phoneCallDirection, phoneNumber, arrivalInstructions }: {
+    locationText: string | null;
+    phoneCallDirection?: 'we_call' | 'candidate_calls' | null;
+    phoneNumber?: string | null;
+    arrivalInstructions?: string | null;
+  },
+) {
+  const line = { margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)' } as const;
+  if (mode === 'video') {
+    return <p style={line}>You&apos;ll receive a calendar invite with the video call link.</p>;
+  }
+  if (mode === 'phone') {
+    if (phoneCallDirection === 'candidate_calls' && phoneNumber) {
+      return <p style={line}>Please call {phoneNumber} at the scheduled time.</p>;
+    }
+    return <p style={line}>We&apos;ll call you at the scheduled time. Keep your phone available.</p>;
+  }
+  if (!locationText) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <p style={line}>Location: {locationText}</p>
+      {arrivalInstructions && (
+        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink-muted)' }}>{arrivalInstructions}</p>
+      )}
+      <a
+        href={googleMapsUrl(locationText)} target="_blank" rel="noopener noreferrer"
+        style={{ fontSize: '0.88rem', color: 'var(--accent)' }}
+      >
+        Open in Google Maps
+      </a>
+    </div>
+  );
+}
+
 export function ConfirmedState({
   startAtUtc, mode, durationMinutes, locationText, isReminder,
+  phoneCallDirection, phoneNumber, arrivalInstructions,
 }: {
   startAtUtc: string | null;
   mode: PublicInterviewMode;
   durationMinutes: number;
   locationText: string | null;
   isReminder: boolean;
+  phoneCallDirection?: 'we_call' | 'candidate_calls' | null;
+  phoneNumber?: string | null;
+  arrivalInstructions?: string | null;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -52,9 +94,7 @@ export function ConfirmedState({
         <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>{formatInterviewTime(startAtUtc)}</p>
       )}
       <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)' }}>{describeInterview(mode, durationMinutes)}</p>
-      {mode === 'in_person' && locationText && (
-        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink-2)' }}>Location: {locationText}</p>
-      )}
+      {confirmedModeBlock(mode, { locationText, phoneCallDirection, phoneNumber, arrivalInstructions })}
       <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--ink-muted)' }}>
         A calendar invitation has been emailed to you — please accept it so the interview lands in your calendar.
       </p>

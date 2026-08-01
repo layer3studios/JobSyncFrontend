@@ -14,8 +14,9 @@ import type { Posting } from '@/types/employer-jobs';
 const routerPush = vi.fn();
 let tabParam: string | null = null;
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: routerPush }),
-  useSearchParams: () => ({ get: () => tabParam }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
+  usePathname: () => '/employer/jobs/p1',
+  useSearchParams: () => ({ get: () => tabParam, toString: () => '' }),
 }));
 vi.mock('@/context/employer/EmployerContext', () => ({
   useEmployer: () => ({ company: { name: 'Acme Labs', slug: 'acme' }, viewerRole: 'founder' }),

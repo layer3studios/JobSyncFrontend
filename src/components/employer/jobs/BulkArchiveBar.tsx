@@ -5,15 +5,18 @@
 // the primary danger "Archive N". Pure presentational — the parent owns selection and
 // submission state. aria-live announces count changes to screen readers.
 
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui';
 
 export default function BulkArchiveBar({
-  selectedCount, onClear, onArchive, isSubmitting,
+  selectedCount, onClear, onArchive, isSubmitting, moveSlot,
 }: {
   selectedCount: number;
   onClear: () => void;
   onArchive: () => void;
   isSubmitting: boolean;
+  /** The "Move to ▾" menu, rendered between the count and Archive. */
+  moveSlot?: ReactNode;
 }) {
   if (selectedCount === 0) return null;
 
@@ -31,6 +34,7 @@ export default function BulkArchiveBar({
         {selectedCount} selected
       </span>
       <Button variant="ghost" size="sm" onClick={onClear} disabled={isSubmitting}>Clear</Button>
+      {moveSlot}
       <Button variant="danger" size="sm" onClick={onArchive} loading={isSubmitting}>
         Archive {selectedCount}
       </Button>

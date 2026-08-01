@@ -42,6 +42,12 @@ export interface CandidateBookingPage {
   times?: PublicPoolTime[];
   /** Shown on the cancelled state when the employer gave one. */
   cancelReason: string | null;
+  // Type-aware details. Optional: the backend candidate projection may not
+  // expose them yet — the confirmed state degrades to the generic copy.
+  phoneCallDirection?: 'we_call' | 'candidate_calls' | null;
+  /** The interviewer's number (candidate_calls mode, post-booking only). */
+  phoneNumber?: string | null;
+  arrivalInstructions?: string | null;
 }
 
 /** The { error } envelope the public interview routes return on non-2xx.

@@ -7,10 +7,31 @@ export type InterviewStatus = 'proposed' | 'scheduled' | 'cancelled' | 'complete
 
 export type InterviewMode = 'video' | 'phone' | 'in_person';
 
+/** Phone interviews: who dials whom. Null for video / in-person. */
+export type PhoneCallDirection = 'we_call' | 'candidate_calls';
+
 /** One proposed time: UTC ISO start + duration. */
 export interface InterviewSlot {
   startAtUtc: string;
   durationMinutes: number;
+}
+
+/** The interviewer's post-interview verdict (backend enum, Part 1). */
+export type InterviewRecommendation = 'strong_yes' | 'yes' | 'no' | 'strong_no';
+
+/** POST /interviews/:id/complete result. suggestedStage is a stage id. */
+export interface InterviewFeedbackResponse {
+  interview: Interview;
+  nextAction: 'advance' | 'archive';
+  suggestedStage?: string | null;
+  suggestedReason?: string;
+}
+
+/** POST /interviews/:id/no-show result. */
+export interface InterviewNoShowResponse {
+  interview: Interview;
+  nextAction: 'flag';
+  message?: string;
 }
 
 export interface Interview {
@@ -39,6 +60,17 @@ export interface Interview {
   cancelledAt: string | null;
   cancelReason: string | null;
   createdAt: string;
+  // Post-interview outcome fields. Optional: the backend's public projection
+  // may not send them yet — the UI degrades to a plain status badge.
+  recommendation?: InterviewRecommendation | null;
+  feedbackText?: string | null;
+  completedAt?: string | null;
+  noShowAt?: string | null;
+  // Type-aware details (phone / in-person). Optional: the public projection
+  // may not send them yet — the UI degrades to the generic display.
+  phoneNumber?: string | null;
+  phoneCallDirection?: PhoneCallDirection | null;
+  arrivalInstructions?: string | null;
 }
 
 /** Posting-level interview configuration for pool scheduling. */
@@ -46,8 +78,14 @@ export interface InterviewDefaults {
   meetingUrl: string | null;
   durationMinutes: number;
   mode: InterviewMode;
+  /** The address for in-person interviews. */
   locationText: string | null;
   timezoneId: string;
+  /** The interviewer's number — phone mode only. */
+  phoneNumber?: string | null;
+  phoneCallDirection?: PhoneCallDirection | null;
+  /** "Floor, ask for X at reception, parking…" — in-person mode only. */
+  arrivalInstructions?: string | null;
 }
 
 export type InterviewTimeStatus = 'available' | 'booked' | 'cancelled' | 'past';
@@ -76,6 +114,9 @@ export interface ProposeInterviewInput {
   mode: InterviewMode;
   meetingUrl: string | null;
   locationText: string | null;
+  phoneNumber?: string | null;
+  phoneCallDirection?: PhoneCallDirection | null;
+  arrivalInstructions?: string | null;
   interviewerEmployerUserIds: string[];
   timezoneId: string;
 }

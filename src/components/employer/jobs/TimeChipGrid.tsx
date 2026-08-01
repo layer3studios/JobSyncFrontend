@@ -23,7 +23,7 @@ export default function TimeChipGrid({
     return <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--ink-muted)' }}>No selectable times left on this date.</p>;
   }
   return (
-    <div role="group" aria-label="Pick interview times" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+    <div role="group" aria-label="Pick interview times" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
       {chips.map((chip) => {
         const selected = selectedIstLocals.has(chip.istLocal);
         return (

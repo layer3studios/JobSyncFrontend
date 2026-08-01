@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Container, Card, Button, Alert, Stack, Tabs, SkeletonCard,
 } from '@/components/ui';
@@ -44,10 +44,22 @@ function settingsTabLabel(availableCount: number | null) {
 
 export function PostingDetail({ postingId }: { postingId: string }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const tabFromUrl = searchParams.get('tab');
   // Overview first: the title + JD is what an employer expects on click-in;
   // Pipeline and Ranked are one click away.
   const defaultTabId = tabFromUrl && VALID_TAB_IDS.includes(tabFromUrl) ? tabFromUrl : TAB_IDS.OVERVIEW;
+
+  // Mirror the active tab into ?tab= so a refresh, a bookmark and — critically —
+  // the browser BACK button all land on the tab the user was actually using.
+  // replace(), not push(): flipping tabs must not stack history entries.
+  // Other params (?from=) are preserved so the nav origin survives a tab switch.
+  const handleTabChange = useCallback((tabId: string) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    params.set('tab', tabId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [router, pathname, searchParams]);
   const [posting, setPosting] = useState<Posting | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
@@ -116,7 +128,7 @@ export function PostingDetail({ postingId }: { postingId: string }) {
       { id: TAB_IDS.RANKED, label: 'Ranked', content: <RankedTab postingId={posting.id} /> },
       { id: TAB_IDS.SETTINGS, label: settingsTabLabel(availableCount), content: <DetailSettings posting={posting} /> },
     ];
-    return <Tabs tabs={tabs} defaultTabId={defaultTabId} compact />;
+    return <Tabs tabs={tabs} defaultTabId={defaultTabId} onChange={handleTabChange} compact />;
   }
 
   return (

@@ -4,7 +4,7 @@
 // to UTC via ist-datetime.ts — never new Date(rawValue).
 
 import { useState } from 'react';
-import type { InterviewMode, ProposeInterviewInput } from '../../../types/employer-interviews';
+import type { InterviewMode, PhoneCallDirection, ProposeInterviewInput } from '../../../types/employer-interviews';
 import { istLocalToUtcIso } from '../../../utils/ist-datetime';
 
 export const MINIMUM_SLOT_COUNT = 2;
@@ -24,7 +24,9 @@ export function useScheduleInterviewForm() {
   const [mode, setModeState] = useState<InterviewMode>('video');
   const [meetingUrl, setMeetingUrl] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCallDirection, setPhoneCallDirection] = useState<PhoneCallDirection>('we_call');
   const [address, setAddress] = useState('');
+  const [arrivalInstructions, setArrivalInstructions] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(45);
   const [times, setTimes] = useState<TimeRow[]>(() => [createTimeRow(), createTimeRow()]);
 
@@ -83,7 +85,10 @@ export function useScheduleInterviewForm() {
       durationMinutes,
       mode,
       meetingUrl: mode === 'video' ? meetingUrl.trim() : null,
-      locationText: mode === 'phone' ? phoneNumber.trim() : mode === 'in_person' ? address.trim() : null,
+      locationText: mode === 'in_person' ? address.trim() : null,
+      phoneNumber: mode === 'phone' ? phoneNumber.trim() : null,
+      phoneCallDirection: mode === 'phone' ? phoneCallDirection : null,
+      arrivalInstructions: mode === 'in_person' ? arrivalInstructions.trim() || null : null,
       interviewerEmployerUserIds: [],
       timezoneId: 'Asia/Kolkata',
     };
@@ -91,7 +96,9 @@ export function useScheduleInterviewForm() {
 
   return {
     mode, setMode, meetingUrl, setMeetingUrl, phoneNumber, setPhoneNumber,
-    address, setAddress, durationMinutes, setDurationMinutes,
+    phoneCallDirection, setPhoneCallDirection,
+    address, setAddress, arrivalInstructions, setArrivalInstructions,
+    durationMinutes, setDurationMinutes,
     times, setTimeAt, addTimeRow, removeTimeRow,
     slotErrors, conditionalFieldError, canSubmit, buildInput,
   };

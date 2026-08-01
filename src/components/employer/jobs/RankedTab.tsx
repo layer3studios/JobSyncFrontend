@@ -189,7 +189,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
         <RankedBulkActions
           postingId={postingId}
           companyId={company?.id}
-          reasons={reasons}
+          reasons={reasons} stages={stages}
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           onArchived={() => void load(sort)}

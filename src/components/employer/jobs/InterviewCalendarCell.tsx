@@ -30,7 +30,9 @@ export default function InterviewCalendarCell({
       aria-label={`Select ${cell.dateIso}`}
       onClick={() => { if (!isSelected) onSelect(cell.dateIso); }}
       style={{
-        minHeight: 36, fontSize: 12, textAlign: 'center', cursor: cell.isCurrentMonth ? 'pointer' : 'default',
+        // FIXED height, not min-height: as a grid item the cell would otherwise
+        // stretch with the row on tall/zoomed viewports.
+        height: 32, fontSize: 12, textAlign: 'center', cursor: cell.isCurrentMonth ? 'pointer' : 'default',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
         border: 0, borderRight: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)',
         background: isSelected ? 'var(--accent-soft)' : 'transparent',

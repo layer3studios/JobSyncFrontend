@@ -117,19 +117,35 @@ export default function ScheduleInterviewModal({
           />
         )}
         {!isReschedule && form.mode === 'phone' && (
-          <Input
-            label="Phone number to call"
-            value={form.phoneNumber}
-            onChange={(event) => form.setPhoneNumber(event.target.value)}
-          />
+          <>
+            <Input
+              label="Phone number" hint="The interviewer's number." value={form.phoneNumber}
+              onChange={(event) => form.setPhoneNumber(event.target.value)}
+            />
+            <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+              <legend style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8 }}>Who calls whom?</legend>
+              <Radio
+                direction="horizontal"
+                options={[{ value: 'we_call', label: 'We call candidate' }, { value: 'candidate_calls', label: 'Candidate calls us' }]}
+                value={form.phoneCallDirection}
+                onChange={(value) => form.setPhoneCallDirection(value as typeof form.phoneCallDirection)}
+              />
+            </fieldset>
+          </>
         )}
         {!isReschedule && form.mode === 'in_person' && (
-          <Textarea
-            label="Address"
-            hint="The candidate sees this before choosing a time, so they can judge travel."
-            value={form.address}
-            onChange={(event) => form.setAddress(event.target.value)}
-          />
+          <>
+            <Textarea
+              label="Address" value={form.address}
+              hint="The candidate sees this before choosing a time, so they can judge travel."
+              onChange={(event) => form.setAddress(event.target.value)}
+            />
+            <Textarea
+              label="Arrival instructions (optional)" value={form.arrivalInstructions}
+              placeholder="Floor, building name, ask for whom at reception, parking, etc."
+              onChange={(event) => form.setArrivalInstructions(event.target.value)}
+            />
+          </>
         )}
 
         {!isReschedule && (

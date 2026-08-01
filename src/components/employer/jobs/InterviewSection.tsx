@@ -15,9 +15,13 @@ import { useEmployer } from '@/context/employer/EmployerContext';
 import { canScheduleInterview } from '@/lib/team-permissions';
 import ScheduleInterviewModal from './ScheduleInterviewModal';
 import InterviewCard from './InterviewCard';
+import InterviewFeedbackPrompt from './InterviewFeedbackPrompt';
 import CancelInterviewDialog from './CancelInterviewDialog';
 import PoolReschedulePanel from './PoolReschedulePanel';
+import FeedbackArchiveDialog from './FeedbackArchiveDialog';
+import { isAwaitingFeedback } from './interview-feedback-helpers';
 import type { Interview } from '@/types/employer-interviews';
+import type { Stage, ArchiveReason } from '@/types/employer-applicants';
 import { utcIsoToIstLocal } from '@/utils/ist-datetime';
 
 /** Pool interviews carry source 'pool'; older payloads lack the field, but a
@@ -31,10 +35,16 @@ const startsTodayIst = (interview: Interview): boolean =>
   && utcIsoToIstLocal(interview.startAtUtc).slice(0, 10) === utcIsoToIstLocal(new Date().toISOString()).slice(0, 10);
 
 export default function InterviewSection({
-  applicationId, candidateName,
+  applicationId, candidateName, candidatePhone = null, stages = [], reasons = [], onApplicantChanged,
 }: {
   applicationId: string;
   candidateName: string | null;
+  candidatePhone?: string | null; // contact's number — phone-mode "call candidate at"
+  // stages/reasons feed the post-feedback move/archive nudges; onApplicantChanged
+  // fires after either lands so the parent reloads. All optional for old callers.
+  stages?: Stage[];
+  reasons?: ArchiveReason[];
+  onApplicantChanged?: () => void;
 }) {
   const { interviews, loading, error, refetch, activeInterview, hasActiveInterview } = useApplicantInterviews(applicationId);
   const { viewerRole } = useEmployer();
@@ -47,6 +57,7 @@ export default function InterviewSection({
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [poolRescheduleOpen, setPoolRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   // UX gate only — the backend enforces truth. Unknown role → allow.
@@ -89,10 +100,16 @@ export default function InterviewSection({
         <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--ink)' }}>Interview</h3>
         {error && <Alert type="error">{error}</Alert>}
         {actionError && <Alert type="error">{actionError}</Alert>}
-        {!loading && displayInterview && (
+        {/* Ended but never marked → the feedback prompt (managers only). */}
+        {!loading && displayInterview && allowManage && isAwaitingFeedback(displayInterview) ? (
+          <InterviewFeedbackPrompt
+            interview={displayInterview} candidateName={candidateName} stages={stages}
+            onOutcome={() => { void refetch(); onApplicantChanged?.(); }}
+            onArchiveRequested={() => setArchiveOpen(true)}
+          />
+        ) : !loading && displayInterview && (
           <InterviewCard
-            interview={displayInterview}
-            canManage={allowManage}
+            interview={displayInterview} canManage={allowManage} candidatePhone={candidatePhone}
             // Pool interviews reschedule via cancel + fresh link (no manual
             // time entry); per-candidate ones keep the manual-slots modal.
             onReschedule={() => (isPoolInterview(displayInterview)
@@ -160,6 +177,12 @@ export default function InterviewSection({
           onDone={() => { setCancelOpen(false); void refetch(); void refetchPool(); }}
         />
       )}
+      {/* Post-feedback archive nudge — wraps the shared archive dialog. */}
+      <FeedbackArchiveDialog
+        open={archiveOpen} applicationId={applicationId} reasons={reasons}
+        candidateFirstName={candidateFirstName}
+        onClose={() => setArchiveOpen(false)} onArchived={() => onApplicantChanged?.()}
+      />
       {activeInterview && (
         <PoolReschedulePanel
           open={poolRescheduleOpen}

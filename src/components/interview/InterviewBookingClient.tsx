@@ -99,6 +99,9 @@ export default function InterviewBookingClient({
           mode={page.mode}
           durationMinutes={page.durationMinutes}
           locationText={page.locationText}
+          phoneCallDirection={page.phoneCallDirection}
+          phoneNumber={page.phoneNumber}
+          arrivalInstructions={page.arrivalInstructions}
           isReminder={justBookedAtUtc === null}
         />
       </div>

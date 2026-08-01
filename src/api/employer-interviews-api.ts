@@ -5,7 +5,10 @@
 // status + code — the UI branches on code (e.g. INTERVIEW_ALREADY_ACTIVE).
 
 import { apiUrl } from '../lib/api-base';
-import type { Interview, ProposeInterviewInput } from '../types/employer-interviews';
+import type {
+  Interview, ProposeInterviewInput, InterviewRecommendation,
+  InterviewFeedbackResponse, InterviewNoShowResponse,
+} from '../types/employer-interviews';
 
 export class EmployerInterviewsApiError extends Error {
   status: number;
@@ -66,6 +69,31 @@ export async function rescheduleInterview(
 ): Promise<Interview> {
   const body = await request<{ data: Interview }>(
     `/employer/interviews/${encodeURIComponent(interviewId)}/reschedule`,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+  return body.data;
+}
+
+/** Record the interviewer's verdict on a past scheduled interview. Throws
+ *  INTERVIEW_NOT_YET (400) when the interview has not started yet. */
+export async function completeInterview(
+  interviewId: string,
+  input: { recommendation: InterviewRecommendation; feedbackText: string },
+): Promise<InterviewFeedbackResponse> {
+  const body = await request<{ data: InterviewFeedbackResponse }>(
+    `/employer/interviews/${encodeURIComponent(interviewId)}/complete`,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+  return body.data;
+}
+
+/** Flag a past scheduled interview as a candidate no-show (pool time recycles). */
+export async function markNoShow(
+  interviewId: string,
+  input: { note?: string } = {},
+): Promise<InterviewNoShowResponse> {
+  const body = await request<{ data: InterviewNoShowResponse }>(
+    `/employer/interviews/${encodeURIComponent(interviewId)}/no-show`,
     { method: 'POST', body: JSON.stringify(input) },
   );
   return body.data;

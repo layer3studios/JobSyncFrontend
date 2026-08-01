@@ -15,6 +15,7 @@ import ApplicantContactCard from './ApplicantContactCard';
 import ApplicantCoverNote from './ApplicantCoverNote';
 import ApplicantNotesCard from './ApplicantNotesCard';
 import InterviewSection from './InterviewSection';
+import CandidateTimeline from './CandidateTimeline';
 
 export type LoadState = 'loading' | 'loaded' | 'error' | 'not_found';
 
@@ -83,19 +84,32 @@ export default function ApplicantDetailBody({
   // Notes (C3) sit last in the sidebar and fetch their own list (D8). The card grows
   // inside RIGHT_COLUMN_STYLE's own overflow-y region, so the page still never scrolls (P8).
   const notesCard = <ApplicantNotesCard applicationId={detail.application.id} />;
-  // Interview scheduling sits below the review panel, above notes.
+  // Merged history sits ABOVE notes: the story first, the conversation below.
+  // Notes stay as their own card — composing a note inline in a timeline is
+  // clumsy, and notes also appear inside the timeline as events.
+  const timeline = (
+    <CandidateTimeline applicationId={detail.application.id} candidateName={detail.contact?.fullName ?? null} />
+  );
+  // Interview scheduling sits below the review panel, above the timeline.
   const interviewSection = (
-    <InterviewSection applicationId={detail.application.id} candidateName={detail.contact?.fullName ?? null} />
+    <InterviewSection
+      applicationId={detail.application.id}
+      candidateName={detail.contact?.fullName ?? null}
+      candidatePhone={detail.contact?.phone ?? null}
+      stages={stages}
+      reasons={reasons}
+      onApplicantChanged={() => void load()}
+    />
   );
 
   if (!twoColumn) {
-    return <Stack gap={16}>{viewer}{contactCard}{coverNoteCard}{sidebar}{interviewSection}{notesCard}</Stack>;
+    return <Stack gap={16}>{viewer}{contactCard}{coverNoteCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
   }
   return (
     <div style={GRID_STYLE}>
       <div style={LEFT_COLUMN_STYLE}>{viewer}</div>
       <div style={RIGHT_COLUMN_STYLE}>
-        <Stack gap={16}>{contactCard}{coverNoteCard}{sidebar}{interviewSection}{notesCard}</Stack>
+        <Stack gap={16}>{contactCard}{coverNoteCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
       </div>
     </div>
   );

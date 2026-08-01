@@ -6,24 +6,59 @@
 // viewer may manage interviews (member or higher) — canManage is decided by the
 // parent via team-permissions.
 
+import { useState } from 'react';
 import { Badge, Button, Stack } from '@/components/ui';
 import type { Interview } from '@/types/employer-interviews';
 import { formatInterviewTime, formatInterviewTimeShort } from '@/utils/format-interview-time';
+import { recommendationLabel, recommendationBadgeStyle } from './interview-feedback-helpers';
+import InterviewModeDetails from './InterviewModeDetails';
+
+/** Completed with a verdict: badge in colour + expandable feedback text. */
+function CompletedState({ interview }: { interview: Interview }) {
+  const [expanded, setExpanded] = useState(false);
+  const when = interview.completedAt ?? interview.startAtUtc;
+  return (
+    <Stack gap={8}>
+      <Stack dir="row" gap={8} align="center" wrap>
+        <span style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>Feedback submitted</span>
+        {interview.recommendation && (
+          <span style={recommendationBadgeStyle(interview.recommendation)}>
+            {recommendationLabel(interview.recommendation)}
+          </span>
+        )}
+        <span style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>
+          {when ? formatInterviewTimeShort(when) : '—'}
+        </span>
+      </Stack>
+      {interview.feedbackText && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+          style={{
+            border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left',
+            fontSize: '0.82rem', color: 'var(--ink-2)', fontFamily: 'inherit',
+            ...(expanded ? {} : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
+          }}
+        >
+          {interview.feedbackText}
+        </button>
+      )}
+    </Stack>
+  );
+}
 
 const MODE_LABELS: Record<Interview['mode'], string> = {
   video: 'Video call', phone: 'Phone call', in_person: 'In person',
 };
 
-function whereLine(interview: Interview): string | null {
-  if (interview.mode === 'video') return interview.meetingUrl;
-  return interview.locationText;
-}
-
 export default function InterviewCard({
-  interview, canManage, onReschedule, onCancel,
+  interview, canManage, candidatePhone = null, onReschedule, onCancel,
 }: {
   interview: Interview;
   canManage: boolean;
+  /** From the contact record — the "we call the candidate" phone display. */
+  candidatePhone?: string | null;
   onReschedule: () => void;
   onCancel: () => void;
 }) {
@@ -71,8 +106,9 @@ export default function InterviewCard({
           {interview.startAtUtc ? formatInterviewTime(interview.startAtUtc) : '—'}
         </p>
         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink-2)' }}>
-          {MODE_LABELS[interview.mode]}{whereLine(interview) ? ` · ${whereLine(interview)}` : ''}
+          {MODE_LABELS[interview.mode]}
         </p>
+        <InterviewModeDetails interview={interview} candidatePhone={candidatePhone} />
         {actions}
       </Stack>
     );
@@ -89,13 +125,18 @@ export default function InterviewCard({
     );
   }
 
-  // completed / no_show — read-only historical row.
+  // completed / no_show — read-only historical state.
   return (
-    <Stack dir="row" gap={8} align="center">
-      <Badge variant="neutral">{status === 'completed' ? 'Completed' : 'No-show'}</Badge>
-      <span style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>
-        {interview.startAtUtc ? formatInterviewTimeShort(interview.startAtUtc) : '—'}
-      </span>
+    <Stack gap={8}>
+      <Stack dir="row" gap={8} align="center">
+        <Badge variant={status === 'completed' ? 'success' : 'danger'}>
+          {status === 'completed' ? 'Completed' : 'No-show'}
+        </Badge>
+        <span style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>
+          {interview.startAtUtc ? formatInterviewTimeShort(interview.startAtUtc) : '—'}
+        </span>
+      </Stack>
+      {status === 'completed' && <CompletedState interview={interview} />}
     </Stack>
   );
 }
