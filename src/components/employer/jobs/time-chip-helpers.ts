@@ -21,6 +21,8 @@ export interface TimeChip {
   label: string;
   /** Already in the pool for this date — rendered disabled as "Added". */
   alreadyAdded: boolean;
+  /** Which active status blocks this chip (drives "· added" vs "· booked"). */
+  existingStatus: 'available' | 'booked' | null;
 }
 
 export function chipIntervalMinutes(durationMinutes: number): number {
@@ -51,11 +53,11 @@ export function buildTimeChips(
 ): TimeChip[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) return [];
   const intervalMinutes = chipIntervalMinutes(durationMinutes);
-  const existing = new Set(
-    existingTimes
-      .filter((time) => BLOCKING_STATUSES.has(time.status))
-      .map((time) => new Date(time.startAtUtc).getTime()),
-  );
+  const existing = new Map<number, 'available' | 'booked'>();
+  for (const time of existingTimes) {
+    if (!BLOCKING_STATUSES.has(time.status)) continue;
+    existing.set(new Date(time.startAtUtc).getTime(), time.status as 'available' | 'booked');
+  }
   const chips: TimeChip[] = [];
 
   for (
@@ -69,11 +71,13 @@ export function buildTimeChips(
     const utcIso = istLocalToUtcIso(istLocal);
     if (!utcIso) continue;
     if (new Date(utcIso) <= now) continue; // past chips are dropped, not shown
+    const existingStatus = existing.get(new Date(utcIso).getTime()) ?? null;
     chips.push({
       istLocal,
       utcIso,
       label: twelveHourLabel(hour24, minute),
-      alreadyAdded: existing.has(new Date(utcIso).getTime()),
+      alreadyAdded: existingStatus !== null,
+      existingStatus,
     });
   }
   return chips;

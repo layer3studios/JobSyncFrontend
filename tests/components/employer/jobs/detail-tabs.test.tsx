@@ -45,10 +45,11 @@ describe('PostingDetail tabs', () => {
     const labels = screen.getAllByRole('tab').map((tab) => tab.textContent);
     expect(labels).toEqual(['Overview', 'Pipeline', 'Ranked', 'Settings']);
     expect(screen.getByText('overview-body')).toBeTruthy();
-    // Full-width fix: the page container allows 1536px — well past 1000px on a
-    // 1400px viewport (the old 'lg' cap was 1024px).
+    // Full-width fix: NO max-width on the employer content area (was 1024px,
+    // then 1536px) and only 16px side padding — nothing narrower than 1400px.
     const pageContainer = container.firstElementChild as HTMLElement;
-    expect(pageContainer.style.maxWidth).toBe('1536px');
+    expect(pageContainer.style.maxWidth).toBe('none');
+    expect(pageContainer.style.padding).toBe('32px 16px 60px');
   });
 
   it('?tab=ranked still lands on the Ranked tab (deep links stay stable)', async () => {

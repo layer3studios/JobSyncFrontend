@@ -3,10 +3,11 @@
 import type { ReactNode, CSSProperties } from 'react';
 
 export function Container({ children, size = 'xl', style, className = '' }: {
-  children: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | 'wide'; style?: CSSProperties; className?: string;
+  children: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | 'wide' | 'full'; style?: CSSProperties; className?: string;
 }) {
-  // 'wide' is for desktop working surfaces (employer app) — let the monitor work.
-  const maxW = { sm: '640px', md: '768px', lg: '1024px', xl: '1200px', wide: '1536px' }[size];
+  // 'wide'/'full' are for desktop working surfaces (employer app) — let the
+  // monitor work. 'full' has NO cap; components manage their own inner widths.
+  const maxW = { sm: '640px', md: '768px', lg: '1024px', xl: '1200px', wide: '1536px', full: 'none' }[size];
   return (
     // width:100% is required because Container is rendered inside flex-column
     // parents — without it, the auto side-margins collapse the box to its

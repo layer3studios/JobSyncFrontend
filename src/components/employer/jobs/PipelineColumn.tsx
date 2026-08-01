@@ -1,47 +1,79 @@
 'use client';
 // FILE: src/components/employer/jobs/PipelineColumn.tsx
-// One Kanban column = one pipeline stage. useDroppable makes the whole column a drop
-// target (even when empty); SortableContext gives keyboard navigation between the
-// cards inside it (C11). The column exposes its stageId via droppable `data` so the
-// drag-end handler can resolve the destination stage from an empty-column drop.
+// One Kanban column: stage-coloured 2px header underline, count pill, and the
+// droppable body. Drop wiring is UNCHANGED — useDroppable spans the body (empty
+// columns included) and exposes stageId via data; SortableContext keeps
+// keyboard navigation. isOver now paints a dashed accent inside the body.
 
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Card, Badge } from '@/components/ui';
 import PipelineCard from '@/components/employer/jobs/PipelineCard';
 import type { Applicant, Stage } from '@/types/employer-applicants';
 
-export default function PipelineColumn({ stage, applicants, canMove = true }: { stage: Stage; applicants: Applicant[]; canMove?: boolean }) {
+/** Stage accent by (case-insensitive) name; custom stages fall back to grey. */
+const STAGE_COLOR_BY_NAME: Record<string, string> = {
+  applied: '#1D9E75', shortlisted: 'var(--accent)', interview: '#BA7517',
+  offer: '#7F77DD', hired: '#1D9E75',
+};
+export const stageColor = (stageName: string): string =>
+  STAGE_COLOR_BY_NAME[stageName.trim().toLowerCase()] ?? 'var(--ink-2)';
+
+export default function PipelineColumn({
+  stage, applicants, canMove = true, onOpen, scrollMode = false,
+}: {
+  stage: Stage;
+  applicants: Applicant[];
+  canMove?: boolean;
+  onOpen?: (applicantId: string) => void;
+  /** >6 stages: fixed-width columns inside a horizontal scroller. */
+  scrollMode?: boolean;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stageId: stage.id } });
+  const color = stageColor(stage.text);
 
   return (
-    <Card
-      padding="sm"
+    <div
+      data-testid={`pipeline-column-${stage.id}`}
       style={{
-        minWidth: 280, maxWidth: 320, flexShrink: 0,
-        background: 'var(--surface-sunken)',
-        outline: isOver ? '2px solid var(--accent)' : 'none',
+        background: 'var(--surface-raised)', border: '0.5px solid var(--border)',
+        borderRadius: 12, overflow: 'hidden',
+        ...(scrollMode ? { minWidth: 260, flexShrink: 0 } : { minWidth: 0 }),
       }}
     >
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ink)' }}>{stage.text}</span>
-        <Badge variant="neutral" size="sm">{applicants.length}</Badge>
+      <header style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', borderBottom: `2px solid ${color}`,
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{stage.text}</span>
+        <span style={{
+          fontSize: 12, color: 'var(--ink-faint)', background: 'var(--surface)',
+          borderRadius: 999, padding: '1px 8px',
+        }}>
+          {applicants.length}
+        </span>
       </header>
-      <div ref={setNodeRef} style={{ minHeight: 40 }}>
+      <div
+        ref={setNodeRef}
+        style={{
+          padding: 8, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 200,
+          outline: isOver ? '2px dashed var(--accent)' : 'none', outlineOffset: -4,
+          background: isOver ? 'var(--accent-soft)' : 'transparent',
+        }}
+      >
         <SortableContext
           items={applicants.map((applicant) => applicant.application.id)}
           strategy={verticalListSortingStrategy}
         >
           {applicants.map((applicant) => (
-            <PipelineCard key={applicant.application.id} applicant={applicant} canMove={canMove} />
+            <PipelineCard key={applicant.application.id} applicant={applicant} canMove={canMove} onOpen={onOpen} />
           ))}
           {applicants.length === 0 && (
-            <div style={{ opacity: 0.5, textAlign: 'center', padding: 24, fontSize: '0.8125rem', color: 'var(--ink-muted)' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--ink-faint)' }}>
               Drop here
             </div>
           )}
         </SortableContext>
       </div>
-    </Card>
+    </div>
   );
 }

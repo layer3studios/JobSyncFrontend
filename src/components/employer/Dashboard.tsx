@@ -17,7 +17,7 @@ export default function EmployerDashboard() {
   if (!company) {
     return (
       <div style={{ minHeight: '100dvh', background: 'var(--surface-sunken)', padding: '48px 0' }}>
-        <Container size="lg">
+        <Container size="full" style={{ paddingLeft: 16, paddingRight: 16 }}>
           <Alert type="warning">
             <Stack gap={8} dir="row" align="center" justify="space-between">
               <span>Loading company…</span>
@@ -38,7 +38,7 @@ export default function EmployerDashboard() {
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--surface-sunken)', padding: '48px 0' }}>
-      <Container size="lg">
+      <Container size="full" style={{ paddingLeft: 16, paddingRight: 16 }}>
         <PageHeader label="EMPLOYER" title={company.name} />
         <Card variant="raised">
           <Stack gap={16}>
