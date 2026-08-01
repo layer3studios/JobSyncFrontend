@@ -71,31 +71,23 @@ describe('InterviewCard type display', () => {
   });
 });
 
-describe('InterviewDetailsForm type fields', () => {
+// The left panel is duration-only now: interview TYPE and its detail field
+// moved into the add-times panel (chosen per batch). Those fields are covered
+// by compact-time-chips.test.tsx at their new home.
+describe('InterviewDetailsForm (duration only)', () => {
   const renderForm = (initial: InterviewDefaults | null) => render(
     <ToastProvider><InterviewDetailsForm postingId="p1" initialDefaults={initial} onSaved={vi.fn()} /></ToastProvider>,
   );
 
-  it('phone mode shows the who-calls-whom toggle with "We call candidate" default', () => {
+  it('shows duration pills and no type/link/phone/address fields', () => {
     renderForm({
       mode: 'phone', meetingUrl: null, locationText: null, durationMinutes: 45,
       timezoneId: 'Asia/Kolkata', phoneNumber: '+91 11111', phoneCallDirection: null,
     });
-    expect(screen.getByLabelText('Phone number')).toBeTruthy();
-    const weCall = screen.getByRole('button', { name: 'We call candidate' });
-    expect(weCall.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Candidate calls us' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.queryByLabelText('Meeting link')).toBeNull();
-  });
-
-  it('in-person mode shows address and arrival-instructions fields, no meeting link', () => {
-    renderForm({
-      mode: 'in_person', meetingUrl: null, locationText: 'JobMesh HQ', durationMinutes: 45, timezoneId: 'Asia/Kolkata',
-    });
-    expect(screen.getByLabelText('Address')).toBeTruthy();
-    expect(screen.getByLabelText('Arrival instructions')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Floor, building name, ask for whom at reception, parking, etc.')).toBeTruthy();
-    expect(screen.queryByLabelText('Meeting link')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Interview duration' })).toBeTruthy();
+    for (const gone of ['Meeting link', 'Phone number', 'Address', 'Arrival instructions']) {
+      expect(screen.queryByLabelText(gone)).toBeNull();
+    }
   });
 });
 

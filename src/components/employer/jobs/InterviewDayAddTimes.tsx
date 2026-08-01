@@ -1,18 +1,22 @@
 'use client';
 // FILE: src/components/employer/jobs/InterviewDayAddTimes.tsx
-// The add-flow inside the day detail panel: "Select times to add" chip grid,
-// custom-time escape hatch, and the footer (count · IST note · Add N). Each
-// added time snapshots the panel's per-date meeting link (video mode); an
-// empty link is sent as null, and the backend falls back to the posting
-// default — or stores no link at all, which is a valid draft state.
+// The add-flow: "Add times" heading, per-batch type + detail fields, the chip
+// grid, and the footer (count · IST note · Add N).
+//
+// BACKEND SHAPE: interview_times snapshot their mode / locationText from the
+// posting's interviewDefaults, and only meetingUrl is accepted per time. So a
+// batch is written in two steps — syncDefaults() first (so the snapshot is
+// this batch's type), then the times themselves. Times already created keep
+// the snapshot they were written with, which is what makes per-batch types work.
 
 import { useState } from 'react';
 import { Button, Stack, useToast } from '@/components/ui';
 import { addInterviewTimes, EmployerInterviewTimesApiError } from '@/api/employer-interview-times-api';
 import { istLocalToUtcIso } from '@/utils/ist-datetime';
-import type { InterviewMode } from '@/types/employer-interviews';
 import { buildTimeChips, type ExistingPoolTime } from './time-chip-helpers';
 import TimeChipGrid from './TimeChipGrid';
+import AddTimesTypeFields from './AddTimesTypeFields';
+import { requiredFieldFilled, type AddTimesForm } from './useAddTimesForm';
 
 const INPUT_STYLE = {
   padding: '6px 9px', border: '0.5px solid var(--border)', borderRadius: 8,
@@ -20,14 +24,19 @@ const INPUT_STYLE = {
 } as const;
 
 export default function InterviewDayAddTimes({
-  postingId, dateIso, durationMinutes, mode, defaultsSaved, meetingLink, existingTimes, onAdded,
+  postingId, dateIso, durationMinutes, durationSaved, form, onFormChange,
+  onFormUsed, syncDefaults, existingTimes, onAdded,
 }: {
   postingId: string;
   dateIso: string;
   durationMinutes: number;
-  mode: InterviewMode;
-  defaultsSaved: boolean;
-  meetingLink: string;
+  /** Defaults exist with a duration — the ONLY thing the gate needs saved. */
+  durationSaved: boolean;
+  form: AddTimesForm;
+  onFormChange: <K extends keyof AddTimesForm>(key: K, value: AddTimesForm[K]) => void;
+  onFormUsed: () => void;
+  /** Writes this batch's type/detail onto the posting defaults before the POST. */
+  syncDefaults: (form: AddTimesForm) => Promise<void>;
   existingTimes: ExistingPoolTime[];
   onAdded: () => Promise<void>;
 }) {
@@ -36,15 +45,11 @@ export default function InterviewDayAddTimes({
   const [customOpen, setCustomOpen] = useState(false);
   const [customValue, setCustomValue] = useState('');
   const [busy, setBusy] = useState(false);
-  const [warningDismissed, setWarningDismissed] = useState(false);
 
   const chips = buildTimeChips(dateIso, durationMinutes, existingTimes);
-  const isVideo = mode === 'video';
-  const trimmedLink = meetingLink.trim();
-  // A missing link is a WARNING, never a blocker: times can be drafted now and
-  // the link added later (per date, or as a posting default).
-  const showMissingLinkWarning = isVideo && !trimmedLink && !warningDismissed;
   const selectedCount = selected.size;
+  const detailFilled = requiredFieldFilled(form);
+  const canAdd = !busy && durationSaved && selectedCount > 0 && detailFilled;
 
   function toggle(istLocal: string): void {
     setSelected((current) => {
@@ -66,16 +71,17 @@ export default function InterviewDayAddTimes({
   }
 
   async function handleAdd(): Promise<void> {
-    if (busy || selectedCount === 0 || !defaultsSaved) return;
+    if (!canAdd) return;
     setBusy(true);
     try {
+      await syncDefaults(form);
       const { insertedCount } = await addInterviewTimes(postingId, [...selected].map((value) => ({
         startAtUtc: istLocalToUtcIso(value) as string,
-        // Empty → null so the backend can fall back to the posting default.
-        meetingUrl: isVideo ? trimmedLink || null : null,
+        meetingUrl: form.mode === 'video' ? form.meetingUrl.trim() || null : null,
       })));
       showToast('success', `${insertedCount} time${insertedCount === 1 ? '' : 's'} added.`);
       setSelected(new Set());
+      onFormUsed();
       await onAdded();
     } catch (caught) {
       showToast('error', caught instanceof EmployerInterviewTimesApiError ? caught.message : 'Could not add times. Try again.');
@@ -87,8 +93,9 @@ export default function InterviewDayAddTimes({
   return (
     <Stack gap={8}>
       <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
-        Select times to add
+        Add times
       </p>
+      <AddTimesTypeFields form={form} onChange={onFormChange} />
       <TimeChipGrid chips={chips} selectedIstLocals={selected} onToggle={toggle} />
       {customOpen && (
         <Stack dir="row" gap={8} align="center">
@@ -96,25 +103,10 @@ export default function InterviewDayAddTimes({
           <Button variant="ghost" size="sm" onClick={addCustomTime}>Add to selection</Button>
         </Stack>
       )}
-      {showMissingLinkWarning && (
-        <div
-          role="status"
-          style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 8,
-            background: 'var(--warning-soft)', fontSize: 11, color: 'var(--warning)',
-          }}
-        >
-          <span style={{ flex: 1 }}>
-            No meeting link — candidates won&apos;t receive a video link until you add one.
-          </span>
-          <button
-            type="button"
-            onClick={() => setWarningDismissed(true)}
-            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit', fontSize: 11 }}
-          >
-            Dismiss
-          </button>
-        </div>
+      {!durationSaved && (
+        <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-muted)' }}>
+          Set a default duration to start adding times.
+        </p>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>
@@ -123,8 +115,7 @@ export default function InterviewDayAddTimes({
         <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>Times in IST</span>
         <span style={{ flex: 1 }} />
         {!customOpen && <Button variant="link" size="sm" onClick={() => setCustomOpen(true)}>Custom time</Button>}
-        {/* Gated ONLY on saved defaults (type + duration) — never on the link. */}
-        <Button size="sm" loading={busy} disabled={busy || !defaultsSaved || selectedCount === 0} onClick={() => void handleAdd()}>
+        <Button size="sm" loading={busy} disabled={!canAdd} onClick={() => void handleAdd()}>
           Add {selectedCount > 0 ? selectedCount : ''} time{selectedCount === 1 ? '' : 's'}
         </Button>
       </div>

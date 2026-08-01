@@ -138,6 +138,9 @@ describe('day detail panel', () => {
       time('bk', atIst(day, '12:30'), 'booked'),
       time('b', atIst(day, '11:00')),
     ]);
+    // The link now comes from the ADD panel field (these fixture times carry
+    // none), so it must be entered before the batch can be added.
+    fireEvent.change(screen.getByLabelText('Meeting link'), { target: { value: 'https://meet.acme.in/x' } });
     fireEvent.click(screen.getByText('11:00 AM'));
     fireEvent.click(screen.getByText('Add 1 time'));
     await waitFor(() => expect(addInterviewTimes).toHaveBeenCalledTimes(1));
@@ -169,14 +172,8 @@ describe('day detail panel', () => {
 });
 
 describe('details form pills', () => {
-  it('type and duration pills are one-of (selecting one deselects the others)', async () => {
+  it('duration pills are one-of (selecting one deselects the others)', async () => {
     renderSettings();
-    const video = screen.getByText('Video').closest('button') as HTMLButtonElement;
-    const phone = screen.getByText('Phone').closest('button') as HTMLButtonElement;
-    expect(video.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(phone);
-    expect(phone.getAttribute('aria-pressed')).toBe('true');
-    expect(video.getAttribute('aria-pressed')).toBe('false');
     const m60 = screen.getByText('60m').closest('button') as HTMLButtonElement;
     const m45 = screen.getByText('45m').closest('button') as HTMLButtonElement;
     expect(m45.getAttribute('aria-pressed')).toBe('true');
@@ -185,15 +182,14 @@ describe('details form pills', () => {
     expect(m45.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('the details form never shows a meeting link field (it lives per-date in add-times)', async () => {
+  it('type pills live in the ADD panel, not the left defaults panel', async () => {
     renderSettings();
-    expect(screen.queryByLabelText('Meeting link')).toBeNull(); // video: type + duration only
-    fireEvent.click(screen.getByText('Phone'));
-    expect(screen.queryByLabelText('Meeting link')).toBeNull();
-    expect(screen.getByLabelText('Phone number')).toBeTruthy();
-    fireEvent.click(screen.getByText('In person'));
-    expect(screen.queryByLabelText('Meeting link')).toBeNull();
-    expect(screen.getByLabelText('Address')).toBeTruthy();
+    // The left panel is duration-only; the type group belongs to the add flow.
+    await waitFor(() => expect(screen.getByRole('group', { name: 'Interview type' })).toBeTruthy());
+    const typeGroup = screen.getByRole('group', { name: 'Interview type' });
+    const addPanel = screen.getByTestId('day-detail-panel');
+    expect(addPanel.contains(typeGroup)).toBe(true);
+    expect(screen.getByRole('group', { name: 'Interview duration' })).toBeTruthy();
   });
 });
 

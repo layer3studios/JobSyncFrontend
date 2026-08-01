@@ -12,7 +12,9 @@ import { useIsNarrowViewport } from './useIsNarrowViewport';
 import { listInterviewTimes } from '@/api/employer-interview-times-api';
 import type { Posting } from '@/types/employer-jobs';
 import type { InterviewDefaults, InterviewTime } from '@/types/employer-interviews';
+import { updateInterviewDefaults } from '@/api/employer-interview-times-api';
 import { defaultSelectedDate, todayIstDate } from './interview-calendar-helpers';
+import { useAddTimesForm, type AddTimesForm } from './useAddTimesForm';
 import InterviewDetailsForm from './InterviewDetailsForm';
 import InterviewPoolSummary from './InterviewPoolSummary';
 import InterviewCalendarGrid from './InterviewCalendarGrid';
@@ -31,7 +33,29 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
     const today = todayIstDate();
     return { year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) };
   });
-  const [meetingLink, setMeetingLink] = useState(posting.interviewDefaults?.meetingUrl ?? '');
+  const { form, update: updateForm, rememberUsed } = useAddTimesForm(selectedDate, times);
+
+  /**
+   * The backend snapshots a time's mode / locationText from the posting
+   * defaults and accepts only meetingUrl per time, so a batch's type is
+   * applied by writing it to the defaults immediately before the POST.
+   * Times already created keep their own snapshot — that is what lets Monday
+   * be video and Wednesday a phone screen.
+   */
+  const syncDefaults = useCallback(async (next: AddTimesForm) => {
+    const saved: InterviewDefaults = {
+      mode: next.mode,
+      durationMinutes: defaults?.durationMinutes ?? 45,
+      timezoneId: defaults?.timezoneId ?? 'Asia/Kolkata',
+      meetingUrl: next.mode === 'video' ? next.meetingUrl.trim() || null : null,
+      locationText: next.mode === 'in_person' ? next.address.trim() || null : null,
+      phoneNumber: next.mode === 'phone' ? next.phoneNumber.trim() || null : null,
+      phoneCallDirection: next.mode === 'phone' ? next.phoneCallDirection : null,
+      arrivalInstructions: next.mode === 'in_person' ? next.arrivalInstructions.trim() || null : null,
+    };
+    await updateInterviewDefaults(posting.id, saved);
+    setDefaults(saved);
+  }, [posting.id, defaults]);
 
   // Pick the initial date once the FIRST load lands (today, or the next date
   // with an available time); refetches never reset the selection.
@@ -52,7 +76,6 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
 
   function handleSaved(saved: InterviewDefaults): void {
     setDefaults(saved);
-    if (saved.meetingUrl) setMeetingLink(saved.meetingUrl);
   }
 
   // Desktop: the whole tab is pinned to the viewport and clipped, so the PAGE
@@ -87,7 +110,7 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
           <div
             className={narrow ? undefined : 'panel-scroll'}
             style={{
-              flex: '0 1 240px', minWidth: 240, display: 'flex', flexDirection: 'column', gap: 14,
+              flex: '0 0 200px', width: 200, display: 'flex', flexDirection: 'column', gap: 14,
               ...columnHeight, ...(narrow ? {} : { overflowY: 'auto' }),
             }}
           >
@@ -126,10 +149,11 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
                   dateIso={selectedDate}
                   times={times}
                   durationMinutes={defaults?.durationMinutes ?? 45}
-                  mode={defaults?.mode ?? 'video'}
-                  defaultsSaved={defaults !== null}
-                  meetingLink={meetingLink}
-                  onMeetingLinkChange={setMeetingLink}
+                  durationSaved={Boolean(defaults?.durationMinutes)}
+                  form={form}
+                  onFormChange={updateForm}
+                  onFormUsed={rememberUsed}
+                  syncDefaults={syncDefaults}
                   refetch={refetch}
                 />
               </div>
