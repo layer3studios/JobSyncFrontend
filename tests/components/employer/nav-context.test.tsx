@@ -111,7 +111,11 @@ describe('History-aware back navigation', () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  it('the applicant "Back to Ranked" link calls router.back() instead of navigating', () => {
+  // ApplicantStickyHeader's onBack hook: an UNLABELLED back control pops
+  // history. NOTE: ApplicantDetail itself no longer wires this hook — a
+  // labelled "Back to Ranked" navigates to its href deterministically, since
+  // prev/next stacks applicant entries that router.back() would land on.
+  it('an onBack handler intercepts the header link and pops history', () => {
     seedHistory();
     function Header() {
       const goBack = useBackOrFallback('/employer/jobs/p1?tab=ranked');

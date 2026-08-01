@@ -56,7 +56,7 @@ export default function InterviewDayDetailPanel({
   }
 
   return (
-    <div data-testid="day-detail-panel" style={{ background: 'var(--surface-sunken)', border: '0.5px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 14 }}>
+    <div data-testid="day-detail-panel" style={{ background: 'var(--surface-sunken)', border: '0.5px solid var(--border)', borderRadius: 12, padding: 12, marginTop: 10 }}>
       <Stack gap={10}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <CalendarDays size={15} style={{ color: 'var(--ink-2)' }} />

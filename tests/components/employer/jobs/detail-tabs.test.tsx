@@ -6,7 +6,13 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { PostingDetail } from '@/components/employer/jobs/Detail';
 
 let tabParam: string | null = null;
-vi.mock('next/navigation', () => ({ useSearchParams: () => ({ get: () => tabParam }) }));
+const { replaceMock } = vi.hoisted(() => ({ replaceMock: vi.fn() }));
+// useRouter/usePathname: the tab click mirrors the active tab into ?tab=.
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => ({ get: () => tabParam, toString: () => (tabParam ? `tab=${tabParam}` : '') }),
+  useRouter: () => ({ replace: replaceMock }),
+  usePathname: () => '/employer/jobs/p1',
+}));
 vi.mock('@/components/employer/jobs/PostingOverview', () => ({ default: () => <div>overview-body</div> }));
 vi.mock('@/components/employer/jobs/DetailSettings', () => ({ default: () => <div>settings-body</div> }));
 vi.mock('@/components/employer/jobs/PipelineTab', () => ({ default: () => <div>pipeline-body</div> }));

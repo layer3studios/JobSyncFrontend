@@ -20,10 +20,12 @@ export default function BulkArchiveDialog({
   reasons: ArchiveReason[];
   isSubmitting: boolean;
   onCancel: () => void;
-  onConfirm: (input: { reasonId: string; note: string }) => void;
+  onConfirm: (input: { reasonId: string; note: string; skipEmail: boolean }) => void;
 }) {
   const [reasonId, setReasonId] = useState('');
   const [note, setNote] = useState('');
+  // Rejection email defaults ON — opting out is the edge case (tests, duplicates).
+  const [sendEmail, setSendEmail] = useState(true);
 
   // Fresh dialog on each open: clear inputs and land focus on Cancel (R3). Button is not
   // a forwardRef, so focus the rendered element by its data attribute (Button spreads it
@@ -32,6 +34,7 @@ export default function BulkArchiveDialog({
     if (!open) return;
     setReasonId('');
     setNote('');
+    setSendEmail(true);
     document.querySelector<HTMLButtonElement>(`[${CANCEL_ATTR}]`)?.focus();
   }, [open]);
 
@@ -48,7 +51,7 @@ export default function BulkArchiveDialog({
         size="sm"
         loading={isSubmitting}
         disabled={!reasonId || isSubmitting}
-        onClick={() => onConfirm({ reasonId, note })}
+        onClick={() => onConfirm({ reasonId, note, skipEmail: !sendEmail })}
       >
         Archive {selectedCount}
       </Button>
@@ -75,6 +78,21 @@ export default function BulkArchiveDialog({
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--ink)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={sendEmail}
+              onChange={(event) => setSendEmail(event.target.checked)}
+            />
+            Send rejection email to candidate{selectedCount === 1 ? '' : 's'}
+          </label>
+          <p style={{ margin: '4px 0 0 24px', fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+            {sendEmail
+              ? 'A stage-appropriate rejection email will be sent.'
+              : 'No email will be sent.'}
+          </p>
+        </div>
       </Stack>
     </Modal>
   );

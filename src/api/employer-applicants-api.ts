@@ -161,7 +161,7 @@ export async function moveApplicant(
 
 export async function archiveApplicant(
   applicationId: string,
-  input: { reasonId: string; note?: string },
+  input: { reasonId: string; note?: string; skipEmail?: boolean },
 ): Promise<{ application: Applicant['application'] }> {
   return request(`${applicantPath(applicationId)}/archive`, {
     method: 'POST',
@@ -211,7 +211,7 @@ export async function rescoreApplicant(applicationId: string): Promise<RescoreRe
  * whole-request failure (BULK_EMPTY / BULK_LIMIT_EXCEEDED / REASON_NOT_FOUND / 401 / 403).
  */
 export async function bulkArchiveApplicants(
-  input: { applicationIds: string[]; reasonId: string; note?: string },
+  input: { applicationIds: string[]; reasonId: string; note?: string; skipEmail?: boolean },
 ): Promise<BulkArchiveResult> {
   return request<BulkArchiveResult>('/employer/applicants/bulk/archive', {
     method: 'POST',

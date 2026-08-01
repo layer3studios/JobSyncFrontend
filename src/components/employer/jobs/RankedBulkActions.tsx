@@ -7,18 +7,21 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui';
 import { bulkArchiveApplicants } from '@/api/employer-applicants-api';
-import type { ArchiveReason } from '@/types/employer-applicants';
+import type { ArchiveReason, Stage } from '@/types/employer-applicants';
 import { summarizeBulkResult, resolveBulkErrorMessage } from './ranked-bulk-helpers';
 import BulkArchiveBar from './BulkArchiveBar';
 import BulkArchiveDialog from './BulkArchiveDialog';
+import BulkMoveMenu from './BulkMoveMenu';
 import { trackEvent } from '@/lib/analytics-events';
 
 export default function RankedBulkActions({
-  postingId, companyId, reasons, selectedIds, onSelectionChange, onArchived,
+  postingId, companyId, reasons, stages = [], selectedIds, onSelectionChange, onArchived,
 }: {
   postingId: string;
   companyId: string | undefined;
   reasons: ArchiveReason[];
+  /** Pipeline stages for the "Move to" menu. Optional for old callers. */
+  stages?: Stage[];
   selectedIds: Set<string>;
   onSelectionChange: (next: Set<string>) => void;
   onArchived: () => void;
@@ -27,10 +30,10 @@ export default function RankedBulkActions({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleConfirmArchive({ reasonId, note }: { reasonId: string; note: string }) {
+  async function handleConfirmArchive({ reasonId, note, skipEmail }: { reasonId: string; note: string; skipEmail: boolean }) {
     try {
       setIsSubmitting(true);
-      const result = await bulkArchiveApplicants({ applicationIds: [...selectedIds], reasonId, note });
+      const result = await bulkArchiveApplicants({ applicationIds: [...selectedIds], reasonId, note, skipEmail });
       result.succeeded.forEach(({ id }) => {
         trackEvent('applicant_archived', {
           applicationId: id, postingId, companyId, archiveReason: reasonId, isBulk: true,
@@ -58,6 +61,13 @@ export default function RankedBulkActions({
         onClear={() => onSelectionChange(new Set())}
         onArchive={() => setIsDialogOpen(true)}
         isSubmitting={isSubmitting}
+        moveSlot={stages.length > 0 ? (
+          <BulkMoveMenu
+            stages={stages}
+            selectedIds={selectedIds}
+            onMoved={() => { onSelectionChange(new Set()); onArchived(); }}
+          />
+        ) : undefined}
       />
       <BulkArchiveDialog
         open={isDialogOpen}

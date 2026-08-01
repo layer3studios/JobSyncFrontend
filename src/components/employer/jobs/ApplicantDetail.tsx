@@ -18,7 +18,6 @@ import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import type { Applicant, ApplicantDetail, ApplicantSort, Stage, ArchiveReason } from '@/types/employer-applicants';
 import { useViewport } from '@/hooks/shared/useViewport';
 import { useApplicantKeyboardNav } from '@/hooks/employer/useApplicantKeyboardNav';
-import { useBackOrFallback } from '@/hooks/employer/useBackOrFallback';
 import ApplicantStickyHeader from './ApplicantStickyHeader';
 import ApplicantDetailBody, { type LoadState } from './ApplicantDetailBody';
 
@@ -118,9 +117,11 @@ export default function ApplicantDetail() {
   const backTabQuery = fromTab && RETURNABLE_TAB_IDS.includes(fromTab) ? `?tab=${fromTab}` : '';
   const backHref = postingId ? `/employer/jobs/${postingId}${backTabQuery}` : '/employer/jobs';
   const backLabel = resolveBackLabel(fromTab);
-  // Back pops the history stack (returns the user to the exact list + scroll
-  // they came from); backHref stays the fallback for direct URL access.
-  const goBack = useBackOrFallback(backHref);
+  // A LABELLED destination ("Back to Ranked") must be deterministic, so this
+  // navigates to backHref rather than popping history: prev/next stacks
+  // applicant entries, and router.back() would land on the previously viewed
+  // applicant instead of the list the label promises.
+  const goBack = useCallback(() => { router.push(backHref); }, [router, backHref]);
   // Prev/next (PP2): fetch the source-tab-ordered list; failure degrades silently (D2).
   useEffect(() => {
     if (!postingId) return undefined;

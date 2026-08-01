@@ -185,9 +185,9 @@ describe('details form pills', () => {
     expect(m45.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('the meeting link field hides for Phone and In person', async () => {
+  it('the details form never shows a meeting link field (it lives per-date in add-times)', async () => {
     renderSettings();
-    expect(screen.getByLabelText('Meeting link')).toBeTruthy();
+    expect(screen.queryByLabelText('Meeting link')).toBeNull(); // video: type + duration only
     fireEvent.click(screen.getByText('Phone'));
     expect(screen.queryByLabelText('Meeting link')).toBeNull();
     expect(screen.getByLabelText('Phone number')).toBeTruthy();

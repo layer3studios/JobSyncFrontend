@@ -3,11 +3,40 @@
 // The month view: nav arrows + label + colour legend, weekday header row, and
 // the 7-column cell grid built from the pure month helper.
 
+import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui';
 import type { InterviewTime } from '@/types/employer-interviews';
 import { buildMonthGrid, monthLabel, stepMonth, WEEKDAY_LABELS } from './interview-calendar-helpers';
 import InterviewCalendarCell from './InterviewCalendarCell';
+
+// Fixed width so "February 2027" and "May 2026" occupy the same space — the
+// arrows must not shift horizontally as the month changes.
+const MONTH_LABEL_MIN_WIDTH = 160;
+
+/** Square nav arrow. Uses the shared .icon-btn class for the focus behaviour:
+ *  no ring on mouse click, a real ring on keyboard focus. */
+function MonthNavButton({ label, onClick, children }: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="icon-btn"
+      style={{
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        border: '0.5px solid var(--border)', background: 'var(--surface-raised)',
+        color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', padding: 0,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
@@ -33,13 +62,18 @@ export default function InterviewCalendarGrid({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <Button variant="ghost" size="sm" aria-label="Previous month" onClick={() => onMonthChange(stepMonth(year, month, -1))}>
-          <ChevronLeft size={15} />
-        </Button>
-        <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{monthLabel(year, month)}</span>
-        <Button variant="ghost" size="sm" aria-label="Next month" onClick={() => onMonthChange(stepMonth(year, month, 1))}>
-          <ChevronRight size={15} />
-        </Button>
+        <MonthNavButton label="Previous month" onClick={() => onMonthChange(stepMonth(year, month, -1))}>
+          <ChevronLeft size={16} />
+        </MonthNavButton>
+        <span style={{
+          fontSize: 15, fontWeight: 500, color: 'var(--ink)',
+          minWidth: MONTH_LABEL_MIN_WIDTH, textAlign: 'center',
+        }}>
+          {monthLabel(year, month)}
+        </span>
+        <MonthNavButton label="Next month" onClick={() => onMonthChange(stepMonth(year, month, 1))}>
+          <ChevronRight size={16} />
+        </MonthNavButton>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 10 }}>
           <LegendDot color="#1D9E75" label="available" />
           <LegendDot color="var(--accent)" label="booked" />
