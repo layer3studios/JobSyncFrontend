@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/schema/JsonLd';
 import ApplyFormClient from '@/components/apply/ApplyFormClient';
+import AssignmentPreview from '@/components/apply/AssignmentPreview';
 import { buildJobPostingSchema, buildBreadcrumbListSchema } from '@/lib/schema';
 import { getPublicJobServer } from '@/lib/server-api/public';
 import { absoluteUrl } from '@/lib/site-url';
@@ -14,6 +15,11 @@ import { ServerFetchError } from '@/lib/server-fetch';
 export const revalidate = 3600;
 
 const VALID_THROUGH_FALLBACK_DAYS = 60;
+
+// Mirrors ApplyFormClient's own wrapper so the assignment panel lines up with the
+// form beneath it. Kept in sync by hand until 7b folds the panel into that layout.
+const APPLY_PAGE_MAX_WIDTH_PIXELS = 1400;
+const APPLY_PAGE_HORIZONTAL_PADDING_PIXELS = 24;
 
 function validThroughFrom(postedAt: string | null): string {
   const base = postedAt ? new Date(postedAt) : new Date();
@@ -37,8 +43,13 @@ export async function generateMetadata(
   const { companySlug, jobSlug } = await params;
   const data = await loadJob(companySlug, jobSlug);
   if (!data) return { title: 'Job not found' };
+  // Surfaced in the title so the time cost is visible in search results and the
+  // browser tab, before the candidate has invested any attention. The description
+  // and JSON-LD are deliberately untouched — an assignment is not part of the
+  // JobPosting schema, and inventing a field risks the whole listing.
+  const assignmentSuffix = data.assignment ? ' · Includes a take-home' : '';
   return {
-    title: `${data.job.title} at ${data.company.name}`,
+    title: `${data.job.title} at ${data.company.name}${assignmentSuffix}`,
     description: (data.job.description ?? '').slice(0, 155),
     alternates: { canonical: absoluteUrl(`/apply/${companySlug}/${jobSlug}`) },
     openGraph: { type: 'article', title: `${data.job.title} at ${data.company.name}` },
@@ -51,7 +62,7 @@ export default async function ApplyJobPage(
   const { companySlug, jobSlug } = await params;
   const data = await loadJob(companySlug, jobSlug);
   if (!data) notFound();
-  const { company, job } = data;
+  const { company, job, assignment } = data;
 
   const jobPostingSchema = buildJobPostingSchema(
     {
@@ -79,7 +90,29 @@ export default async function ApplyJobPage(
     <>
       <JsonLd schema={jobPostingSchema} />
       <JsonLd schema={breadcrumbSchema} />
-      <ApplyFormClient company={company} job={job} companySlug={companySlug} jobSlug={jobSlug} />
+      {/* ApplyFormClient owns the page's centred wrapper, so the preview needs a
+          matching max-width and padding or it would render full-bleed above a
+          1400px layout. 7b moves it inside the JD column; until then this keeps
+          the two visually aligned. */}
+      {assignment && (
+        <div
+          style={{
+            maxWidth: APPLY_PAGE_MAX_WIDTH_PIXELS, margin: '0 auto',
+            paddingLeft: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS,
+            paddingRight: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS,
+            paddingTop: 24, boxSizing: 'border-box',
+          }}
+        >
+          <AssignmentPreview assignment={assignment} />
+        </div>
+      )}
+      <ApplyFormClient
+        company={company}
+        job={job}
+        companySlug={companySlug}
+        jobSlug={jobSlug}
+        assignment={assignment}
+      />
     </>
   );
 }
