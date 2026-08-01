@@ -16,6 +16,7 @@ import { listEmployerPostings, EmployerJobsApiError } from '@/api/employer-jobs-
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canCreatePosting } from '@/lib/team-permissions';
+import { withOrigin, NAV_ORIGINS } from '@/lib/nav-origin';
 
 type StatusFilter = 'all' | PostingStatus;
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -71,7 +72,7 @@ export default function JobsList() {
           title="No postings yet"
           description="Create your first posting and share the apply URL with candidates."
           action={allowCreate ? (
-            <Link href="/employer/jobs/new">
+            <Link href={withOrigin('/employer/jobs/new', NAV_ORIGINS.JOBS)}>
               <Button variant="primary">Create your first posting</Button>
             </Link>
           ) : undefined}
@@ -92,7 +93,7 @@ export default function JobsList() {
         label="EMPLOYER"
         title="Postings"
         actions={allowCreate ? (
-          <Link href="/employer/jobs/new">
+          <Link href={withOrigin('/employer/jobs/new', NAV_ORIGINS.JOBS)}>
             <Button variant="primary">+ New posting</Button>
           </Link>
         ) : undefined}

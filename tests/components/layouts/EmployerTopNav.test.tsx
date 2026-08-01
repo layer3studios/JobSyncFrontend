@@ -3,7 +3,11 @@ import { render, screen } from '@testing-library/react';
 import EmployerTopNav from '@/components/layouts/parts/EmployerTopNav';
 import type { Role } from '@/types/employer-team';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/employer' }));
+// useSearchParams: the nav reads ?from= to keep the origin section highlighted.
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/employer',
+  useSearchParams: () => ({ get: () => null }),
+}));
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) =>
     <a href={href} {...rest}>{children}</a>,

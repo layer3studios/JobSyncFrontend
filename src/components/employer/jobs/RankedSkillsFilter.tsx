@@ -43,7 +43,7 @@ export default function RankedSkillsFilter({
       />
       {/* Scroll box: "Show all" reveals the rest inside this 200px viewport
           instead of growing the section to full height. */}
-      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+      <div className="panel-scroll" style={{ maxHeight: 200, overflowY: 'auto' }}>
         {visible.map((entry) => (
           <FilterOptionRow
             key={entry.skill}

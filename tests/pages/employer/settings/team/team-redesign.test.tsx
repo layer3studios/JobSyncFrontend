@@ -7,8 +7,10 @@ import TeamSettingsClient from '@/app/(employer)/employer/(app)/(onboarded)/sett
 import RoleTiles, { ROLE_DOT_COLOR } from '@/app/(employer)/employer/(app)/(onboarded)/settings/team/parts/RoleTiles';
 import type { TeamMember, CompanyInvite } from '@/types/employer-team';
 
+// useSearchParams: the page's Breadcrumbs reads ?from= to root the trail.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => ({ get: () => null }),
 }));
 vi.mock('@/components/ui/Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('@/context/employer/EmployerContext', () => ({ useEmployer: () => ({ logout: vi.fn() }) }));

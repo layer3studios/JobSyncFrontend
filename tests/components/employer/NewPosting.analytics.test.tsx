@@ -8,7 +8,10 @@ vi.mock('@/lib/posthog', () => ({ getPostHogClient: () => ({ capture }) }));
 const createEmployerPosting = vi.fn();
 vi.mock('@/api/employer-jobs-api', () => ({ createEmployerPosting: (i: unknown) => createEmployerPosting(i) }));
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => ({ get: () => null }),
+}));
 
 // Light stand-ins for the UI primitives New.tsx pulls in.
 vi.mock('@/components/ui', () => ({

@@ -9,12 +9,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { EMPLOYER_ROUTES } from './routes';
 import { canEditCompanySettings } from '../../../lib/team-permissions';
+import { parseNavOrigin, originCrumb } from '../../../lib/nav-origin';
 import type { Role } from '../../../types/employer-team';
 
 interface EmployerNavUser {
@@ -34,6 +35,7 @@ interface Props {
 
 export default function EmployerTopNav({ isCompact, currentUser, companyName, role, onLogout }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +58,13 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
     };
   }, [isMenuOpen]);
 
+  // A sub-page opened from another section (?from=) keeps that section lit: the
+  // user is doing something FROM the Dashboard, not switching to Jobs.
+  const origin = parseNavOrigin(searchParams?.get('from'));
+  const originPath = origin ? originCrumb(origin).href : null;
+
   const isActive = (path: string) => {
+    if (originPath) return path === originPath;
     if (path === EMPLOYER_ROUTES.DASHBOARD) return pathname === EMPLOYER_ROUTES.DASHBOARD;
     return pathname === path || pathname.startsWith(path + '/');
   };
