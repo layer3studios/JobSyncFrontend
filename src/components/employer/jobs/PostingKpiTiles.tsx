@@ -11,7 +11,7 @@ function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div style={TILE}>
       <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-2)' }}>{label}</p>
-      <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 500, color: 'var(--ink)' }}>{value}</p>
+      <p style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 500, color: 'var(--ink)' }}>{value}</p>
     </div>
   );
 }

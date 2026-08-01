@@ -14,11 +14,13 @@ export interface Column<T> {
 }
 
 export function Table<T>({
-  columns, data, onSort, emptyMessage = 'No data',
+  columns, data, onSort, onRowClick, emptyMessage = 'No data',
 }: {
   columns: Column<T>[];
   data: T[];
   onSort?: (key: string) => void;
+  /** Makes every body row clickable (pointer cursor). */
+  onRowClick?: (row: T) => void;
   emptyMessage?: string;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
@@ -63,7 +65,11 @@ export function Table<T>({
                 key={i}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
-                style={{ background: hovered === i ? 'var(--paper-2)' : 'transparent', transition: 'background 120ms ease' }}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                style={{
+                  background: hovered === i ? 'var(--paper-2)' : 'transparent', transition: 'background 120ms ease',
+                  cursor: onRowClick ? 'pointer' : 'default',
+                }}
               >
                 {columns.map((col) => (
                   <td key={col.key} style={{ ...cell, borderBottom: i === data.length - 1 ? 'none' : '1px solid var(--border)' }}>

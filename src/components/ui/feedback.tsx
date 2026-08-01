@@ -6,15 +6,17 @@ import { Button } from './Button';
 
 interface EmptyStateAction { label: string; onClick: () => void }
 
-export function PageHeader({ label, title, subtitle, actions }: {
+export function PageHeader({ label, title, subtitle, actions, compact }: {
   label?: string; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode;
+  /** Tighter vertical rhythm for dense pages (e.g. posting detail). */
+  compact?: boolean;
 }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: compact ? 8 : 20 }}>
       {label && (
         <p style={{
           fontSize: '0.75rem', fontWeight: 500, color: 'var(--ink-muted)',
-          marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase',
+          marginBottom: compact ? 2 : 6, letterSpacing: '0.04em', textTransform: 'uppercase',
         }}>{label}</p>
       )}
       <div style={{ display: 'flex', justifyContent: actions ? 'space-between' : 'flex-start', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>

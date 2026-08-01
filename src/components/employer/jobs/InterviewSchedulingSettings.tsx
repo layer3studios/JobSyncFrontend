@@ -72,7 +72,8 @@ export default function InterviewSchedulingSettings({ posting }: { posting: Post
             </div>
           </div>
           {/* Right — calendar + day detail. */}
-          <div style={{ flex: '1 1 420px', minWidth: 340 }}>
+          {/* Internal scroll so the day detail panel never forces page scroll. */}
+          <div style={{ flex: '1 1 420px', minWidth: 340, maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
             <InterviewCalendarGrid
               year={viewMonth.year}
               month={viewMonth.month}

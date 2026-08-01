@@ -41,15 +41,19 @@ export default function RankedSkillsFilter({
           fontSize: 12, background: 'var(--surface-raised)', color: 'var(--ink)', marginBottom: 4,
         }}
       />
-      {visible.map((entry) => (
-        <FilterOptionRow
-          key={entry.skill}
-          label={entry.skill}
-          count={entry.count}
-          checked={selected.has(entry.skill)}
-          onToggle={() => onToggle(entry.skill)}
-        />
-      ))}
+      {/* Scroll box: "Show all" reveals the rest inside this 200px viewport
+          instead of growing the section to full height. */}
+      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+        {visible.map((entry) => (
+          <FilterOptionRow
+            key={entry.skill}
+            label={entry.skill}
+            count={entry.count}
+            checked={selected.has(entry.skill)}
+            onToggle={() => onToggle(entry.skill)}
+          />
+        ))}
+      </div>
       {hiddenCount > 0 && (
         <div><Button variant="link" size="sm" onClick={() => setShowAll(true)}>Show all {matching.length}</Button></div>
       )}

@@ -49,7 +49,8 @@ describe('PostingDetail tabs', () => {
     // then 1536px) and only 16px side padding — nothing narrower than 1400px.
     const pageContainer = container.firstElementChild as HTMLElement;
     expect(pageContainer.style.maxWidth).toBe('none');
-    expect(pageContainer.style.padding).toBe('32px 16px 60px');
+    // Tighter vertical rhythm (breadcrumb redesign): no oversized bottom padding.
+    expect(pageContainer.style.padding).toBe('24px 16px');
   });
 
   it('?tab=ranked still lands on the Ranked tab (deep links stay stable)', async () => {

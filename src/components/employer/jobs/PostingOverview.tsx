@@ -11,6 +11,8 @@ import { Card, Button, Badge, Stack, useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canEditPosting, canClosePosting } from '@/lib/team-permissions';
 import PostingForm from './PostingForm';
+import PostingLivePreview from './PostingLivePreview';
+import type { PostingFormValues } from './posting-form-helpers';
 import PostingConfirmDialog from './PostingConfirmDialog';
 import type { ConfirmAction } from './PostingConfirmDialog';
 import PostingKpiTiles from './PostingKpiTiles';
@@ -34,6 +36,13 @@ function relTime(dateStr: string): string {
 }
 const daysOpen = (createdAt: string): number => Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000));
 
+const toFormValues = (p: Posting): PostingFormValues => ({
+  title: p.title, description: p.description, location: p.location,
+  workplaceType: p.workplaceType, employmentType: p.employmentType,
+  salaryMinStr: p.salaryMin != null ? String(p.salaryMin) : '',
+  salaryMaxStr: p.salaryMax != null ? String(p.salaryMax) : '',
+});
+
 export default function PostingOverview({ posting, onReload }: {
   posting: Posting;
   onReload: () => Promise<void>;
@@ -45,10 +54,13 @@ export default function PostingOverview({ posting, onReload }: {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [isMutating, setIsMutating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<ConfirmAction | null>(null);
+  const [previewValues, setPreviewValues] = useState<PostingFormValues>(() => toFormValues(posting));
   const [bookedInterviewCount, setBookedInterviewCount] = useState(0);
   const data = usePostingOverviewData(posting.id);
 
   const applyUrl = `${window.location.origin}/apply/${company?.slug ?? ''}/${posting.slug}`;
+  // Re-seed the preview each time edit opens so it reflects the saved posting.
+  const openEdit = () => { setPreviewValues(toFormValues(posting)); setMode('edit'); };
 
   const copyApplyUrl = async () => {
     try {
@@ -93,20 +105,29 @@ export default function PostingOverview({ posting, onReload }: {
     }
   };
 
+  // Edit mirrors the New-posting layout: form left, live preview right.
   if (mode === 'edit') {
     return (
-      <Card>
-        <PostingForm
-          initialValues={{
-            title: posting.title, description: posting.description, location: posting.location,
-            workplaceType: posting.workplaceType, employmentType: posting.employmentType,
-            salaryMin: posting.salaryMin, salaryMax: posting.salaryMax,
-          }}
-          submitLabel="Save changes"
-          onCancel={() => setMode('view')}
-          onSubmit={handleSave}
-        />
-      </Card>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: '3 1 420px', minWidth: 340 }}>
+          <Card variant="raised">
+            <PostingForm
+              initialValues={{
+                title: posting.title, description: posting.description, location: posting.location,
+                workplaceType: posting.workplaceType, employmentType: posting.employmentType,
+                salaryMin: posting.salaryMin, salaryMax: posting.salaryMax,
+              }}
+              submitLabel="Save changes"
+              onCancel={() => setMode('view')}
+              onSubmit={handleSave}
+              onValuesChange={setPreviewValues}
+            />
+          </Card>
+        </div>
+        <div style={{ flex: '2 1 300px', minWidth: 280 }}>
+          <PostingLivePreview values={previewValues} />
+        </div>
+      </div>
     );
   }
 
@@ -120,7 +141,7 @@ export default function PostingOverview({ posting, onReload }: {
         </span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8 }}>
           {allowEdit && (
-            <Button variant="ghost" size="sm" aria-label="Edit posting" onClick={() => setMode('edit')}><Pencil size={14} /></Button>
+            <Button variant="ghost" size="sm" aria-label="Edit posting" onClick={openEdit}><Pencil size={14} /></Button>
           )}
           {posting.status === 'active' && <Button variant="secondary" size="sm" onClick={() => void copyApplyUrl()}>Copy apply link</Button>}
           {allowClose && (posting.status === 'draft' || posting.status === 'active') && (
@@ -147,7 +168,7 @@ export default function PostingOverview({ posting, onReload }: {
           />
         </div>
         <div style={{ flex: '3 1 380px', minWidth: 320 }}>
-          <PostingDescriptionCard description={posting.description} allowEdit={allowEdit} onEdit={() => setMode('edit')} />
+          <PostingDescriptionCard description={posting.description} allowEdit={allowEdit} onEdit={openEdit} />
         </div>
       </div>
 

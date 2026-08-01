@@ -1,20 +1,22 @@
 'use client';
 // FILE: settings/team/TeamSettingsClient.tsx
-// Client subtree for the team-settings page. Owns the optimistic member/invite lists
-// and which modal is open; every mutation goes through employer-team-api and toasts
-// its outcome. On a mutation error we router.refresh() to re-sync from the server.
+// Client subtree for the team-settings page (content area only — the settings
+// layout renders the sidebar). Header + role tiles + the unified members/invites
+// table. Owns the optimistic member/invite lists and which modal is open; every
+// mutation goes through employer-team-api and toasts its outcome. On a mutation
+// error we router.refresh() to re-sync from the server.
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/ui/feedback';
 import { useToast } from '@/components/ui/Toast';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { resendInvite, revokeInvite, EmployerTeamApiError, type MemberPatchResult } from '@/api/employer-team-api';
 import { canInvite } from '@/lib/team-permissions';
 import type { TeamMember, CompanyInvite, TeamPageData } from '@/types/employer-team';
-import TeamMembersTable from './parts/TeamMembersTable';
-import PendingInvitesTable from './parts/PendingInvitesTable';
+import Breadcrumbs from '@/components/employer/Breadcrumbs';
+import RoleTiles from './parts/RoleTiles';
+import TeamUnifiedTable from './parts/TeamUnifiedTable';
 import InviteTeammateModal from './parts/InviteTeammateModal';
 import ChangeRoleModal from './parts/ChangeRoleModal';
 import RemoveMemberModal from './parts/RemoveMemberModal';
@@ -41,7 +43,6 @@ export default function TeamSettingsClient({ members: initialMembers, invites: i
   const currentUserId = currentMember?.employerUserId ?? '';
   const canManage = canInvite(currentRole);
   const owners = useMemo(() => members.filter((m) => m.role === 'owner' && !m.isFounder), [members]);
-  const membersById = useMemo(() => new Map(members.map((m) => [m.employerUserId, m])), [members]);
 
   const close = () => setModal(null);
   const fail = (message: string) => { showToast('error', message); router.refresh(); };
@@ -83,39 +84,37 @@ export default function TeamSettingsClient({ members: initialMembers, invites: i
   }
 
   return (
-    <div className="container-xl" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-      <PageHeader
-        label="Settings"
-        title="Team"
-        subtitle="Manage who has access to your company and what they can do."
-        actions={canManage ? (
-          <Button iconLeft={<UserPlus size={16} />} onClick={() => setModal({ kind: 'invite' })}>Invite a teammate</Button>
-        ) : undefined}
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* "Settings" has no landing page yet, so it renders as plain text. */}
+      <Breadcrumbs items={[{ label: 'Settings' }, { label: 'Team' }]} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: 'var(--ink)' }}>Team</h1>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-2)' }}>
+            Manage who has access to your company and what they can do.
+          </p>
+        </div>
+        {canManage && (
+          <Button iconLeft={<UserPlus size={15} />} onClick={() => setModal({ kind: 'invite' })} style={{ fontSize: 13 }}>
+            Invite
+          </Button>
+        )}
+      </div>
+
+      <RoleTiles />
+
+      <TeamUnifiedTable
+        members={members}
+        invites={invites}
+        currentRole={currentRole}
+        currentEmployerUserId={currentUserId}
+        canManage={canManage}
+        onChangeRole={(member) => setModal({ kind: 'changeRole', member })}
+        onRemove={(member) => setModal({ kind: 'remove', member })}
+        onTransfer={() => setModal({ kind: 'transfer' })}
+        onResend={handleResend}
+        onRevoke={(invite) => setModal({ kind: 'revoke', invite })}
       />
-
-      <section aria-label="Team members" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Members</h2>
-        <TeamMembersTable
-          members={members}
-          currentRole={currentRole}
-          currentEmployerUserId={currentUserId}
-          onChangeRole={(member) => setModal({ kind: 'changeRole', member })}
-          onRemove={(member) => setModal({ kind: 'remove', member })}
-          onTransfer={() => setModal({ kind: 'transfer' })}
-        />
-      </section>
-
-      <section aria-label="Pending invites" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Pending invites</h2>
-        <PendingInvitesTable
-          invites={invites}
-          canManage={canManage}
-          membersById={membersById}
-          onCopy={() => showToast('success', 'Link copied.')}
-          onResend={handleResend}
-          onRevoke={(invite) => setModal({ kind: 'revoke', invite })}
-        />
-      </section>
 
       {modal?.kind === 'invite' && (
         <InviteTeammateModal
