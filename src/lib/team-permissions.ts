@@ -90,3 +90,39 @@ export function canRescoreApplicant(currentRole: Role): boolean {
 export function canEditCompanySettings(currentRole: Role): boolean {
   return isOwnerOrHigher(currentRole);
 }
+
+// ── Assignment library (Chunk 2 gates) ──────────────────────────────────────
+// These mirror employer-assignments-routes.js one-for-one:
+//   GET    /                    requireInterviewerOrHigher
+//   GET    /:id                 requireInterviewerOrHigher
+//   POST   /                    requireMemberOrHigher
+//   PATCH  /:id                 requireMemberOrHigher
+//   POST   /:id/clone           requireMemberOrHigher
+//   PATCH  /:id/archive         requireOwnerOrHigher
+//   PATCH  /:id/unarchive       requireOwnerOrHigher
+// If a gate moves there, move it here. Frontend visibility only, as ever.
+
+/** Every company role can read the library — an Interviewer needs the task to review against. */
+export function canViewAssignments(currentRole: Role): boolean {
+  return currentRole === 'interviewer' || isMemberOrHigher(currentRole);
+}
+
+/** A Member can create a posting, so a Member must be able to create the task for it. */
+export function canCreateAssignment(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Member+ may edit — subject to the separate in-use lock, which applies to every role. */
+export function canEditAssignment(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Member+ may clone. This is the escape hatch from the in-use edit lock. */
+export function canCloneAssignment(currentRole: Role): boolean {
+  return isMemberOrHigher(currentRole);
+}
+
+/** Owner+ only — retiring a task from the library is a company-shaping action. */
+export function canArchiveAssignment(currentRole: Role): boolean {
+  return isOwnerOrHigher(currentRole);
+}
