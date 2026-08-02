@@ -16,11 +16,6 @@ export const revalidate = 3600;
 
 const VALID_THROUGH_FALLBACK_DAYS = 60;
 
-// Mirrors ApplyFormClient's own wrapper so the assignment panel lines up with the
-// form beneath it. Kept in sync by hand until 7b folds the panel into that layout.
-const APPLY_PAGE_MAX_WIDTH_PIXELS = 1400;
-const APPLY_PAGE_HORIZONTAL_PADDING_PIXELS = 24;
-
 function validThroughFrom(postedAt: string | null): string {
   const base = postedAt ? new Date(postedAt) : new Date();
   const valid = new Date(base);
@@ -90,28 +85,19 @@ export default async function ApplyJobPage(
     <>
       <JsonLd schema={jobPostingSchema} />
       <JsonLd schema={breadcrumbSchema} />
-      {/* ApplyFormClient owns the page's centred wrapper, so the preview needs a
-          matching max-width and padding or it would render full-bleed above a
-          1400px layout. 7b moves it inside the JD column; until then this keeps
-          the two visually aligned. */}
-      {assignment && (
-        <div
-          style={{
-            maxWidth: APPLY_PAGE_MAX_WIDTH_PIXELS, margin: '0 auto',
-            paddingLeft: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS,
-            paddingRight: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS,
-            paddingTop: 24, boxSizing: 'border-box',
-          }}
-        >
-          <AssignmentPreview assignment={assignment} />
-        </div>
-      )}
+      {/* AssignmentPreview is a Server Component, so it is passed as an ALREADY
+          RENDERED element rather than a component prop — a client island cannot
+          re-render one. ApplyFormClient drops it into the JD column, inside the
+          page's single centred wrapper. There is deliberately no wrapper here:
+          the hand-copied maxWidth/padding 7a needed is gone, and the layout
+          constants now live in exactly one file. */}
       <ApplyFormClient
         company={company}
         job={job}
         companySlug={companySlug}
         jobSlug={jobSlug}
         assignment={assignment}
+        assignmentPreview={assignment ? <AssignmentPreview assignment={assignment} /> : null}
       />
     </>
   );

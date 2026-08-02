@@ -57,6 +57,19 @@ export default function AssignmentPreview({ assignment }: Props) {
           </summary>
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
             <Markdown>{assignment.descriptionMarkdown}</Markdown>
+
+            {/* The TASK lives here, in the JD column, next to (not above) the input
+                fields — on desktop this column scrolls while the form stays pinned,
+                so the candidate reads the instructions and fills the fields side by
+                side. The form card deliberately holds no copy of this text. */}
+            {assignment.submissionInstructionsMarkdown && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>
+                  How to submit
+                </h3>
+                <Markdown>{assignment.submissionInstructionsMarkdown}</Markdown>
+              </div>
+            )}
           </div>
         </details>
       </Stack>
