@@ -63,9 +63,16 @@ export default function DetailSettings({ posting, onReload }: {
     }
   };
 
+  // The assignment attachment is NOT part of this payload — it has its own endpoint
+  // and PostingForm calls it separately. Reload/exit moves to onSubmitted so the
+  // form stays mounted (and its retry affordance reachable) if that second call
+  // fails after the posting fields already saved.
   const handleSave = async (input: PostingCreateInput) => {
     await updateEmployerPosting(posting.id, input);
     showToast('success', 'Changes saved');
+  };
+
+  const handleSaved = async () => {
     await onReload();
     setMode('view');
   };
@@ -102,6 +109,9 @@ export default function DetailSettings({ posting, onReload }: {
           submitLabel="Save changes"
           onCancel={() => setMode('view')}
           onSubmit={handleSave}
+          onSubmitted={() => { void handleSaved(); }}
+          postingId={posting.id}
+          initialAssignmentId={posting.assignmentId}
         />
       </Card>
     );

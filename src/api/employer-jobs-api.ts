@@ -9,6 +9,7 @@ import { apiUrl } from '../lib/api-base';
 import type {
   Posting, PostingStatus, PostingCreateInput, PostingPatch,
 } from '../types/employer-jobs';
+import type { EmployerAssignment } from '../types/employer-assignments';
 
 export class EmployerJobsApiError extends Error {
   status: number;
@@ -80,4 +81,40 @@ export async function closeEmployerPosting(postingId: string): Promise<Posting> 
 export async function reopenEmployerPosting(postingId: string): Promise<Posting> {
   const body = await request<{ posting: Posting }>(`${postingPath(postingId)}/reopen`, { method: 'POST' });
   return body.posting;
+}
+
+// ── Assignment attachment (Chunk 3 backend / 8b UI) ─────────────────────────
+// The attachment lives on its OWN endpoint, not in the posting create/patch body:
+// employer-postings-routes.js rejects an unknown `assignmentId` key on PATCH
+// /jobs/:id with UNKNOWN_FIELD. Attaching is therefore always a second call.
+
+export interface PostingAssignmentContext {
+  /** The attached assignment, or null. Included even when ARCHIVED — a posting
+   *  keeps working with a task archived after it was attached. */
+  assignment: EmployerAssignment | null;
+  applicationCount: number;
+}
+
+export interface SetPostingAssignmentResult {
+  posting: Posting;
+  /** Read before the write, so a swap is distinguishable from a first attach. */
+  previousAssignmentId: string | null;
+  applicationCount: number;
+}
+
+/** GET the attached assignment + how many people have applied. Interviewer+. */
+export async function getPostingAssignment(postingId: string): Promise<PostingAssignmentContext> {
+  return request<PostingAssignmentContext>(`${postingPath(postingId)}/assignment`);
+}
+
+/** Attach, swap, or detach (assignmentId null). Member+. */
+export async function setPostingAssignment(
+  postingId: string, assignmentId: string | null,
+): Promise<SetPostingAssignmentResult> {
+  // An explicit null means DETACH and is valid; omitting the key is a different
+  // mistake the backend answers with MISSING_ASSIGNMENT_ID. Always send it.
+  return request<SetPostingAssignmentResult>(`${postingPath(postingId)}/assignment`, {
+    method: 'PATCH',
+    body: JSON.stringify({ assignmentId }),
+  });
 }
