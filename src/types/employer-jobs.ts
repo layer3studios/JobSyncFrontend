@@ -19,6 +19,13 @@ export interface Posting {
   salaryMax: number | null;
   salaryCurrency: 'INR';
   status: PostingStatus;
+  /**
+   * The take-home attached to this posting, or null. The backend has always
+   * returned this (toPublicPosting in models/employer/posting-model.js); it was
+   * simply not declared here until the assignment library needed it to compute
+   * "Used by" without an extra endpoint. Attaching/detaching is Chunk 8b.
+   */
+  assignmentId: string | null;
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;

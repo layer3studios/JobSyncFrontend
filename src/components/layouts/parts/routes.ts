@@ -7,7 +7,10 @@
 export const EMPLOYER_ROUTES = {
   DASHBOARD: '/employer',
   JOBS: '/employer/jobs',
+  // The nav points at the settings INDEX now that there is more than one subpage.
+  SETTINGS: '/employer/settings',
   SETTINGS_TEAM: '/employer/settings/team',
+  SETTINGS_ASSIGNMENTS: '/employer/settings/assignments',
 } as const;
 
 export const ADMIN_ROUTES = {
