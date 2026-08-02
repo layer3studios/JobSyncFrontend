@@ -1,37 +1,41 @@
 // FILE: src/components/seeker/home/shared.tsx
-import type { CSSProperties } from 'react';
+// Pieces the landing-page sections share. Presentational only — all visual
+// values live in styles/home.css so the sections stay declarative.
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
-export function Stat({ value, label }: { value: string; label: string }) {
+/** Aggregate counters the page advertises. Computed server-side in page.tsx. */
+export interface HomeCounts {
+  jobCount: number;
+  companyCount: number;
+  todayCount: number;
+  topHiringNames: string[];
+}
+
+interface SectionHeaderProps {
+  /** Uppercase, wide-tracked label above the heading. */
+  eyebrow: string;
+  heading: string;
+  /** Must match the parent section's aria-labelledby. */
+  headingId: string;
+  linkHref: string;
+  linkLabel: string;
+}
+
+/**
+ * Eyebrow + <h2> on the left, a quiet accent link on the right. Used by the
+ * companies and jobs sections so their headers stay pixel-identical.
+ */
+export function SectionHeader({ eyebrow, heading, headingId, linkHref, linkLabel }: SectionHeaderProps) {
   return (
-    <div>
-      <div className="font-display" style={{
-        fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 600,
-        color: 'var(--ink)', letterSpacing: '-0.025em', lineHeight: 1,
-      }}>{value}</div>
-      <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: 4 }}>{label}</div>
+    <div className="hm-section-head">
+      <div>
+        <p className="hm-eyebrow hm-mono" style={{ marginBottom: 5 }}>{eyebrow}</p>
+        <h2 id={headingId} className="hm-heading">{heading}</h2>
+      </div>
+      <Link href={linkHref} className="hm-more">
+        {linkLabel} <ArrowRight size={12} aria-hidden="true" />
+      </Link>
     </div>
   );
 }
-
-export const sectionLabel: CSSProperties = {
-  fontSize: '0.75rem', color: 'var(--ink-muted)',
-  letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 6,
-};
-
-export const sectionTitle: CSSProperties = {
-  fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 600,
-  color: 'var(--ink)', letterSpacing: '-0.025em', lineHeight: 1.15,
-};
-
-export const linkStyle: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 4,
-  fontSize: '0.85rem', color: 'var(--ink-muted)',
-  textDecoration: 'none', fontWeight: 500,
-};
-
-export const scrollBtn: CSSProperties = {
-  width: 30, height: 30, borderRadius: 8,
-  background: 'var(--surface)', border: '1px solid var(--border)',
-  color: 'var(--ink-muted)', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-};

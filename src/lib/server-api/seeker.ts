@@ -41,6 +41,21 @@ export async function getSeekerJobsServer(limit?: number): Promise<IJob[]> {
   return body.jobs ?? [];
 }
 
+/** How many active roles landed in the last 24h (public). Powers the homepage
+ *  ticker + live badge. Asks for limit=1 and reads `totalJobs` off the paginated
+ *  envelope, so the count is exact without pulling the rows. Returns 0 on any
+ *  backend hiccup — the copy has an evergreen fallback for the zero case. */
+export async function getSeekerTodayCountServer(): Promise<number> {
+  try {
+    const body = await publicServerFetch<{ totalJobs?: number }>(
+      '/seeker/jobs?date=today&limit=1', JOBS_REVALIDATE,
+    );
+    return typeof body?.totalJobs === 'number' ? body.totalJobs : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** The company directory (aggregated hiring companies, public). Cached: the company
  *  page calls it in both generateMetadata and the body (via findCompany). */
 export const getSeekerDirectoryServer = cache(async (): Promise<ICompany[]> => {
