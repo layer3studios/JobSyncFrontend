@@ -31,6 +31,19 @@
 .stagger > *:nth-child(8) { animation-delay: 0.3s; }
 .stagger > *:nth-child(n+9) { animation-delay: 0.34s; }
 
+/* Entrance animations are decorative — honour a reduced-motion request by
+   showing the final state immediately. `both` fill-mode leaves these elements
+   at opacity 0 before they run, so the animation must be cancelled AND the
+   end state restored. Must stay below the .stagger rules above: equal
+   specificity, so the later declaration is the one that wins. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-up, .anim-fade, .anim-scale, .stagger > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .skeleton {
   background: linear-gradient(90deg, var(--paper-2) 0%, var(--paper-3) 40%, var(--paper-2) 80%);
   background-size: 800px 100%;
