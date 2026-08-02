@@ -25,8 +25,21 @@ export interface EventPropertyMap {
   job_viewed: { jobId: string; company?: string; jobSlug?: string; fromRoute: string };
   apply_started: { jobId: string; companyId?: string; applyMethod: ApplyMethod };
   apply_form_field_focused: { jobId: string; fieldName: string };
-  apply_submitted: { jobId: string; companyId?: string; applyMethod: ApplyMethod; hasResume: boolean; hasCoverNote: boolean };
+  // The assignment properties are OPTIONAL extensions of the existing event, not a
+  // parallel apply_submitted_with_assignment — one funnel event means the assignment
+  // and plain paths stay comparable in the same PostHog query. Counts and booleans
+  // only: never a link URL, a filename, or the notes text.
+  apply_submitted: {
+    jobId: string; companyId?: string; applyMethod: ApplyMethod; hasResume: boolean; hasCoverNote: boolean;
+    linkCount?: number; fileCount?: number; hasGithubProfile?: boolean; hasLinkedinProfile?: boolean;
+  };
   apply_success_viewed: { jobId?: string; companyId?: string; companySlug?: string };
+  // Funnel 1a — Seeker Apply, take-home assignment (ids, counts and booleans only).
+  assignment_apply_form_viewed: { postingId: string; assignmentId: string };
+  assignment_draft_saved: { postingId: string };
+  assignment_draft_restored: { postingId: string; fileCount: number; expiredFileCount: number };
+  /** `reason` is a stable error code (e.g. FILE_TOO_LARGE), never a filename. */
+  assignment_file_upload_failed: { postingId: string; reason: string };
   // Funnel 2 — Seeker Job Discovery
   jobs_list_viewed: { totalResults: number; filterCount: number };
   jobs_filter_applied: { filterType: FilterType; action: FilterAction };
