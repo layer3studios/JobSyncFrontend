@@ -22,7 +22,17 @@ describe('Funnel 1 — apply_started', () => {
   it('fires apply_started on apply-form mount with the public method', () => {
     render(<ApplyFormClient company={company} job={job} companySlug="acme" jobSlug="dev" />);
     expect(capture).toHaveBeenCalledWith('apply_started', {
-      jobId: 'job-1', companyId: 'acme', applyMethod: 'public',
+      jobId: 'job-1', companyId: 'acme', applyMethod: 'public', hasAssignment: false,
+    });
+  });
+
+  // The flag is what splits the two populations for the abandonment ratio — this
+  // event is the "form viewed" counter for BOTH, so it has to fire either way.
+  it('fires apply_started with hasAssignment true on a take-home posting', () => {
+    const assignment = { id: 'asg-1', allowedFileTypes: [] } as never;
+    render(<ApplyFormClient company={company} job={job} companySlug="acme" jobSlug="dev" assignment={assignment} />);
+    expect(capture).toHaveBeenCalledWith('apply_started', {
+      jobId: 'job-1', companyId: 'acme', applyMethod: 'public', hasAssignment: true,
     });
   });
 });

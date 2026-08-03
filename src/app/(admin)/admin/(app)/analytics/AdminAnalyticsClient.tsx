@@ -8,6 +8,7 @@ import { useCallback, useState } from 'react';
 import type { AdminAnalyticsData, SinceRange } from '@/types/admin-analytics';
 import { fetchAllAnalyticsBundles, AdminAnalyticsApiError } from '@/api/admin-analytics-api';
 import AnalyticsSections from './parts/AnalyticsSections';
+import AssignmentAnalyticsSection from './parts/AssignmentAnalyticsSection';
 import TimeRangeSelector from './parts/TimeRangeSelector';
 import EmptyStateNotice from './parts/EmptyStateNotice';
 
@@ -111,6 +112,10 @@ export default function AdminAnalyticsClient({
       ) : (
         <AnalyticsSections data={data} />
       )}
+
+      {/* Outside the bundle branch on purpose: its Mongo half has no PostHog
+          dependency, so it must render even when the bundle above 503s. */}
+      <AssignmentAnalyticsSection since={currentSince} />
     </div>
   );
 }

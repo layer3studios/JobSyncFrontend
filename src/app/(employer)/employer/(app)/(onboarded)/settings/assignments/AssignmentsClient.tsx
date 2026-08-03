@@ -25,6 +25,7 @@ import {
   EmployerAssignmentsApiError,
 } from '@/api/employer-assignments-api';
 import { canCreateAssignment } from '@/lib/team-permissions';
+import { trackEvent } from '@/lib/analytics-events';
 import type { Role } from '@/types/employer-team';
 import type { EmployerAssignment, AssignmentUsage } from '@/types/employer-assignments';
 import AssignmentsTable from './parts/AssignmentsTable';
@@ -56,7 +57,8 @@ export default function AssignmentsClient({
 }: AssignmentsClientProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const { viewerRole } = useEmployer();
+  const { viewerRole, company } = useEmployer();
+  const companyId = company?.id ?? '';
   const [assignments, setAssignments] = useState(initialAssignments);
   const [showArchived, setShowArchived] = useState(false);
   const [modal, setModal] = useState<ActiveModal>(null);
@@ -111,6 +113,8 @@ export default function AssignmentsClient({
     setBlocked(null);
     try {
       const clone = await cloneAssignment(assignment.id);
+      // Ids only — the assignment title is employer-authored free text.
+      trackEvent('assignment_cloned', { companyId, assignmentId: clone.id });
       await refetch();
       showToast('success', `Cloned as "${clone.title}".`);
       // Straight into the editor: cloning is almost always the first half of
@@ -131,6 +135,7 @@ export default function AssignmentsClient({
       // the file header for why this one is deliberately not optimistic.
       const updated = await archiveAssignment(assignment.id);
       setAssignments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      trackEvent('assignment_archived', { companyId, assignmentId: updated.id });
       showToast('success', 'Assignment archived.');
     } catch (err) {
       handleApiError(err, assignment, 'Could not archive this assignment.');
@@ -154,6 +159,14 @@ export default function AssignmentsClient({
   }
 
   async function handleSaved(saved: EmployerAssignment): Promise<void> {
+    // Read the mode BEFORE close() clears it. An edit is not a creation, and
+    // counting it as one would inflate the library-growth number.
+    const wasCreate = modal?.kind === 'form' && modal.mode !== 'edit';
+    if (wasCreate) {
+      trackEvent('assignment_created', {
+        companyId, assignmentId: saved.id, estimatedHours: saved.estimatedHours,
+      });
+    }
     close();
     showToast('success', 'Assignment saved.');
     await refetch();
