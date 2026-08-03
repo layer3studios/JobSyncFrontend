@@ -8,6 +8,7 @@ import { apiUrl } from '../lib/api-base';
 import type {
   Applicant, ApplicantDetail, ApplicantNote, ResumeUrl, Stage, ArchiveReason,
   ApplicantSort, BulkArchiveResult, RescoreResult, ApplicantFacets, SavedView,
+  AssignmentStats,
 } from '../types/employer-applicants';
 
 export class EmployerApplicantsApiError extends Error {
@@ -51,19 +52,44 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 const applicantPath = (applicationId: string) => `/employer/applicants/${encodeURIComponent(applicationId)}`;
 
-export async function listApplicantsForPosting(
+/**
+ * The list endpoint's full envelope.
+ *
+ * `stats` is present ONLY for a posting that has an assignment attached — the
+ * backend guards before running any assignment query and otherwise returns exactly
+ * the shape it always had. Its absence is the signal to render the plain list with
+ * no strip, no chips and no extra column.
+ */
+export interface ApplicantListResult {
+  applicants: Applicant[];
+  stats?: AssignmentStats;
+}
+
+export async function listApplicantsWithStats(
   postingId: string,
   { sort, filters }: { sort?: ApplicantSort; filters?: Record<string, string> } = {},
-): Promise<Applicant[]> {
+): Promise<ApplicantListResult> {
   const params = new URLSearchParams();
   if (sort) params.set('sort', sort);
   for (const [key, value] of Object.entries(filters ?? {})) {
     if (value) params.set(key, value);
   }
   const query = params.toString();
-  const body = await request<{ applicants: Applicant[] }>(
+  return request<ApplicantListResult>(
     `/employer/jobs/${encodeURIComponent(postingId)}/applicants${query ? `?${query}` : ''}`,
   );
+}
+
+/**
+ * Applicants only. Retained as the narrow read for callers that never needed the
+ * envelope (the detail page's prev/next list), so adding stats did not have to
+ * touch them.
+ */
+export async function listApplicantsForPosting(
+  postingId: string,
+  options: { sort?: ApplicantSort; filters?: Record<string, string> } = {},
+): Promise<Applicant[]> {
+  const body = await listApplicantsWithStats(postingId, options);
   return body.applicants;
 }
 
