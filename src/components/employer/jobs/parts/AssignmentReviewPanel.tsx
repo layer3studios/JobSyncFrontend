@@ -16,6 +16,8 @@ import {
 } from '@/api/employer-assignment-reviews-api';
 import type { ConflictingReviewer } from '@/api/employer-assignment-reviews-api';
 import type { AssignmentReview, AssignmentSubmission } from '@/types/employer-applicants';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
 import { formatRelativeTime, anchorFor } from './review-helpers';
 import ScoreSelector from './ScoreSelector';
 import ReviewConflictDialog from './ReviewConflictDialog';
@@ -45,6 +47,10 @@ export default function AssignmentReviewPanel({
   submission, review: initialReview, currentEmployerUserId, onSaved,
 }: Props) {
   const { showToast } = useToast();
+  const { company } = useEmployer();
+  const companyId = company?.id ?? '';
+  // The submission carries its own jobId, so the panel does not need it threaded in.
+  const postingId = submission.jobId ?? '';
   const [review, setReview] = useState<AssignmentReview | null>(initialReview);
   const [isTaskOpen, setIsTaskOpen] = useState(false);
   const [isTeammateReviewOpen, setIsTeammateReviewOpen] = useState(false);
@@ -109,6 +115,9 @@ export default function AssignmentReviewPanel({
   }
 
   async function save(expectedReviewedAt: string | null, pending: PendingReview) {
+    // A resolved conflict is in flight when we are re-submitting from the dialog.
+    const isConflictReplace = conflict !== null;
+    const isEdit = isOwnReview && !isConflictReplace;
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -121,6 +130,16 @@ export default function AssignmentReviewPanel({
       setReview(saved);
       setConflict(null);
       setIsEditing(false);
+      // Score and verdict are numbers/booleans; the notes never leave the browser.
+      if (isConflictReplace) {
+        trackEvent('assignment_review_conflicted', { companyId, postingId, resolution: 'replaced' });
+      }
+      if (isEdit) trackEvent('assignment_review_edited', { companyId, postingId });
+      else {
+        trackEvent('assignment_review_submitted', {
+          companyId, postingId, overallScore: pending.overallScore, passesBar: pending.passesBar,
+        });
+      }
       showToast('success', 'Review saved.');
       await onSaved?.();
     } catch (error) {
@@ -369,7 +388,13 @@ export default function AssignmentReviewPanel({
         isSubmitting={isSubmitting}
         // Closes and makes no request. The form still holds everything they typed,
         // so "keep theirs" is reversible until they navigate away.
-        onKeepTheirs={() => setConflict(null)}
+        onKeepTheirs={() => {
+          // Recorded because it is the outcome, not the absence of one: a team that
+          // mostly keeps the other review has a different problem from one that
+          // mostly overrides.
+          trackEvent('assignment_review_conflicted', { companyId, postingId, resolution: 'kept_theirs' });
+          setConflict(null);
+        }}
         onReplace={(expectedReviewedAt) => {
           if (conflict) void save(expectedReviewedAt, conflict.pending);
         }}

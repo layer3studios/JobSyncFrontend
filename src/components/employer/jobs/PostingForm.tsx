@@ -20,6 +20,8 @@ import type { PostingFormValues, PostingFormErrors } from '@/components/employer
 import AssignmentSection from '@/components/employer/jobs/parts/AssignmentSection';
 import type { AssignmentSectionState } from '@/components/employer/jobs/parts/AssignmentSection';
 import AssignmentSwapDialog from '@/components/employer/jobs/parts/AssignmentSwapDialog';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { trackEvent } from '@/lib/analytics-events';
 import { needsConfirm, buildConfirmCopy } from '@/components/employer/jobs/parts/assignment-section-helpers';
 import type { ConfirmCopy } from '@/components/employer/jobs/parts/assignment-section-helpers';
 
@@ -75,6 +77,8 @@ export default function PostingForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const submittingRef = useRef(false);
+  const { company } = useEmployer();
+  const companyId = company?.id ?? '';
 
   // ── Assignment attachment. Entirely inert while the toggle is off. ──────────
   const isEdit = postingId != null;
@@ -115,7 +119,17 @@ export default function PostingForm({
    */
   const applyAssignment = async (targetPostingId: string, assignmentId: string | null): Promise<boolean> => {
     try {
-      await setPostingAssignment(targetPostingId, assignmentId);
+      const result = await setPostingAssignment(targetPostingId, assignmentId);
+      // Ids and counts only. Detach carries the applicant count because that number
+      // is the whole reason the confirm existed — it says how much work was already
+      // riding on the task that was just removed.
+      if (assignmentId === null) {
+        trackEvent('assignment_detached', {
+          companyId, postingId: targetPostingId, applicationCount: result.applicationCount,
+        });
+      } else {
+        trackEvent('assignment_attached', { companyId, postingId: targetPostingId, assignmentId });
+      }
       setAttachRetry(null);
       return true;
     } catch (error) {

@@ -88,6 +88,72 @@ export const fetchEngagement = async (since: SinceRange | string): Promise<Engag
 export const fetchTeam = async (since: SinceRange | string): Promise<TeamResponse> => normalizeTeam(await getJson('/team', since));
 export const fetchTraffic = async (since: SinceRange | string): Promise<TrafficResponse> => normalizeTraffic(await getJson('/traffic', since));
 
+// ─── Take-home assignments (Chunk 9) ────────────────────────────────────────
+// TWO endpoints on purpose, and they are fetched SEPARATELY on purpose. /assignments
+// reads Mongo and has no PostHog dependency, so it answers even when the analytics
+// key is missing; /assignments/funnel is HogQL and 503s without it. Bundling them
+// would make the Mongo half inherit the PostHog half's failure mode, which is the
+// exact outcome this split exists to prevent.
+
+export interface AssignmentStatsResponse {
+  postingsWithAssignments: number;
+  totalAssignments: number;
+  submissionsLast30Days: number;
+  reviewsLast30Days: number;
+  medianSubmissionToReviewHours: number | null;
+  medianLinksPerSubmission: number | null;
+  medianFilesPerSubmission: number | null;
+  windowDays: number;
+}
+
+export interface AbandonmentSide {
+  viewed: number;
+  submitted: number;
+  /** null when nothing was viewed — "no sample", which 0 would misreport. */
+  completionRatio: number | null;
+}
+
+export interface AssignmentFunnelResponse {
+  assignment: AbandonmentSide;
+  plain: AbandonmentSide;
+  assignmentsCreated: number;
+  reviewsSubmitted: number;
+  reviewConflicts: number;
+  cachedAt: string;
+  since: string;
+}
+
+const nullableNum = (v: unknown): number | null => (v == null ? null : num(v));
+const side = (r: Row | undefined): AbandonmentSide => ({
+  viewed: num(r?.viewed), submitted: num(r?.submitted), completionRatio: nullableNum(r?.completionRatio),
+});
+
+export const normalizeAssignmentStats = (r: Row): AssignmentStatsResponse => ({
+  postingsWithAssignments: num(r.postingsWithAssignments),
+  totalAssignments: num(r.totalAssignments),
+  submissionsLast30Days: num(r.submissionsLast30Days),
+  reviewsLast30Days: num(r.reviewsLast30Days),
+  medianSubmissionToReviewHours: nullableNum(r.medianSubmissionToReviewHours),
+  medianLinksPerSubmission: nullableNum(r.medianLinksPerSubmission),
+  medianFilesPerSubmission: nullableNum(r.medianFilesPerSubmission),
+  windowDays: num(r.windowDays) || 30,
+});
+
+export const normalizeAssignmentFunnel = (r: Row): AssignmentFunnelResponse => ({
+  ...meta(r),
+  assignment: side(r.assignment as Row | undefined),
+  plain: side(r.plain as Row | undefined),
+  assignmentsCreated: num(r.assignmentsCreated),
+  reviewsSubmitted: num(r.reviewsSubmitted),
+  reviewConflicts: num(r.reviewConflicts),
+});
+
+export const fetchAssignmentStats = async (since: SinceRange | string): Promise<AssignmentStatsResponse> =>
+  normalizeAssignmentStats(await getJson('/assignments', since));
+
+export const fetchAssignmentFunnel = async (since: SinceRange | string): Promise<AssignmentFunnelResponse> =>
+  normalizeAssignmentFunnel(await getJson('/assignments/funnel', since));
+
 // Bundle wrapper for client-side range switching: fires all six in parallel and
 // assembles the same AdminAnalyticsData shape the SSR page produces. Bundle-level
 // success/failure — any rejection (AdminAnalyticsApiError) rejects the whole call;

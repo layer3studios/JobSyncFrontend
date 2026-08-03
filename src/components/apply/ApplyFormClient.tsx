@@ -120,10 +120,14 @@ export default function ApplyFormClient({
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDraftEventAt = useRef(0);
 
-  // Reaching the apply form = the seeker started applying (public, unauthenticated flow).
+  // Reaching the apply form = the seeker started applying (public, unauthenticated
+  // flow). hasAssignment is the denominator half of the abandonment ratio: this
+  // event fires for BOTH populations, so the flag is what lets the two be compared.
   useEffect(() => {
-    trackEvent('apply_started', { jobId: job.id, companyId: company.slug, applyMethod: 'public' });
-  }, [job.id, company.slug]);
+    trackEvent('apply_started', {
+      jobId: job.id, companyId: company.slug, applyMethod: 'public', hasAssignment,
+    });
+  }, [job.id, company.slug, hasAssignment]);
 
   useEffect(() => {
     if (!assignment) return; // plain posting — no assignment telemetry at all
@@ -340,6 +344,8 @@ export default function ApplyFormClient({
       trackEvent('apply_submitted', {
         jobId: job.id, companyId: company.slug, applyMethod: 'public',
         hasResume: data.resume !== null, hasCoverNote: data.coverNote.trim() !== '',
+        // Sent for BOTH populations — it is the numerator half of the ratio.
+        hasAssignment,
         ...(assignment ? {
           linkCount: validLinks.length,
           fileCount: uploads.doneFiles.length,
