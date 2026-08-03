@@ -13,10 +13,16 @@ import {
 import { Table } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import {
-  listApplicantsForPosting, listStages, listArchiveReasons,
+  listApplicantsWithStats, listStages, listArchiveReasons,
   bulkArchiveApplicants, fetchApplicantFacets, EmployerApplicantsApiError,
 } from '@/api/employer-applicants-api';
-import type { Applicant, ApplicantFacets, ArchiveReason, SavedView, Stage, ApplicantSort } from '@/types/employer-applicants';
+import type {
+  Applicant, ApplicantFacets, ArchiveReason, SavedView, Stage, ApplicantSort,
+  AssignmentStats, AssignmentReviewFilter,
+} from '@/types/employer-applicants';
+import AssignmentColumn from '@/components/employer/jobs/parts/AssignmentColumn';
+import AssignmentFilters from '@/components/employer/jobs/parts/AssignmentFilters';
+import { parseAssignmentFilter } from '@/components/employer/jobs/parts/review-helpers';
 import { formatRelativeTime } from '@/components/employer/jobs/applicant-view-helpers';
 import { summarizeBulkResult, resolveBulkErrorMessage } from '@/components/employer/jobs/ranked-bulk-helpers';
 import {
@@ -42,6 +48,9 @@ const SORT_OPTIONS = [
   { value: 'score', label: 'Score: high to low' },
   { value: 'date', label: 'Applied: newest first' },
 ];
+// Offered only for an assignment posting — sorting by a task score every row lacks
+// would be a control that does nothing.
+const ASSIGNMENT_SORT_OPTION = { value: 'assignment', label: 'Task score: high to low' };
 
 export default function RankedTab({ postingId }: { postingId: string }) {
   const searchParams = useSearchParams();
@@ -49,6 +58,12 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const pathname = usePathname();
 
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  // Rendered exactly as the API returns it. undefined means the posting has no
+  // assignment, which is the signal to render the plain list unchanged.
+  const [assignmentStats, setAssignmentStats] = useState<AssignmentStats | undefined>(undefined);
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentReviewFilter | null>(
+    () => parseAssignmentFilter(searchParams?.get('assignmentReview')),
+  );
   const [stages, setStages] = useState<Stage[]>([]);
   const [reasons, setReasons] = useState<ArchiveReason[]>([]);
   const [facets, setFacets] = useState<ApplicantFacets>({ skills: [], cities: [] });
@@ -74,12 +89,19 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const load = useCallback(async (activeSort: ApplicantSort) => {
     setLoadState('loading');
     try {
-      const [applicantsResult, stagesResult, reasonsResult] = await Promise.all([
-        listApplicantsForPosting(postingId, { sort: activeSort, filters: serverFiltersToQuery(serverFilters) }),
+      const filters = serverFiltersToQuery(serverFilters);
+      // The assignment filter is a SERVER filter — the backend owns the predicate,
+      // and applying it client-side would silently disagree with the stats.
+      if (assignmentFilter) filters.assignmentReview = assignmentFilter;
+      const [listResult, stagesResult, reasonsResult] = await Promise.all([
+        listApplicantsWithStats(postingId, { sort: activeSort, filters }),
         listStages(),
         listArchiveReasons(),
       ]);
+      const applicantsResult = listResult.applicants;
       setApplicants(applicantsResult);
+      // Straight assignment, never a computation over the rows above.
+      setAssignmentStats(listResult.stats);
       setStages(stagesResult);
       setReasons(reasonsResult);
       // Prune selection to ids still present after a reload (hygiene, D5).
@@ -91,7 +113,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       setLastError(error instanceof EmployerApplicantsApiError ? error.message : LOAD_ERROR_MESSAGE);
       setLoadState('error');
     }
-  }, [postingId, serverFilters]);
+  }, [postingId, serverFilters, assignmentFilter]);
 
   // First load fires immediately; filter changes are debounced 300ms so rapid
   // chip toggling collapses into one request.
@@ -168,6 +190,20 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   }
 
   const stageNameById = new Map(stages.map((stage) => [stage.id, stage.text]));
+  // The presence of `stats` IS the signal. A plain posting gets no strip, no chips,
+  // no extra column and no extra sort option — markup identical to before 8c.
+  const hasAssignment = assignmentStats !== undefined;
+
+  // Chip changes are a server round trip AND a URL write, so a pasted link restores
+  // the same filtered view.
+  const handleAssignmentFilterChange = useCallback((next: AssignmentReviewFilter | null) => {
+    setAssignmentFilter(next);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (next) params.set('assignmentReview', next);
+    else params.delete('assignmentReview');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const selectColumn: Column<Applicant> = { key: 'select', header: '', render: (applicant) => {
     const id = applicant.application.id;
@@ -188,7 +224,12 @@ export default function RankedTab({ postingId }: { postingId: string }) {
         <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)' }}>{applicant.contact?.email ?? ''}</div>
       </div>
     ) },
-    { key: 'score', header: 'Score', render: (applicant) => <ScoreCell applicant={applicant} /> },
+    // Resume 0–100 and Task 1–5 stay in SEPARATE columns with separate labels.
+    // Nothing anywhere blends them into one number or one ordering.
+    { key: 'score', header: 'Resume', render: (applicant) => <ScoreCell applicant={applicant} /> },
+    ...(hasAssignment
+      ? [{ key: 'assignment', header: 'Task', render: (applicant: Applicant) => <AssignmentColumn applicant={applicant} /> }]
+      : []),
     { key: 'stage', header: 'Stage', render: (applicant) => stageNameById.get(applicant.application.stageId) ?? '—' },
     { key: 'applied', header: 'Applied', render: (applicant) => formatRelativeTime(applicant.application.appliedAt) },
     { key: 'actions', header: '', render: (applicant) => (
@@ -229,7 +270,11 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       />
       <Stack gap={16} dir="row" align="center" wrap>
         <div style={{ maxWidth: 240 }}>
-          <Select aria-label="Sort applicants" value={sort} options={SORT_OPTIONS} onChange={(event) => setSort(event.target.value as ApplicantSort)} />
+          <Select
+            aria-label="Sort applicants" value={sort}
+            options={hasAssignment ? [...SORT_OPTIONS, ASSIGNMENT_SORT_OPTION] : SORT_OPTIONS}
+            onChange={(event) => setSort(event.target.value as ApplicantSort)}
+          />
         </div>
         {allowArchive && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem', color: 'var(--ink-muted)', cursor: 'pointer' }}>
@@ -242,6 +287,13 @@ export default function RankedTab({ postingId }: { postingId: string }) {
           </label>
         )}
       </Stack>
+      {hasAssignment && assignmentStats && (
+        <AssignmentFilters
+          stats={assignmentStats}
+          value={assignmentFilter}
+          onChange={handleAssignmentFilterChange}
+        />
+      )}
       <RankedFilterBar
         value={filterState} stages={stages} onChange={setFilterState}
         serverValue={serverFilters} facets={facets} onServerChange={handleServerFiltersChange}
