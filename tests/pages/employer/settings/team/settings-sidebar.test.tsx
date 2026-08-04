@@ -14,23 +14,24 @@ const EXPECTED_HREFS: Array<[string, string]> = [
   ['Roles', '/employer/settings/roles'],
   ['Email', '/employer/settings/email'],
   ['Branding', '/employer/settings/branding'],
+  ['Assignments', '/employer/settings/assignments'],
   ['Danger zone', '/employer/settings/danger'],
 ];
 
 describe('SettingsSidebar', () => {
-  it('renders all six items as clickable links with the right hrefs', () => {
+  it('renders all seven items as clickable links with the right hrefs', () => {
     render(<SettingsSidebar />);
     for (const [label, href] of EXPECTED_HREFS) {
       expect(screen.getByRole('link', { name: label }).getAttribute('href')).toBe(href);
     }
-    expect(screen.getAllByRole('link')).toHaveLength(6);
+    expect(screen.getAllByRole('link')).toHaveLength(7);
   });
 
   it('highlights the item matching the current route', () => {
     pathname = '/employer/settings/roles';
     render(<SettingsSidebar />);
     expect(screen.getByRole('link', { name: 'Roles' }).getAttribute('aria-current')).toBe('page');
-    for (const label of ['Company', 'Team', 'Email', 'Branding', 'Danger zone']) {
+    for (const label of ['Company', 'Team', 'Email', 'Branding', 'Assignments', 'Danger zone']) {
       expect(screen.getByRole('link', { name: label }).getAttribute('aria-current')).toBeNull();
     }
     cleanup();
@@ -45,9 +46,9 @@ describe('SettingsSidebar', () => {
     expect(isSettingsItemActive('/employer/settings', '/employer/settings/')).toBe(true);
   });
 
-  it('renders the horizontal variant with the same six links', () => {
+  it('renders the horizontal variant with the same seven links', () => {
     render(<SettingsSidebar horizontal />);
-    expect(screen.getAllByRole('link')).toHaveLength(6);
+    expect(screen.getAllByRole('link')).toHaveLength(7);
     expect(screen.getByRole('link', { name: 'Danger zone' })).toBeTruthy();
   });
 });

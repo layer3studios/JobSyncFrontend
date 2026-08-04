@@ -10,6 +10,7 @@ import { Button } from '@/components/ui';
 import type { Applicant } from '@/types/employer-applicants';
 import { getScoreBadgeStyle, usableScore } from './score-badge-helpers';
 import { formatRelativeTime } from './applicant-view-helpers';
+import AssignmentColumn from './parts/AssignmentColumn';
 
 export function ScorePill({ applicant }: { applicant: Applicant }) {
   // One source of truth for score colours — shared with the Pipeline card.
@@ -23,12 +24,14 @@ export function ScorePill({ applicant }: { applicant: Applicant }) {
 }
 
 export default function RankedCandidateRow({
-  applicant, postingId, stageName, showSelect, isSelected, onToggleSelect,
+  applicant, postingId, stageName, showSelect, showAssignment, isSelected, onToggleSelect,
 }: {
   applicant: Applicant;
   postingId: string;
   stageName: string;
   showSelect: boolean;
+  /** Only an assignment posting gets the Task cell — see AssignmentColumn. */
+  showAssignment: boolean;
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
 }) {
@@ -65,6 +68,9 @@ export default function RankedCandidateRow({
         </div>
       </div>
       <div style={{ width: 120, flexShrink: 0 }}><ScorePill applicant={applicant} /></div>
+      {/* Resume 0–100 and Task 1–5 stay in SEPARATE cells with separate labels.
+          Nothing anywhere blends them into one number or one ordering. */}
+      {showAssignment && <div style={{ width: 110, flexShrink: 0 }}><AssignmentColumn applicant={applicant} /></div>}
       <div style={{ width: 100, flexShrink: 0, fontSize: 13, color: 'var(--ink)' }}>{stageName}</div>
       <div style={{ width: 80, flexShrink: 0, fontSize: 12, color: 'var(--ink-2)' }}>
         {formatRelativeTime(applicant.application.appliedAt)}

@@ -33,6 +33,10 @@ export default function EmployerJobsNew() {
   // New-posting form opened.
   useEffect(() => { trackEvent('posting_form_opened', { fromRoute: getFromRoute() }); }, []);
 
+  // Returns the posting instead of navigating: PostingForm may still have an
+  // assignment to attach as a second request, and routing away here would unmount
+  // the form mid-flight and strand it. Navigation moves to onSubmitted, which only
+  // fires once the whole save — posting AND attachment — has succeeded.
   const handleCreate = async (input: PostingCreateInput) => {
     const posting = await createEmployerPosting(input);
     trackEvent('posting_created', {
@@ -41,7 +45,7 @@ export default function EmployerJobsNew() {
       isPublished: posting.status === 'active',
     });
     showToast('success', `Posting created: ${posting.title}`);
-    router.push(`/employer/jobs/${posting.id}`);
+    return posting;
   };
 
   return (
@@ -52,9 +56,15 @@ export default function EmployerJobsNew() {
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ flex: '3 1 420px', minWidth: 340 }}>
             <Card variant="raised">
+              {/* No postingId and no applicationCount: on create there is no posting to
+                  attach to yet, so the assignment section knows it is the create surface
+                  and never asks for a confirm. */}
               <PostingForm
                 submitLabel="Create posting"
                 onSubmit={handleCreate}
+                onSubmitted={(result) => {
+                  if (result && 'id' in result) router.push(`/employer/jobs/${result.id}`);
+                }}
                 onCancel={cancel}
                 onValuesChange={setPreviewValues}
               />

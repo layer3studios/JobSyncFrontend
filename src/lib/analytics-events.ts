@@ -23,10 +23,51 @@ type InvitableRoleName = 'owner' | 'member' | 'interviewer';
 export interface EventPropertyMap {
   // Funnel 1 — Seeker Apply
   job_viewed: { jobId: string; company?: string; jobSlug?: string; fromRoute: string };
-  apply_started: { jobId: string; companyId?: string; applyMethod: ApplyMethod };
+  /**
+   * Fires once on apply-form mount, for EVERY posting — this is the "form viewed"
+   * counter. There is no separate apply_form_viewed event; `hasAssignment` splits
+   * the two populations so the abandonment ratio can be computed for each without
+   * a second event or a PostHog funnel (the apply flow is anonymous, so a funnel
+   * would undercount). Paired with apply_submitted's identical flag.
+   */
+  apply_started: { jobId: string; companyId?: string; applyMethod: ApplyMethod; hasAssignment?: boolean };
   apply_form_field_focused: { jobId: string; fieldName: string };
-  apply_submitted: { jobId: string; companyId?: string; applyMethod: ApplyMethod; hasResume: boolean; hasCoverNote: boolean };
+  // The assignment properties are OPTIONAL extensions of the existing event, not a
+  // parallel apply_submitted_with_assignment — one funnel event means the assignment
+  // and plain paths stay comparable in the same PostHog query. Counts and booleans
+  // only: never a link URL, a filename, or the notes text.
+  apply_submitted: {
+    jobId: string; companyId?: string; applyMethod: ApplyMethod; hasResume: boolean; hasCoverNote: boolean;
+    /** The denominator's partner — see apply_started. Always sent, both populations. */
+    hasAssignment?: boolean;
+    linkCount?: number; fileCount?: number; hasGithubProfile?: boolean; hasLinkedinProfile?: boolean;
+  };
   apply_success_viewed: { jobId?: string; companyId?: string; companySlug?: string };
+  // Funnel 1a — Seeker Apply, take-home assignment (ids, counts and booleans only).
+  assignment_apply_form_viewed: { postingId: string; assignmentId: string };
+  assignment_draft_saved: { postingId: string };
+  assignment_draft_restored: { postingId: string; fileCount: number; expiredFileCount: number };
+  /** `reason` is a stable error code (e.g. FILE_TOO_LARGE), never a filename. */
+  assignment_file_upload_failed: { postingId: string; reason: string };
+
+  // Funnel 1b — Employer take-home lifecycle (8a/8b/8c).
+  // IDS AND NUMBERS ONLY. An assignment title is employer-authored free text and
+  // never appears here, nor does a posting title, a candidate name, or a URL. The
+  // PII blocklist in posthog.ts is a backstop, not the design.
+  assignment_created: { companyId: string; assignmentId: string; estimatedHours: number };
+  assignment_cloned: { companyId: string; assignmentId: string };
+  assignment_archived: { companyId: string; assignmentId: string };
+  assignment_attached: { companyId: string; postingId: string; assignmentId: string };
+  /** applicationCount is what made the swap confirm necessary — worth keeping. */
+  assignment_detached: { companyId: string; postingId: string; applicationCount: number };
+  assignment_review_submitted: { companyId: string; postingId: string; overallScore: number; passesBar: boolean };
+  assignment_review_edited: { companyId: string; postingId: string };
+  /**
+   * The one worth having. If review conflicts turn out to be common, the review
+   * flow needs rethinking — and there is no other way to find that out, because a
+   * conflict resolved in the UI leaves no trace in Mongo.
+   */
+  assignment_review_conflicted: { companyId: string; postingId: string; resolution: 'replaced' | 'kept_theirs' };
   // Funnel 2 — Seeker Job Discovery
   jobs_list_viewed: { totalResults: number; filterCount: number };
   jobs_filter_applied: { filterType: FilterType; action: FilterAction };

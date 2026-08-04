@@ -24,6 +24,12 @@ export interface PostingFormErrors {
   employmentType?: string;
   salary?: string;
   _form?: string;
+  /**
+   * The posting saved but the assignment attach failed. Kept distinct from _form
+   * because the two mean opposite things: _form means nothing was saved, this means
+   * the posting EXISTS and only the attachment is missing (8b).
+   */
+  _assignment?: string;
 }
 
 const SCRIPT_PATTERN = /<script/i;

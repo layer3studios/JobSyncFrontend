@@ -33,6 +33,7 @@ function posting(overrides: Partial<Posting> = {}): Posting {
     postedAt: new Date(Date.now() - 28 * 86400000).toISOString(),
     createdAt: new Date(Date.now() - 28 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
+    assignmentId: null,
     ...overrides,
   };
 }

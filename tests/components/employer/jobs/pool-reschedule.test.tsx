@@ -184,6 +184,7 @@ describe('close posting warning', () => {
     location: 'Bengaluru', workplaceType: 'onsite', employmentType: 'full-time',
     salaryMin: null, salaryMax: null, salaryCurrency: 'INR', status: 'active',
     postedAt: null, createdAt: '2030-01-01T00:00:00Z', updatedAt: '2030-01-01T00:00:00Z',
+    assignmentId: null,
   };
 
   it('shows the interview-cancellation line when booked interviews exist, not otherwise', async () => {

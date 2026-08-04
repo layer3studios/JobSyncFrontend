@@ -54,7 +54,7 @@ export default function ApplicantDetail() {
   const appId = typeof params.applicationId === 'string' ? params.applicationId : '';
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { company } = useEmployer();
+  const { company, employerUser } = useEmployer();
   const { w } = useViewport();
   const twoColumn = w > 900;
   const hasTrackedView = useRef(false);
@@ -148,6 +148,7 @@ export default function ApplicantDetail() {
     <ApplicantDetailBody
       loadState={loadState} detail={detail} stages={stages} reasons={reasons}
       lastError={lastError} load={load} twoColumn={twoColumn} backHref={backHref}
+      currentEmployerUserId={employerUser?.id ?? null}
     />
   );
 

@@ -44,6 +44,7 @@ function posting(overrides: Partial<Posting> = {}): Posting {
     salaryMin: null, salaryMax: null, salaryCurrency: 'INR', status: 'active',
     postedAt: null, createdAt: '2030-01-01T00:00:00Z', updatedAt: '2030-01-01T00:00:00Z',
     interviewDefaults: DEFAULTS,
+    assignmentId: null,
     ...overrides,
   };
 }
