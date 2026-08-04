@@ -4,6 +4,12 @@
 // clicks fetch client-side and memoize per range in memory, so revisiting a range is
 // instant (D1/D5). Failures are bundle-level, surface inline with Retry (D2/D7).
 // Section markup lives in parts/AnalyticsSections (dense overview-first layout).
+//
+// initialData is NULLABLE. When the PostHog bundles are unavailable at SSR (missing
+// key → 503), the page hands us `posthogNotice` instead of data, and this component
+// still renders the shell, the header and the time selector, with the notice standing
+// in for the PostHog sections only. The Mongo-backed assignments section below is
+// rendered unconditionally — see page.tsx's header comment for the source-split rule.
 import { useCallback, useState } from 'react';
 import type { AdminAnalyticsData, SinceRange } from '@/types/admin-analytics';
 import { fetchAllAnalyticsBundles, AdminAnalyticsApiError } from '@/api/admin-analytics-api';
@@ -42,13 +48,20 @@ function ErrorSurface({ error, onRetry }: { error: AdminAnalyticsApiError; onRet
 }
 
 export default function AdminAnalyticsClient({
-  initialData, initialSince,
+  initialData, initialSince, posthogNotice = null,
 }: {
-  initialData: AdminAnalyticsData;
+  initialData: AdminAnalyticsData | null;
   initialSince: SinceRange;
+  /** Set when the PostHog bundles failed at SSR in a way that is expected and
+   *  explainable (missing key). Stands in for those sections, not for the page. */
+  posthogNotice?: { title: string; body: string } | null;
 }) {
   const [currentSince, setCurrentSince] = useState<SinceRange>(initialSince);
-  const [cache, setCache] = useState<Map<SinceRange, AdminAnalyticsData>>(() => new Map([[initialSince, initialData]]));
+  // Seed only when SSR actually produced data — a null seed would masquerade as a
+  // successful cache hit and suppress the client refetch on the initial range.
+  const [cache, setCache] = useState<Map<SinceRange, AdminAnalyticsData>>(
+    () => (initialData ? new Map([[initialSince, initialData]]) : new Map()),
+  );
   const [loadingRanges, setLoadingRanges] = useState<Set<SinceRange>>(() => new Set());
   const [errorByRange, setErrorByRange] = useState<Map<SinceRange, AdminAnalyticsApiError>>(() => new Map());
   const [dismissed, setDismissed] = useState<Set<SinceRange>>(() => new Set());
@@ -103,14 +116,16 @@ export default function AdminAnalyticsClient({
         </div>
       )}
 
-      {!data ? (
-        currentError ? (
-          <ErrorSurface error={currentError} onRetry={retry} />
-        ) : (
-          <p style={{ textAlign: 'center', marginTop: 60, color: 'var(--ink-muted)' }}>Loading analytics…</p>
-        )
-      ) : (
+      {/* PostHog half. Whatever happens here, it replaces THESE SECTIONS ONLY —
+          the shell, the selector and the assignments section below all survive. */}
+      {data ? (
         <AnalyticsSections data={data} />
+      ) : currentError ? (
+        <ErrorSurface error={currentError} onRetry={retry} />
+      ) : posthogNotice ? (
+        <EmptyStateNotice title={posthogNotice.title} body={posthogNotice.body} />
+      ) : (
+        <p style={{ textAlign: 'center', marginTop: 60, color: 'var(--ink-muted)' }}>Loading analytics…</p>
       )}
 
       {/* Outside the bundle branch on purpose: its Mongo half has no PostHog

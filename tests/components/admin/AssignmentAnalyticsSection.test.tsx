@@ -1,5 +1,15 @@
 // The Mongo block and the PostHog block fail INDEPENDENTLY. A missing analytics key
 // must degrade the completion rates alone and never blank the section.
+//
+// SCOPE — read this before adding a case here. This file renders the section with
+// props and therefore can only prove behaviour INSIDE the section. It cannot see
+// whether the page ever renders the section at all, which is exactly how the
+// "analytics not configured shows nothing but a notice" bug survived a green suite:
+// every assertion below passed while the page short-circuited before mounting this
+// component. Anything about the section's relationship to the PAGE — that it is
+// reached, that it survives a PostHog 503 upstream, that its endpoint is actually
+// requested — belongs in tests/app/admin/analytics/page.test.tsx, which drives the
+// real Server Component. Keep this file for the intra-section source split only.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 
