@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/schema/JsonLd';
 import ApplyFormClient from '@/components/apply/ApplyFormClient';
+import AssignmentPreview from '@/components/apply/AssignmentPreview';
 import { buildJobPostingSchema, buildBreadcrumbListSchema } from '@/lib/schema';
 import { getPublicJobServer } from '@/lib/server-api/public';
 import { absoluteUrl } from '@/lib/site-url';
@@ -37,8 +38,13 @@ export async function generateMetadata(
   const { companySlug, jobSlug } = await params;
   const data = await loadJob(companySlug, jobSlug);
   if (!data) return { title: 'Job not found' };
+  // Surfaced in the title so the time cost is visible in search results and the
+  // browser tab, before the candidate has invested any attention. The description
+  // and JSON-LD are deliberately untouched — an assignment is not part of the
+  // JobPosting schema, and inventing a field risks the whole listing.
+  const assignmentSuffix = data.assignment ? ' · Includes a take-home' : '';
   return {
-    title: `${data.job.title} at ${data.company.name}`,
+    title: `${data.job.title} at ${data.company.name}${assignmentSuffix}`,
     description: (data.job.description ?? '').slice(0, 155),
     alternates: { canonical: absoluteUrl(`/apply/${companySlug}/${jobSlug}`) },
     openGraph: { type: 'article', title: `${data.job.title} at ${data.company.name}` },
@@ -51,7 +57,7 @@ export default async function ApplyJobPage(
   const { companySlug, jobSlug } = await params;
   const data = await loadJob(companySlug, jobSlug);
   if (!data) notFound();
-  const { company, job } = data;
+  const { company, job, assignment } = data;
 
   const jobPostingSchema = buildJobPostingSchema(
     {
@@ -79,7 +85,20 @@ export default async function ApplyJobPage(
     <>
       <JsonLd schema={jobPostingSchema} />
       <JsonLd schema={breadcrumbSchema} />
-      <ApplyFormClient company={company} job={job} companySlug={companySlug} jobSlug={jobSlug} />
+      {/* AssignmentPreview is a Server Component, so it is passed as an ALREADY
+          RENDERED element rather than a component prop — a client island cannot
+          re-render one. ApplyFormClient drops it into the JD column, inside the
+          page's single centred wrapper. There is deliberately no wrapper here:
+          the hand-copied maxWidth/padding 7a needed is gone, and the layout
+          constants now live in exactly one file. */}
+      <ApplyFormClient
+        company={company}
+        job={job}
+        companySlug={companySlug}
+        jobSlug={jobSlug}
+        assignment={assignment}
+        assignmentPreview={assignment ? <AssignmentPreview assignment={assignment} /> : null}
+      />
     </>
   );
 }

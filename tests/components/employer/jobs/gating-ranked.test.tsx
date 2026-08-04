@@ -10,10 +10,13 @@ vi.mock('@/api/employer-applicants-api', async (importActual) => {
   const actual = await importActual<typeof import('@/api/employer-applicants-api')>();
   return {
     ...actual,
-    listApplicantsForPosting: vi.fn(async () => ([{
-      application: { id: 'a1', stageId: 's1', appliedAt: new Date().toISOString(), archived: false },
-      contact: { fullName: 'Ada', email: 'ada@x.io' }, score: null,
-    }])),
+    // No `stats` key — a plain posting, which is what this gating suite is about.
+    listApplicantsWithStats: vi.fn(async () => ({
+      applicants: [{
+        application: { id: 'a1', stageId: 's1', appliedAt: new Date().toISOString(), archived: false },
+        contact: { fullName: 'Ada', email: 'ada@x.io' }, score: null,
+      }],
+    })),
     listStages: vi.fn(async () => ([{ id: 's1', text: 'Applied' }])),
     listArchiveReasons: vi.fn(async () => ([])),
     bulkArchiveApplicants: vi.fn(),

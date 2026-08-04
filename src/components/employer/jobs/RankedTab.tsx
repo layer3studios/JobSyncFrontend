@@ -8,10 +8,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button, Alert, Stack, EmptyState, SkeletonCard } from '@/components/ui';
 import {
-  listApplicantsForPosting, listStages, listArchiveReasons,
+  listApplicantsWithStats, listStages, listArchiveReasons,
   fetchApplicantFacets, EmployerApplicantsApiError,
 } from '@/api/employer-applicants-api';
-import type { Applicant, ApplicantFacets, ArchiveReason, SavedView, Stage, ApplicantSort } from '@/types/employer-applicants';
+import type {
+  Applicant, ApplicantFacets, ArchiveReason, SavedView, Stage, ApplicantSort,
+  AssignmentStats, AssignmentReviewFilter,
+} from '@/types/employer-applicants';
+import AssignmentFilters from '@/components/employer/jobs/parts/AssignmentFilters';
+import { parseAssignmentFilter } from '@/components/employer/jobs/parts/review-helpers';
 import {
   filterRankedApplicants, createInitialRankedFilterState, toggleSetValue,
   createInitialServerFilterState, isServerFilterActive, serverFiltersToQuery,
@@ -39,6 +44,12 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const isNarrow = useIsNarrowViewport();
 
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  // Rendered exactly as the API returns it. undefined means the posting has no
+  // assignment, which is the signal to render the plain list unchanged.
+  const [assignmentStats, setAssignmentStats] = useState<AssignmentStats | undefined>(undefined);
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentReviewFilter | null>(
+    () => parseAssignmentFilter(searchParams?.get('assignmentReview')),
+  );
   const [stages, setStages] = useState<Stage[]>([]);
   const [reasons, setReasons] = useState<ArchiveReason[]>([]);
   const [facets, setFacets] = useState<ApplicantFacets>({ skills: [], cities: [] });
@@ -57,12 +68,19 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const load = useCallback(async (activeSort: ApplicantSort) => {
     setLoadState('loading');
     try {
-      const [applicantsResult, stagesResult, reasonsResult] = await Promise.all([
-        listApplicantsForPosting(postingId, { sort: activeSort, filters: serverFiltersToQuery(serverFilters) }),
+      const filters = serverFiltersToQuery(serverFilters);
+      // The assignment filter is a SERVER filter — the backend owns the predicate,
+      // and applying it client-side would silently disagree with the stats.
+      if (assignmentFilter) filters.assignmentReview = assignmentFilter;
+      const [listResult, stagesResult, reasonsResult] = await Promise.all([
+        listApplicantsWithStats(postingId, { sort: activeSort, filters }),
         listStages(),
         listArchiveReasons(),
       ]);
+      const applicantsResult = listResult.applicants;
       setApplicants(applicantsResult);
+      // Straight assignment, never a computation over the rows above.
+      setAssignmentStats(listResult.stats);
       setStages(stagesResult);
       setReasons(reasonsResult);
       const presentIds = new Set(applicantsResult.map((item) => item.application.id));
@@ -73,7 +91,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       setLastError(error instanceof EmployerApplicantsApiError ? error.message : LOAD_ERROR_MESSAGE);
       setLoadState('error');
     }
-  }, [postingId, serverFilters]);
+  }, [postingId, serverFilters, assignmentFilter]);
 
   useEffect(() => {
     if (!hasLoadedOnce.current) { void load(sort); return; }
@@ -126,6 +144,23 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     return new Set([...prev].filter((id) => !visibleIds.includes(id)));
   });
 
+  // The presence of `stats` IS the signal. A plain posting gets no strip, no chips,
+  // no extra column and no extra sort option — markup identical to before 8c.
+  const hasAssignment = assignmentStats !== undefined;
+
+  // Chip changes are a server round trip AND a URL write, so a pasted link restores
+  // the same filtered view.
+  const handleAssignmentFilterChange = useCallback((next: AssignmentReviewFilter | null) => {
+    setAssignmentFilter(next);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (next) params.set('assignmentReview', next);
+    else params.delete('assignmentReview');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  // Full skeleton only before the first load; refetches keep the table visible
+  // with a subtle dim (Chunk 1: no full-page spinner on filter change).
   if (loadState === 'loading' && !hasLoadedOnce.current) return <SkeletonCard lines={5} />;
   const isRefetching = loadState === 'loading';
   if (loadState === 'error') {
@@ -167,11 +202,22 @@ export default function RankedTab({ postingId }: { postingId: string }) {
           </aside>
         )}
         <div style={{ flex: 1, minWidth: 0, paddingLeft: isNarrow ? 0 : 16, opacity: isRefetching ? 0.55 : 1, transition: 'opacity 0.15s ease' }} aria-busy={isRefetching}>
+          {/* Stays ABOVE the table and outside the sidebar: `stats` is pre-filter,
+              computed across every application for the posting, so it describes
+              where the posting stands rather than what is on screen. */}
+          {hasAssignment && assignmentStats && (
+            <AssignmentFilters
+              stats={assignmentStats}
+              value={assignmentFilter}
+              onChange={handleAssignmentFilterChange}
+            />
+          )}
           <RankedTableToolbar
             applicantCount={filteredApplicants.length}
             activeFilterCount={activeFilterCount}
             sort={sort} onSortChange={setSort}
             showSelect={allowArchive}
+            showAssignmentSort={hasAssignment}
             allSelected={allSelected} someSelected={someSelected} onTogglePage={handleTogglePage}
           />
           <RankedCandidateTable
@@ -179,6 +225,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
             postingId={postingId}
             stages={stages}
             showSelect={allowArchive}
+            showAssignment={hasAssignment}
             selectedIds={selectedIds}
             onToggleSelect={(id) => setSelectedIds((prev) => toggleSetValue(prev, id))}
             onClearFilters={clearAllFilters}

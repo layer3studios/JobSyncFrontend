@@ -6,7 +6,9 @@
 // pair into one upstream request (§3).
 import { cache } from 'react';
 import { publicServerFetch } from '../public-server-fetch';
-import type { PublicCompany, PublicJob, PublicJobSummary } from '../../types/public-apply';
+import type {
+  PublicCompany, PublicJob, PublicJobSummary, PublicAssignment,
+} from '../../types/public-apply';
 
 const APPLY_REVALIDATE = 3600;
 
@@ -19,6 +21,6 @@ export const getPublicCompanyServer = cache((
 export const getPublicJobServer = cache((
   companySlug: string,
   jobSlug: string,
-): Promise<{ company: PublicCompany; job: PublicJob }> => {
+): Promise<{ company: PublicCompany; job: PublicJob; assignment: PublicAssignment | null }> => {
   return publicServerFetch(`/public/jobs/${encodeURIComponent(companySlug)}/${encodeURIComponent(jobSlug)}`, APPLY_REVALIDATE);
 });

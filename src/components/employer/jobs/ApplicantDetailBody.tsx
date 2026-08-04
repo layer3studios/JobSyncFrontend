@@ -16,6 +16,7 @@ import ApplicantCoverNote from './ApplicantCoverNote';
 import ApplicantNotesCard from './ApplicantNotesCard';
 import InterviewSection from './InterviewSection';
 import CandidateTimeline from './CandidateTimeline';
+import AssignmentReviewPanel from './parts/AssignmentReviewPanel';
 
 export type LoadState = 'loading' | 'loaded' | 'error' | 'not_found';
 
@@ -28,7 +29,7 @@ const LEFT_COLUMN_STYLE: CSSProperties = { height: '100%', overflow: 'hidden', m
 const RIGHT_COLUMN_STYLE: CSSProperties = { height: '100%', overflowY: 'auto', overflowX: 'hidden', paddingRight: 6, minHeight: 0 };
 
 export default function ApplicantDetailBody({
-  loadState, detail, stages, reasons, lastError, load, twoColumn, backHref,
+  loadState, detail, stages, reasons, lastError, load, twoColumn, backHref, currentEmployerUserId = null,
 }: {
   loadState: LoadState;
   detail: ApplicantDetail | null;
@@ -38,6 +39,8 @@ export default function ApplicantDetailBody({
   load: () => Promise<void> | void;
   twoColumn: boolean;
   backHref: string;
+  /** Distinguishes "my review" from "a teammate's" — see AssignmentReviewPanel. */
+  currentEmployerUserId?: string | null;
 }) {
   if (loadState === 'loading') return <SkeletonCard lines={6} />;
   if (loadState === 'not_found') {
@@ -102,14 +105,25 @@ export default function ApplicantDetailBody({
     />
   );
 
+  // Absent for a plain posting, and for a legacy application on a posting that
+  // gained an assignment later — in both cases the page renders exactly as before.
+  const assignmentCard = detail.assignmentSubmission ? (
+    <AssignmentReviewPanel
+      submission={detail.assignmentSubmission}
+      review={detail.assignmentReview ?? null}
+      currentEmployerUserId={currentEmployerUserId}
+      onSaved={load}
+    />
+  ) : null;
+
   if (!twoColumn) {
-    return <Stack gap={16}>{viewer}{contactCard}{coverNoteCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
+    return <Stack gap={16}>{viewer}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
   }
   return (
     <div style={GRID_STYLE}>
       <div style={LEFT_COLUMN_STYLE}>{viewer}</div>
       <div style={RIGHT_COLUMN_STYLE}>
-        <Stack gap={16}>{contactCard}{coverNoteCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
+        <Stack gap={16}>{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
       </div>
     </div>
   );

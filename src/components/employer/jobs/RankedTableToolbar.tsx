@@ -10,16 +10,20 @@ const SORT_OPTIONS = [
   { value: 'score', label: 'Score: high to low' },
   { value: 'date', label: 'Applied: newest first' },
 ];
+// Offered only for an assignment posting — sorting by a task score every row lacks
+// would be a control that does nothing.
+const ASSIGNMENT_SORT_OPTION = { value: 'assignment', label: 'Task score: high to low' };
 
 export default function RankedTableToolbar({
   applicantCount, activeFilterCount, sort, onSortChange,
-  showSelect, allSelected, someSelected, onTogglePage,
+  showSelect, showAssignmentSort = false, allSelected, someSelected, onTogglePage,
 }: {
   applicantCount: number;
   activeFilterCount: number;
   sort: ApplicantSort;
   onSortChange: (sort: ApplicantSort) => void;
   showSelect: boolean;
+  showAssignmentSort?: boolean;
   allSelected: boolean;
   someSelected: boolean;
   onTogglePage: () => void;
@@ -43,7 +47,8 @@ export default function RankedTableToolbar({
         </label>
       )}
       <div style={{ width: 200 }}>
-        <Select aria-label="Sort applicants" value={sort} options={SORT_OPTIONS}
+        <Select aria-label="Sort applicants" value={sort}
+          options={showAssignmentSort ? [...SORT_OPTIONS, ASSIGNMENT_SORT_OPTION] : SORT_OPTIONS}
           onChange={(event) => onSortChange(event.target.value as ApplicantSort)} />
       </div>
     </div>

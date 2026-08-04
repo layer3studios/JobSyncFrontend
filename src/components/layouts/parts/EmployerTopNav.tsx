@@ -112,7 +112,15 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, 'Dashboard')}
           {renderNavLink(EMPLOYER_ROUTES.JOBS, 'Jobs')}
-          {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS_TEAM, 'Settings')}
+          {/* Now points at the settings INDEX rather than straight at the team page,
+              because settings has a second subpage as of Chunk 8a.
+              The Owner+ gate is deliberately UNCHANGED. It is asserted by
+              tests/components/layouts/EmployerTopNav.test.tsx, and widening it is a
+              product decision about global navigation, not a side effect of adding
+              a page. Consequence worth knowing: a Member may create assignments but
+              cannot reach the library from the nav. 8b attaches assignments from the
+              posting form, which is the natural entry point for that role. */}
+          {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS, 'Settings')}
         </nav>
 
         <div style={{ flex: 1 }} />

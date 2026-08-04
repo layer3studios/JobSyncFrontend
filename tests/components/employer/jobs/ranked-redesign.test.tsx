@@ -18,13 +18,13 @@ vi.mock('@/context/employer/EmployerContext', () => ({
 }));
 vi.mock('@/components/employer/jobs/SavedViewsRow', () => ({ default: () => <div /> }));
 
-const listApplicantsForPosting = vi.fn();
+const listApplicantsWithStats = vi.fn();
 const fetchApplicantFacets = vi.fn();
 vi.mock('@/api/employer-applicants-api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/employer-applicants-api')>();
   return {
     ...actual,
-    listApplicantsForPosting: (...args: unknown[]) => listApplicantsForPosting(...args),
+    listApplicantsWithStats: (...args: unknown[]) => listApplicantsWithStats(...args),
     listStages: async () => STAGES,
     listArchiveReasons: async () => [],
     fetchApplicantFacets: (...args: unknown[]) => fetchApplicantFacets(...args),
@@ -49,10 +49,12 @@ function applicant(id: string, name: string, score: number | null, stageId = 's1
 
 let matchMediaMatches = false;
 beforeEach(() => {
-  routerPush.mockReset(); listApplicantsForPosting.mockReset(); fetchApplicantFacets.mockReset();
-  listApplicantsForPosting.mockResolvedValue([
-    applicant('a1', 'Asha Rao', 92), applicant('a2', 'Bela Iyer', 65, 's2'), applicant('a3', 'Chirag M', null),
-  ]);
+  routerPush.mockReset(); listApplicantsWithStats.mockReset(); fetchApplicantFacets.mockReset();
+  // No `stats` key: these fixtures are plain postings, so the tab renders the
+  // pre-assignment markup this suite was written against.
+  listApplicantsWithStats.mockResolvedValue({
+    applicants: [applicant('a1', 'Asha Rao', 92), applicant('a2', 'Bela Iyer', 65, 's2'), applicant('a3', 'Chirag M', null)],
+  });
   fetchApplicantFacets.mockResolvedValue({
     skills: Array.from({ length: 10 }, (_, i) => ({ skill: `Skill${i + 1}`, count: 10 - i })),
     cities: [],
@@ -149,7 +151,7 @@ describe('RankedTab sidebar redesign', () => {
     await renderRanked();
     fireEvent.change(screen.getByLabelText('Sort applicants'), { target: { value: 'date' } });
     await waitFor(() => {
-      const lastCall = listApplicantsForPosting.mock.calls.at(-1) as [string, { sort: string }];
+      const lastCall = listApplicantsWithStats.mock.calls.at(-1) as [string, { sort: string }];
       expect(lastCall[1].sort).toBe('date');
     });
   });

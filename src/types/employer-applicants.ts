@@ -57,6 +57,84 @@ export interface ApplicantNote {
   updatedAt: string;
 }
 
+// ─── Take-home assignment review (Chunk 5 backend / 8c UI) ──────────────────
+// TWO SEPARATE SCORING AXES, deliberately never merged. `score` above is the AI
+// resume score: 0–100 with tiers. `overallScore` below is a human 1–5 verdict on a
+// take-home. They measure different things on different scales, the backend keeps
+// them in separate response keys, and nothing in this app may average, blend or
+// co-sort them.
+
+/** One employer's verdict on one submission. 1–5, plus a hard pass/fail. */
+export interface AssignmentReview {
+  id: string;
+  assignmentSubmissionId: string | null;
+  reviewedByEmployerUserId: string | null;
+  /** Doubles as the optimistic-lock version echoed back as expectedReviewedAt. */
+  reviewedAt: string | null;
+  overallScore: number | null;
+  passesBar: boolean;
+  reviewNotesMarkdown: string | null;
+}
+
+/** The task exactly as the candidate saw it, frozen at apply time. */
+export interface AssignmentSnapshot {
+  title: string | null;
+  publicSummary: string | null;
+  descriptionMarkdown: string | null;
+  submissionInstructionsMarkdown: string | null;
+  estimatedHours: number | null;
+  allowedFileTypes: string[];
+  sourceAssignmentId: string | null;
+  snapshottedAt: string | null;
+}
+
+export interface AssignmentSubmissionFile {
+  fileId: string | null;
+  originalName: string | null;
+  sizeBytes: number | null;
+  mimeType: string | null;
+  uploadedAt: string | null;
+}
+
+/** The full submission, returned by the applicant DETAIL endpoint only. */
+export interface AssignmentSubmission {
+  id: string;
+  applicationId: string | null;
+  jobId: string | null;
+  assignmentSnapshot: AssignmentSnapshot | null;
+  profileLinks: { githubUrl: string | null; linkedinUrl: string | null } | null;
+  submittedAt: string | null;
+  links: Array<{ url: string | null; addedAt: string | null }>;
+  files: AssignmentSubmissionFile[];
+  seekerNotesMarkdown: string | null;
+  /** Set once retention deleted the bytes. The rows stay; the files are gone. */
+  filesDeletedAt: string | null;
+}
+
+/** The row-level summary on the LIST endpoint — counts only, never the content. */
+export interface ApplicantAssignmentSummary {
+  submissionId: string;
+  submittedAt: string | null;
+  linkCount: number;
+  fileCount: number;
+  review: { overallScore: number; passesBar: boolean; reviewedAt: string | null } | null;
+}
+
+/**
+ * Assignment stats for the posting. PRE-FILTER by design: the backend computes them
+ * across every application and deliberately ignores the assignmentReview filter, so
+ * a filtered response can return total 47 next to a single row. Render what arrives;
+ * never recompute from the visible rows.
+ */
+export interface AssignmentStats {
+  total: number;
+  submitted: number;
+  reviewed: number;
+  passing: number;
+}
+
+export type AssignmentReviewFilter = 'reviewed' | 'not_reviewed' | 'passed' | 'failed';
+
 /** Full applicant detail payload (7A endpoint) consumed by the ApplicantDetail page. */
 export interface ApplicantDetail extends Applicant {
   scoreJobStatus: ScoreJobStatus | null;
@@ -64,6 +142,9 @@ export interface ApplicantDetail extends Applicant {
   resumeMeta: ResumeMeta | null;
   resumeDownloadUrl: string | null;
   resumeDownloadExpiresAt: string | null;
+  /** Null for a plain posting or a legacy application — guard on it, never assume. */
+  assignmentSubmission?: AssignmentSubmission | null;
+  assignmentReview?: AssignmentReview | null;
 }
 
 /**
@@ -120,6 +201,12 @@ export interface Applicant {
     location?: string | null;
   } | null;
   score: ApplicantScore | null;
+  /**
+   * ABSENT (not null) on a plain posting — the backend guards before it runs any
+   * assignment query and returns exactly the shape it always has. null means the
+   * posting HAS an assignment but this candidate never submitted one.
+   */
+  assignment?: ApplicantAssignmentSummary | null;
 }
 
 export interface Stage {
@@ -138,7 +225,7 @@ export interface ArchiveReason {
   status: string;
 }
 
-export type ApplicantSort = 'score' | 'date';
+export type ApplicantSort = 'score' | 'date' | 'assignment';
 
 /** Per-item outcome of the PP1 bulk-archive endpoint (partial success is first-class). */
 export interface BulkArchiveResult {

@@ -11,12 +11,17 @@ import RankedCandidateRow from './RankedCandidateRow';
 const HEADER_CELL = { fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' } as const;
 
 export default function RankedCandidateTable({
-  applicants, postingId, stages, showSelect, selectedIds, onToggleSelect, onClearFilters,
+  applicants, postingId, stages, showSelect, showAssignment = false, selectedIds, onToggleSelect, onClearFilters,
 }: {
   applicants: Applicant[];
   postingId: string;
   stages: Stage[];
   showSelect: boolean;
+  /**
+   * True only for a posting with an assignment. When false the table renders
+   * exactly as it did before 8c — no Task header, no Task cell.
+   */
+  showAssignment?: boolean;
   selectedIds: ReadonlySet<string>;
   onToggleSelect: (id: string) => void;
   onClearFilters: () => void;
@@ -40,7 +45,8 @@ export default function RankedCandidateTable({
       }}>
         {showSelect && <span style={{ width: 15, flexShrink: 0 }} />}
         <span style={{ flex: 1, ...HEADER_CELL }}>Applicant</span>
-        <span style={{ width: 120, flexShrink: 0, ...HEADER_CELL }}>Score</span>
+        <span style={{ width: 120, flexShrink: 0, ...HEADER_CELL }}>{showAssignment ? 'Resume' : 'Score'}</span>
+        {showAssignment && <span style={{ width: 110, flexShrink: 0, ...HEADER_CELL }}>Task</span>}
         <span style={{ width: 100, flexShrink: 0, ...HEADER_CELL }}>Stage</span>
         <span style={{ width: 80, flexShrink: 0, ...HEADER_CELL }}>Applied</span>
         <span style={{ width: 60, flexShrink: 0 }} />
@@ -52,6 +58,7 @@ export default function RankedCandidateTable({
             postingId={postingId}
             stageName={stageNameById.get(applicant.application.stageId) ?? '—'}
             showSelect={showSelect}
+            showAssignment={showAssignment}
             isSelected={selectedIds.has(applicant.application.id)}
             onToggleSelect={onToggleSelect}
           />

@@ -5,7 +5,12 @@
 
 import type { ApplyFormData } from '@/types/public-apply';
 
-export type ApplyErrors = Partial<Record<keyof ApplyFormData | '_form', string>>;
+/**
+ * `assignmentLinks` is not an ApplyFormData field — the assignment inputs live in
+ * their own state — but server errors have to be able to point AT the links block,
+ * so it gets a key here alongside the form-level `_form`.
+ */
+export type ApplyErrors = Partial<Record<keyof ApplyFormData | '_form' | 'assignmentLinks', string>>;
 
 const URL_RE = /(https?:\/\/|www\.|\.[a-z]{2,}\/)/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,14 +53,35 @@ export function validateApplyForm(data: ApplyFormData): ApplyErrors {
   return errors;
 }
 
-const CODE_TO_FIELD: Record<string, keyof ApplyFormData> = {
+type ErrorField = keyof ApplyFormData | 'assignmentLinks';
+
+const CODE_TO_FIELD: Record<string, ErrorField> = {
   INVALID_FIRST_NAME: 'firstName', INVALID_LAST_NAME: 'lastName', INVALID_EMAIL: 'email',
   INVALID_PHONE: 'phone', CONSENT_REQUIRED: 'consent_dpdp',
   NO_FILE: 'resume', INVALID_FILE_TYPE: 'resume', FILE_TOO_LARGE: 'resume',
+  // Assignment submission (7b). TOO_MANY_LINKS and INVALID_LINK belong to the links
+  // block too — the candidate cannot act on a form-level message about a URL.
+  ASSIGNMENT_SUBMISSION_REQUIRED: 'assignmentLinks',
+  INVALID_LINK: 'assignmentLinks', TOO_MANY_LINKS: 'assignmentLinks',
 };
 
-/** Map a backend error code to the field it belongs to. */
+/**
+ * Map a backend error code to the field it belongs to.
+ *
+ * MISSING_ASSIGNMENT_ID is handled separately: it means WE failed to put
+ * assignmentId in the payload, so there is no field for the candidate to fix and no
+ * honest message that blames them. They get a generic retry line; the console gets
+ * the real cause so it surfaces in development.
+ *
+ * STAGED_FILES_EXPIRED, ASSIGNMENT_CHANGED and POSTING_CLOSED_DURING_APPLY are
+ * deliberately NOT mapped here — each needs its own persistent UI (a file-row flip,
+ * a refresh prompt, a copy-my-work escape hatch), which ApplyFormClient owns.
+ */
 export function mapServerError(code: string | null, message: string): ApplyErrors {
+  if (code === 'MISSING_ASSIGNMENT_ID') {
+    console.error('[apply] MISSING_ASSIGNMENT_ID — assignmentId was absent from the submitted FormData. This is a bug in our payload, not user input.');
+    return { _form: 'Something went wrong on our side. Please try submitting again.' };
+  }
   const field = code ? CODE_TO_FIELD[code] : undefined;
   if (field) return { [field]: message };
   return { _form: message || 'Could not submit your application. Please try again.' };
