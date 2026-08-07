@@ -1,8 +1,8 @@
-// FILE: settings/assignments loading — skeleton matching the header + library table.
+// FILE: assignments loading — skeleton matching the header + library table.
 // Mirrors settings/team/loading.tsx; one table instead of two.
 import { SkeletonLine } from '@/components/ui/Skeleton';
 
-export default function AssignmentsSettingsLoading() {
+export default function AssignmentsLoading() {
   return (
     <div className="container-xl" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 28 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>

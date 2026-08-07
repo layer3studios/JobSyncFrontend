@@ -1,5 +1,5 @@
 'use client';
-// FILE: settings/assignments/parts/AssignmentDetailView.tsx
+// FILE: assignments/parts/AssignmentDetailView.tsx
 // The LOCKED view of an assignment — what you get when a task is in use by one or
 // more postings and can therefore no longer be edited.
 //

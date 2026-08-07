@@ -16,7 +16,8 @@ import { useRouter } from 'next/navigation';
 import { Card, Button, Alert, Stack } from '@/components/ui';
 import ApplyFormFields from './ApplyFormFields';
 import AssignmentSection from './AssignmentSection';
-import { useViewport } from '@/hooks/shared/useViewport';
+import ApplyProgress from './ApplyProgress';
+import ApplyStickyBar from './ApplyStickyBar';
 import { submitApplication, PublicApiError, expiredFilesFrom } from '@/api/public-api';
 import { validateApplyForm, fieldError, mapServerError } from './apply-form-helpers';
 import type { ApplyErrors } from './apply-form-helpers';
@@ -38,8 +39,10 @@ const EMPTY: ApplyFormData = {
 // which wastes ~1280px on desktop) for a wider centred wrapper (P-APPLY.1).
 const APPLY_PAGE_MAX_WIDTH_PIXELS = 1400;
 const APPLY_PAGE_HORIZONTAL_PADDING_PIXELS = 24;
-const APPLY_PAGE_STICKY_TOP_PIXELS = 20;
-const APPLY_PAGE_TWO_COLUMN_BREAKPOINT_PIXELS = 900;
+// The two-column breakpoint (900px) and the sticky offset are NOT constants here
+// any more — they live in src/styles/apply.css as a real media query. They used to
+// be a JS width branch that rendered two different trees, which remounted the form
+// (and dropped staged uploads) when a resize crossed the boundary.
 
 // Blur saves are debounced so typing through five fields writes once, not five
 // times. The interval is 30s rather than the 60s originally specced: someone can sit
@@ -86,13 +89,30 @@ export default function ApplyFormClient({
   company, job, companySlug, jobSlug, assignment = null, assignmentPreview = null,
 }: Props) {
   const router = useRouter();
-  const { w } = useViewport();
-  const twoColumn = w > APPLY_PAGE_TWO_COLUMN_BREAKPOINT_PIXELS;
   const [data, setData] = useState<ApplyFormData>(EMPTY);
   const [errors, setErrors] = useState<ApplyErrors>({});
   const [submitting, setSubmitting] = useState(false);
   // First-focus-per-field dedup (session-scoped, per form instance — not global).
   const focusedFields = useRef<Set<string>>(new Set());
+
+  // ── Progress snapshot ──────────────────────────────────────────────────────
+  // The progress indicator reads THIS, not `data`. A counter driven straight off
+  // `data` re-evaluates on every keystroke, so the bar twitches forward and back
+  // while an email is half-typed and the whole indicator reads as unstable. This
+  // snapshot is committed on blur (text fields) and on change (file/checkbox,
+  // where there is no half-typed state to be wrong about).
+  const [progressData, setProgressData] = useState<ApplyFormData>(EMPTY);
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  // The last COMMITTED snapshot, mirrored in a ref. Text fields fold in on blur;
+  // a discrete field (file, checkbox) folds in only itself, so clicking a
+  // checkbox cannot drag a half-typed email in with it.
+  const progressRef = useRef<ApplyFormData>(EMPTY);
+  // Same reasoning for the submission links: settled on blur, not mid-URL.
+  const [progressLinks, setProgressLinks] = useState<string[]>(['']);
+  // The in-form submit button. The sticky bar observes it and hides while it is
+  // on screen — it is not read for anything else.
+  const inFormSubmitRef = useRef<HTMLDivElement>(null);
 
   // ── Assignment state. Inert for a plain posting (rule 1). ──────────────────
   const hasAssignment = assignment != null;
@@ -141,8 +161,20 @@ export default function ApplyFormClient({
   }, [job.id]);
 
   const set = useCallback(<K extends keyof ApplyFormData>(field: K, value: ApplyFormData[K]) => {
+    // dataRef is advanced SYNCHRONOUSLY, ahead of the re-render. The file input
+    // calls set('resume', …) and onBlur('resume') back to back in one handler; if
+    // the ref only caught up on render, the blur would read a pre-file snapshot
+    // and undo the commit the set just made.
+    dataRef.current = { ...dataRef.current, [field]: value };
     setData((d) => ({ ...d, [field]: value }));
     setErrors((e) => ({ ...e, [field]: undefined, _form: undefined }));
+    // Attaching a file and ticking a consent box are discrete acts, not typing —
+    // there is no intermediate state to flicker through, so the progress
+    // indicator can move immediately rather than waiting for a blur.
+    if (field === 'resume' || field === 'consent_dpdp') {
+      progressRef.current = { ...progressRef.current, [field]: value };
+      setProgressData(progressRef.current);
+    }
   }, []);
 
   // ── Draft persistence ─────────────────────────────────────────────────────
@@ -238,6 +270,17 @@ export default function ApplyFormClient({
       uploads.restoreFromDraft(files);
     }
 
+    // A restore is a bulk change with no typing involved, so the indicator should
+    // reflect it immediately rather than waiting for the first blur.
+    progressRef.current = {
+      ...progressRef.current,
+      firstName: fields.firstName ?? '', lastName: fields.lastName ?? '',
+      email: fields.email ?? '', phone: fields.phone ?? '', coverNote: fields.coverNote ?? '',
+    };
+    setProgressData(progressRef.current);
+    setProgressLinks(taskChanged || !Array.isArray(fields.links) || fields.links.length === 0
+      ? [''] : fields.links);
+
     trackEvent('assignment_draft_restored', {
       postingId: job.id,
       fileCount: taskChanged ? 0 : files.length,
@@ -265,6 +308,7 @@ export default function ApplyFormClient({
   const onLinkBlur = useCallback((index: number) => {
     setLinks((rows) => {
       setLinkErrors((errs) => errs.map((err, i) => (i === index ? validateSubmissionLink(rows[i] ?? '') : err)));
+      setProgressLinks(rows);
       return rows;
     });
   }, []);
@@ -275,14 +319,47 @@ export default function ApplyFormClient({
   }, []);
 
   const onRemoveLink = useCallback((index: number) => {
-    setLinks((rows) => (rows.length <= 1 ? [''] : rows.filter((_, i) => i !== index)));
+    setLinks((rows) => {
+      const next = rows.length <= 1 ? [''] : rows.filter((_, i) => i !== index);
+      setProgressLinks(next);
+      return next;
+    });
     setLinkErrors((rows) => (rows.length <= 1 ? [null] : rows.filter((_, i) => i !== index)));
   }, []);
 
   const onBlur = useCallback((field: keyof ApplyFormData) => {
     setData((d) => { setErrors((e) => ({ ...e, [field]: fieldError(field, d) })); return d; });
+    progressRef.current = { ...dataRef.current, resume: progressRef.current.resume };
+    setProgressData(progressRef.current);
     scheduleDraftSave();
   }, [scheduleDraftSave]);
+
+  // ── Progress sections ──────────────────────────────────────────────────────
+  // A section is complete when its REQUIRED fields validate — optional fields
+  // (phone, cover note, the GitHub/LinkedIn profiles, notes) are not counted, so
+  // filling only optional fields never moves the bar and skipping them never
+  // holds it back. `fieldError` is the same validator the form itself uses, so
+  // the indicator can never claim a section is done that the form would reject.
+  const progressSections = useMemo(() => {
+    const detailsComplete = progressData.firstName.trim() !== ''
+      && progressData.lastName.trim() !== ''
+      && progressData.email.trim() !== ''
+      && fieldError('email', progressData) === undefined;
+    const submissionComplete = progressLinks
+      .map((link) => link.trim())
+      .filter((link) => link !== '' && validateSubmissionLink(link) === null).length
+      + uploads.doneFiles.length > 0;
+
+    return [
+      { id: 'details', complete: detailsComplete },
+      { id: 'resume', complete: progressData.resume !== null },
+      // RULE 3: a plain posting has no submission section at all, so it counts
+      // three sections, not four with one permanently unreachable. Guarded once,
+      // here, rather than branching inside the indicator.
+      ...(hasAssignment ? [{ id: 'submission', complete: submissionComplete }] : []),
+      { id: 'consent', complete: progressData.consent_dpdp },
+    ];
+  }, [progressData, progressLinks, uploads.doneFiles.length, hasAssignment]);
 
   const validLinks = useMemo(
     () => links.map((link) => link.trim()).filter((link) => link !== '' && validateSubmissionLink(link) === null),
@@ -424,11 +501,17 @@ export default function ApplyFormClient({
       <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted)', marginTop: 4 }}>
         {[company.name, job.location, job.employmentType, formatSalaryLPA(job.salaryMin, job.salaryMax)].filter(Boolean).join(' · ')}
       </p>
-      <p style={{ fontSize: '0.875rem', color: 'var(--ink)', marginTop: 12, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{job.description}</p>
-      {/* The task sits in the LEFT column, which scrolls, while the form stays
-          pinned on the right — the candidate reads the task and fills the fields at
-          the same time. Below the breakpoint the two stack, task first. */}
-      {assignmentPreview && <div style={{ marginTop: 20 }}>{assignmentPreview}</div>}
+      {/* ABOVE the description, deliberately. A take-home is the single largest
+          cost a candidate is being asked to accept, and burying that disclosure
+          under 500 words of job description means they commit to reading before
+          they know what they are committing to. It goes directly under the
+          header — title, company, location, salary — and before the JD.
+
+          Still a Server Component: it arrives already rendered through the
+          assignmentPreview slot and ships no markdown JavaScript to the browser.
+          Moving it is a change of position, not of ownership. */}
+      {assignmentPreview && <div style={{ marginTop: 16 }}>{assignmentPreview}</div>}
+      <p className="apply-jd-description" style={{ fontSize: '0.875rem', color: 'var(--ink)', marginTop: 12, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{job.description}</p>
     </div>
   );
 
@@ -458,8 +541,12 @@ export default function ApplyFormClient({
   );
 
   const formCard = (
-    <Card>
+    <Card className="apply-card" style={{ padding: 20, borderRadius: 10 }}>
       <Stack gap={16}>
+        {/* Pinned at the top of the card, above every notice — it describes the
+            form as a whole, so it should not move as banners come and go. */}
+        <ApplyProgress sections={progressSections} />
+
         {draftBanner}
 
         {/* Non-dismissible: refreshing is the only correct action, and letting this
@@ -509,11 +596,18 @@ export default function ApplyFormClient({
         {expiredNotice && <Alert type="warning">{expiredNotice}</Alert>}
         {errors._form && <Alert type="error">{errors._form}</Alert>}
 
-        <ApplyFormFields data={data} errors={errors} companyName={company.name} set={set} onBlur={onBlur} onFieldFocus={onFieldFocus} />
-
-        {assignment && (
+        {/* The submission block is passed INTO the field component as a slot so it
+            lands between the cover note and the consent checkboxes. It used to
+            render after the whole field block, which put the most important part
+            of a take-home application underneath a legal checkbox. */}
+        <ApplyFormFields
+          data={data} errors={errors} companyName={company.name}
+          set={set} onBlur={onBlur} onFieldFocus={onFieldFocus}
+          submissionSlot={assignment && (
           <>
             <AssignmentSection
+              title={assignment.title}
+              estimatedHours={assignment.estimatedHours}
               allowedFileTypes={assignment.allowedFileTypes}
               links={links}
               linkErrors={linkErrors}
@@ -535,9 +629,13 @@ export default function ApplyFormClient({
               <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem' }}>{errors.assignmentLinks}</p>
             )}
           </>
-        )}
+          )}
+        />
 
-        <div>
+        {/* The ONE submit path. The sticky bar calls this exact handler — there is
+            no second submit function, and `inFlight` in handleSubmit guards both
+            entry points, so a click here and a click there cannot both get through. */}
+        <div ref={inFormSubmitRef}>
           <Button loading={submitting} disabled={!canSubmit} onClick={handleSubmit}>Submit application</Button>
           {blockedReason && (
             <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 6 }}>{blockedReason}</p>
@@ -549,22 +647,32 @@ export default function ApplyFormClient({
 
   return (
     <div
+      className="apply-page"
       style={{
         maxWidth: APPLY_PAGE_MAX_WIDTH_PIXELS, margin: '0 auto',
         paddingLeft: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS, paddingRight: APPLY_PAGE_HORIZONTAL_PADDING_PIXELS,
-        paddingTop: 24, paddingBottom: 60, boxSizing: 'border-box',
+        paddingTop: 24, boxSizing: 'border-box',
       }}
     >
-      {twoColumn ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(360px, 1fr)', gap: 32, alignItems: 'start' }}>
-          <div>{jdBlock}</div>
-          <div tabIndex={0} style={{ position: 'sticky', top: APPLY_PAGE_STICKY_TOP_PIXELS, maxHeight: `calc(100vh - ${APPLY_PAGE_STICKY_TOP_PIXELS * 2}px)`, overflowY: 'auto' }}>
-            {formCard}
-          </div>
+      {/* ONE tree, both layouts. The grid, the stacking below 900px and the
+          sticky JD column are all in apply.css. Source order is job content then
+          form, which is exactly the stacked reading order — so the mobile layout
+          needs no reordering, and no width is measured in JavaScript. */}
+      <div className="apply-grid">
+        <div className="apply-jd-column">{jdBlock}</div>
+        <div tabIndex={0} className="apply-form-column">
+          {formCard}
         </div>
-      ) : (
-        <Stack gap={20}>{jdBlock}{formCard}</Stack>
-      )}
+      </div>
+
+      <ApplyStickyBar
+        jobTitle={job.title}
+        submitButtonRef={inFormSubmitRef}
+        submitting={submitting}
+        disabled={!canSubmit}
+        blockedReason={blockedReason}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }

@@ -7,10 +7,13 @@
 export const EMPLOYER_ROUTES = {
   DASHBOARD: '/employer',
   JOBS: '/employer/jobs',
+  // Assignments are attached to POSTINGS, not to company configuration, so the
+  // library sits beside Jobs rather than under Settings. The old
+  // /employer/settings/assignments path still resolves, via a 308 stub.
+  ASSIGNMENTS: '/employer/assignments',
   // The nav points at the settings INDEX now that there is more than one subpage.
   SETTINGS: '/employer/settings',
   SETTINGS_TEAM: '/employer/settings/team',
-  SETTINGS_ASSIGNMENTS: '/employer/settings/assignments',
 } as const;
 
 export const ADMIN_ROUTES = {

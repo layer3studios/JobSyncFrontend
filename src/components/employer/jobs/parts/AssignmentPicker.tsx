@@ -16,8 +16,8 @@ import { Badge, Button, Select, Spinner } from '@/components/ui';
 import { TYPE } from '@/theme/tokens';
 import { listAssignments } from '@/api/employer-assignments-api';
 import { listEmployerPostings } from '@/api/employer-jobs-api';
-import { groupUsageByAssignment } from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/parts/assignment-usage';
-import AssignmentFormModal from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/parts/AssignmentFormModal';
+import { groupUsageByAssignment } from '@/app/(employer)/employer/(app)/(onboarded)/assignments/parts/assignment-usage';
+import AssignmentFormModal from '@/app/(employer)/employer/(app)/(onboarded)/assignments/parts/AssignmentFormModal';
 import type { EmployerAssignment, AssignmentUsage } from '@/types/employer-assignments';
 
 /** Sentinel option value — not a valid assignment id, so it cannot collide. */

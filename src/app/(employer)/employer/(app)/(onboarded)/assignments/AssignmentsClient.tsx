@@ -1,5 +1,5 @@
 'use client';
-// FILE: settings/assignments/AssignmentsClient.tsx
+// FILE: assignments/AssignmentsClient.tsx
 // Client subtree for the assignment-library page. Mirrors TeamSettingsClient: owns
 // the list, which modal is open, and routes every mutation through
 // employer-assignments-api with a toast on the outcome.
@@ -194,8 +194,11 @@ export default function AssignmentsClient({
 
   return (
     <div className="container-xl" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* No eyebrow. It read "SETTINGS" while this lived under settings/, which is
+          now simply false — Assignments is its own top-level nav section. The other
+          top-level employer pages (Jobs, Dashboard) pass no label either: the nav
+          already says where you are, and an eyebrow repeating it is noise. */}
       <PageHeader
-        label="Settings"
         title="Assignments"
         subtitle="Reusable take-home tasks you can attach to postings."
         actions={createButton}

@@ -36,7 +36,7 @@ vi.mock('@/api/employer-assignment-reviews-api', async (importOriginal) => ({
   submitAssignmentReview,
 }));
 
-import AssignmentsClient from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/AssignmentsClient';
+import AssignmentsClient from '@/app/(employer)/employer/(app)/(onboarded)/assignments/AssignmentsClient';
 import PostingForm from '@/components/employer/jobs/PostingForm';
 import AssignmentReviewPanel from '@/components/employer/jobs/parts/AssignmentReviewPanel';
 import { EmployerAssignmentReviewsApiError } from '@/api/employer-assignment-reviews-api';

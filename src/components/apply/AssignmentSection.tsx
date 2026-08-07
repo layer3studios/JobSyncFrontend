@@ -19,6 +19,7 @@ import {
   MAX_NOTES_LENGTH, MAX_SUBMISSION_LINKS, MAX_SUBMISSION_FILES, MAX_FILE_BYTES,
   isPrivateByDefaultHost, validateGithubProfile, validateLinkedinProfile,
 } from './assignment-validation';
+import AssignmentBadge from './AssignmentBadge';
 import type { UseAssignmentFiles } from './useAssignmentFiles';
 
 const hintStyle: React.CSSProperties = { fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 5, lineHeight: 1.5 };
@@ -33,6 +34,11 @@ function formatSize(bytes: number | null): string {
 }
 
 interface Props {
+  /** The assignment's title, shown as this section's heading. Optional so the
+   *  component stays renderable from a bare harness. */
+  title?: string;
+  /** Drives the inline hours badge. Optional for the same reason. */
+  estimatedHours?: number;
   allowedFileTypes: string[];
   links: string[];
   linkErrors: Array<string | null>;
@@ -52,7 +58,7 @@ interface Props {
 }
 
 export default function AssignmentSection({
-  allowedFileTypes, links, linkErrors, github, linkedin, notes, uploads, disabled,
+  title, estimatedHours, allowedFileTypes, links, linkErrors, github, linkedin, notes, uploads, disabled,
   onLinkChange, onLinkBlur, onAddLink, onRemoveLink,
   onGithubChange, onLinkedinChange, onNotesChange, onFieldBlur,
 }: Props) {
@@ -74,13 +80,29 @@ export default function AssignmentSection({
   const acceptAttribute = allowedFileTypes.map((type) => `.${type.toLowerCase()}`).join(',');
 
   return (
-    <Stack gap={20}>
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
-        <p style={legendStyle}>Your submission</p>
-        <p style={hintStyle}>
-          Add at least one link or file. This is what the employer reviews.
-        </p>
-      </div>
+    // A real <fieldset>, so "Your submission" is announced when focus enters the
+    // group rather than merely drawn above it. The card treatment is what lifts
+    // this out of the run of ordinary fields — on a take-home posting it is the
+    // part of the form the employer actually reviews.
+    <fieldset className="apply-fieldset apply-submission-card">
+      <legend className="apply-legend">Your submission</legend>
+      <Stack gap={20}>
+        <div>
+          {/* The heading carries the TASK's title, not a generic label — the
+              candidate is submitting *this* piece of work, and repeating its name
+              here closes the gap between the brief in the other column and the
+              inputs in this one. No deadline is shown: there is no deadline field
+              on an assignment, and implying one would be a fiction. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {title && <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--ink)' }}>{title}</h3>}
+            {estimatedHours != null && (
+              <AssignmentBadge estimatedHours={estimatedHours} size="sm" />
+            )}
+          </div>
+          <p style={hintStyle}>
+            Add at least one link or file. This is what the employer reviews.
+          </p>
+        </div>
 
       {/* ── Submission links ───────────────────────────────────────────────── */}
       <div>
@@ -288,6 +310,7 @@ export default function AssignmentSection({
           {`${notes.length} / ${MAX_NOTES_LENGTH}`}
         </p>
       </div>
-    </Stack>
+      </Stack>
+    </fieldset>
   );
 }

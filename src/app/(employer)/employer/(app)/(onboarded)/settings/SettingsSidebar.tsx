@@ -6,7 +6,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, Shield, Mail, Palette, ClipboardList, Trash2 } from 'lucide-react';
+import { Building2, Users, Shield, Mail, Palette, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SettingsNavItem { label: string; href: string; icon: ReactNode; danger?: boolean }
@@ -19,7 +19,10 @@ export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
   { label: 'Roles', href: `${SETTINGS_ROOT}/roles`, icon: <Shield size={14} /> },
   { label: 'Email', href: `${SETTINGS_ROOT}/email`, icon: <Mail size={14} /> },
   { label: 'Branding', href: `${SETTINGS_ROOT}/branding`, icon: <Palette size={14} /> },
-  { label: 'Assignments', href: `${SETTINGS_ROOT}/assignments`, icon: <ClipboardList size={14} /> },
+  // Assignments used to sit here. It moved to /employer/assignments (top nav,
+  // beside Jobs) because it describes postings, not company configuration — and
+  // because Settings is owner-only, which left members unable to reach a library
+  // they were allowed to write to.
 ];
 
 export const DANGER_NAV_ITEM: SettingsNavItem = {

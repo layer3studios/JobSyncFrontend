@@ -1,4 +1,4 @@
-// FILE: settings/assignments/parts/assignment-form-helpers.ts
+// FILE: assignments/parts/assignment-form-helpers.ts
 // Pure client-side validation for the assignment form.
 //
 // EVERY RULE HERE MIRRORS src/services/employer/assignment-validators.js in the

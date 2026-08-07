@@ -4,6 +4,13 @@
 // submit logic — the parent (ApplyFormClient) holds state and passes handlers.
 // Resume uses the native file-input pattern (C7); the honeypot is visually
 // offscreen but present in the DOM (R4).
+//
+// GROUPING. The fields are wrapped in real <fieldset>/<legend> pairs, restyled to
+// look like small section labels. Deliberately not <div> + <p>: a fieldset is what
+// makes a screen reader announce "Your details" when focus enters the group, so
+// the grouping is heard as well as seen. Nothing here is reordered, renamed or
+// re-id'd — the fieldsets are wrappers around the existing fields in their
+// existing order, so tab order and FormData are untouched.
 
 import { useRef } from 'react';
 import { Input, Textarea, Checkbox, Button, Stack } from '@/components/ui';
@@ -18,63 +25,94 @@ interface Props {
   onBlur: (field: keyof ApplyFormData) => void;
   // First-focus-per-field analytics hook (dedup handled by the parent).
   onFieldFocus: (field: string) => void;
+  /**
+   * The assignment submission block, on a take-home posting only. It arrives as a
+   * slot so it can sit ABOVE consent — the highest-value part of the form should
+   * not be below a legal checkbox — without this component knowing anything about
+   * assignments. On a plain posting the caller passes nothing and the DOM here is
+   * identical to before.
+   */
+  submissionSlot?: React.ReactNode;
 }
 
-export default function ApplyFormFields({ data, errors, companyName, set, onBlur, onFieldFocus }: Props) {
+export default function ApplyFormFields({
+  data, errors, companyName, set, onBlur, onFieldFocus, submissionSlot = null,
+}: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Stack gap={16}>
-      <Stack gap={12} dir="row" wrap>
-        <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
-          <Input label="First name" required value={data.firstName} error={errors.firstName}
-            onChange={(e) => set('firstName', e.target.value)} onBlur={() => onBlur('firstName')} />
+    <div className="apply-group-stack">
+      <fieldset className="apply-fieldset">
+        <legend className="apply-legend">Your details</legend>
+        <div className="apply-field-stack">
+          <Stack gap={12} dir="row" wrap>
+            <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
+              <Input label="First name" required value={data.firstName} error={errors.firstName}
+                onChange={(e) => set('firstName', e.target.value)} onBlur={() => onBlur('firstName')} />
+            </div>
+            <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
+              <Input label="Last name" required value={data.lastName} error={errors.lastName}
+                onChange={(e) => set('lastName', e.target.value)} onBlur={() => onBlur('lastName')} />
+            </div>
+          </Stack>
+
+          <div onFocus={() => onFieldFocus('email')}>
+            <Input label="Email" required type="email" inputMode="email" value={data.email} error={errors.email}
+              onChange={(e) => set('email', e.target.value)} onBlur={() => onBlur('email')} />
+          </div>
+
+          <div onFocus={() => onFieldFocus('phone')}>
+            <Input label="Phone" type="text" inputMode="tel" value={data.phone} error={errors.phone}
+              onChange={(e) => set('phone', e.target.value)} onBlur={() => onBlur('phone')} />
+          </div>
         </div>
-        <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
-          <Input label="Last name" required value={data.lastName} error={errors.lastName}
-            onChange={(e) => set('lastName', e.target.value)} onBlur={() => onBlur('lastName')} />
+      </fieldset>
+
+      <fieldset className="apply-fieldset">
+        <legend className="apply-legend">Resume</legend>
+        <div className="apply-field-stack">
+          <div onFocus={() => onFieldFocus('resume')}>
+            <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>Resume (PDF) *</p>
+            <Stack gap={8} dir="row" align="center" wrap>
+              <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>
+                {data.resume ? 'Change file' : 'Choose PDF'}
+              </Button>
+              {data.resume && <span style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>{data.resume.name}</span>}
+            </Stack>
+            <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden
+              onChange={(e) => { set('resume', e.target.files?.[0] ?? null); onBlur('resume'); }} />
+            {errors.resume && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.resume}</p>}
+          </div>
         </div>
-      </Stack>
+      </fieldset>
 
-      <div onFocus={() => onFieldFocus('email')}>
-        <Input label="Email" required type="email" inputMode="email" value={data.email} error={errors.email}
-          onChange={(e) => set('email', e.target.value)} onBlur={() => onBlur('email')} />
-      </div>
-
-      <div onFocus={() => onFieldFocus('phone')}>
-        <Input label="Phone" type="text" inputMode="tel" value={data.phone} error={errors.phone}
-          onChange={(e) => set('phone', e.target.value)} onBlur={() => onBlur('phone')} />
-      </div>
-
-      <div onFocus={() => onFieldFocus('resume')}>
-        <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>Resume (PDF) *</p>
-        <Stack gap={8} dir="row" align="center" wrap>
-          <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>
-            {data.resume ? 'Change file' : 'Choose PDF'}
-          </Button>
-          {data.resume && <span style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>{data.resume.name}</span>}
-        </Stack>
-        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden
-          onChange={(e) => { set('resume', e.target.files?.[0] ?? null); onBlur('resume'); }} />
-        {errors.resume && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.resume}</p>}
-      </div>
-
+      {/* The cover note belongs to no specced group, and moving it into one would
+          change tab order — which is not allowed to change. It therefore stays
+          exactly where it has always been, between the resume and the submission,
+          ungrouped. */}
       <div onFocus={() => onFieldFocus('coverNote')}>
         <Textarea label="Cover note" rows={4} value={data.coverNote}
           placeholder="Why are you interested in this role?" onChange={(e) => set('coverNote', e.target.value)} />
       </div>
 
-      <div onFocus={() => onFieldFocus('consent')}>
-        <Checkbox checked={data.consent_dpdp} onChange={(v) => set('consent_dpdp', v)}
-          label={`I agree to JobMesh and ${companyName} processing my data for recruitment purposes.`} />
-        {errors.consent_dpdp && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.consent_dpdp}</p>}
-        <a href="/legal/privacy" target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--link)', display: 'inline-block', marginTop: 4 }}>
-          Read the Privacy Notice
-        </a>
-      </div>
+      {submissionSlot}
 
-      <Checkbox checked={data.consent_futureOpportunities} onChange={(v) => set('consent_futureOpportunities', v)}
-        label={`I'm open to being contacted about future roles at ${companyName}.`} />
+      <fieldset className="apply-fieldset">
+        <legend className="apply-legend">Consent</legend>
+        <div className="apply-field-stack">
+          <div onFocus={() => onFieldFocus('consent')}>
+            <Checkbox checked={data.consent_dpdp} onChange={(v) => set('consent_dpdp', v)}
+              label={`I agree to JobMesh and ${companyName} processing my data for recruitment purposes.`} />
+            {errors.consent_dpdp && <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 5 }}>{errors.consent_dpdp}</p>}
+            <a href="/legal/privacy" target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--link)', display: 'inline-block', marginTop: 4 }}>
+              Read the Privacy Notice
+            </a>
+          </div>
+
+          <Checkbox checked={data.consent_futureOpportunities} onChange={(v) => set('consent_futureOpportunities', v)}
+            label={`I'm open to being contacted about future roles at ${companyName}.`} />
+        </div>
+      </fieldset>
 
       {/* Honeypot — offscreen (not display:none) so bots fill it but humans/AT skip it (R4). */}
       <input
@@ -82,6 +120,6 @@ export default function ApplyFormFields({ data, errors, companyName, set, onBlur
         value={data.honeypot ?? ''} onChange={(e) => set('honeypot', e.target.value)}
         style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
       />
-    </Stack>
+    </div>
   );
 }

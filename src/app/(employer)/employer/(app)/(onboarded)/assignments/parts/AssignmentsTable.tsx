@@ -1,5 +1,5 @@
 'use client';
-// FILE: settings/assignments/parts/AssignmentsTable.tsx
+// FILE: assignments/parts/AssignmentsTable.tsx
 // The library table. Structure mirrors settings/team/parts/TeamMembersTable.tsx —
 // same cell styles, same EmptyState-on-zero-rows, same role-derived action gating.
 //

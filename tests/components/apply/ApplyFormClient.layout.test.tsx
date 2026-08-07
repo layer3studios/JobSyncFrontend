@@ -35,16 +35,20 @@ function renderWithPreview() {
 }
 
 describe('assignment preview placement', () => {
-  it('renders the preview INSIDE the JD column, after the job description', () => {
+  it('renders the preview INSIDE the JD column, before the job description', () => {
     renderWithPreview();
     const heading = screen.getByRole('heading', { name: 'Developer' });
     const jdColumn = heading.parentElement as HTMLElement;
     const preview = screen.getByTestId('preview');
 
     expect(jdColumn.contains(preview)).toBe(true);
-    // …and after the description paragraph, so the reading order is title → JD → task.
+    // …and BEFORE the description, so the reading order is header → task → JD.
+    // This assertion used to require the opposite order. It was inverted on
+    // purpose: a take-home is the biggest cost in the posting, and disclosing it
+    // only after 500 words of job description asks the candidate to invest the
+    // reading before they know what they are investing in.
     const description = screen.getByText('Build things.');
-    expect(description.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(preview.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('does not render the preview when there is no assignment', () => {

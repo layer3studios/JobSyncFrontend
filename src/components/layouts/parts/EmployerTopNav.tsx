@@ -112,14 +112,22 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
           {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, 'Dashboard')}
           {renderNavLink(EMPLOYER_ROUTES.JOBS, 'Jobs')}
-          {/* Now points at the settings INDEX rather than straight at the team page,
-              because settings has a second subpage as of Chunk 8a.
+          {/* UNGATED, and independently of Settings. Reading the assignment library
+              is not sensitive: an interviewer reviewing a submission needs to see
+              the task that was set. Create/edit stays member+ and archive stays
+              owner+, both enforced in-page and by the API — this link changes who
+              can REACH the library, not what they can do once there.
+
+              This closes a real gap. A member could already create an assignment
+              through the API and the posting form but had no way to open the
+              library, because it used to live behind the owner-only Settings link. */}
+          {renderNavLink(EMPLOYER_ROUTES.ASSIGNMENTS, 'Assignments')}
+          {/* Points at the settings INDEX rather than straight at the team page,
+              because settings has more than one subpage.
               The Owner+ gate is deliberately UNCHANGED. It is asserted by
               tests/components/layouts/EmployerTopNav.test.tsx, and widening it is a
-              product decision about global navigation, not a side effect of adding
-              a page. Consequence worth knowing: a Member may create assignments but
-              cannot reach the library from the nav. 8b attaches assignments from the
-              posting form, which is the natural entry point for that role. */}
+              product decision about global navigation, not a side effect of moving
+              a page. Assignments above has its own gate — which is to say, none. */}
           {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS, 'Settings')}
         </nav>
 
