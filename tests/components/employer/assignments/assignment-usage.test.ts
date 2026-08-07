@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupUsageByAssignment } from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/parts/assignment-usage';
+import { groupUsageByAssignment } from '@/app/(employer)/employer/(app)/(onboarded)/assignments/parts/assignment-usage';
 import type { Posting } from '@/types/employer-jobs';
 
 function posting(overrides: Partial<Posting>): Posting {

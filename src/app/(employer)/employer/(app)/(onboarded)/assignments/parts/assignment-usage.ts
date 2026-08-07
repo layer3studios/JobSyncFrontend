@@ -1,4 +1,4 @@
-// FILE: settings/assignments/parts/assignment-usage.ts
+// FILE: assignments/parts/assignment-usage.ts
 // Derives "which postings use which assignment" from the postings list.
 //
 // It lives here rather than in page.tsx because a Next page module may only export

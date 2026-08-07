@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 let viewer: { viewerRole: string | null };
 vi.mock('@/context/employer/EmployerContext', () => ({ useEmployer: () => viewer }));
 
-import AssignmentsClient from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/AssignmentsClient';
+import AssignmentsClient from '@/app/(employer)/employer/(app)/(onboarded)/assignments/AssignmentsClient';
 import { EmployerAssignmentsApiError } from '@/api/employer-assignments-api';
 import type { EmployerAssignment, AssignmentUsage } from '@/types/employer-assignments';
 
@@ -217,5 +217,23 @@ describe('read-only detail view', () => {
     expect(dialog.textContent).toContain('Public summary');
     expect(dialog.textContent).toContain('Build a small dashboard widget from a provided API.');
     expect(dialog.textContent).toContain('Editing is locked');
+  });
+});
+
+describe('page header after the move out of Settings', () => {
+  // The eyebrow above the heading read "SETTINGS" while this page lived under
+  // settings/. It is now its own top-level nav section, so that label was simply
+  // false — and it is the kind of staleness nothing else would catch, because no
+  // assertion ever referenced it.
+  it('shows no "Settings" eyebrow above the Assignments heading', () => {
+    renderPage({});
+    expect(screen.getByRole('heading', { name: 'Assignments' })).toBeTruthy();
+    expect(screen.queryByText('Settings')).toBeNull();
+    expect(screen.queryByText(/^SETTINGS$/i)).toBeNull();
+  });
+
+  it('names no settings route anywhere in the rendered page', () => {
+    const { container } = renderPage({});
+    expect(container.textContent).not.toMatch(/\bSettings\b/);
   });
 });

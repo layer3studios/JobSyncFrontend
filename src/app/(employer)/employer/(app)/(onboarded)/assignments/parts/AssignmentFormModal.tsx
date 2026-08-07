@@ -1,5 +1,5 @@
 'use client';
-// FILE: settings/assignments/parts/AssignmentFormModal.tsx
+// FILE: assignments/parts/AssignmentFormModal.tsx
 // One component, three modes: create, edit, clone. They differ only in the initial
 // values, the title, and which endpoint the submit hits — splitting them into three
 // components would triple the surface where the validation and the markdown preview

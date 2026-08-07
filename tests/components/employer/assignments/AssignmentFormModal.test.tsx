@@ -11,7 +11,7 @@ vi.mock('@/api/employer-assignments-api', async (importOriginal) => ({
   updateAssignment,
 }));
 
-import AssignmentFormModal from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/parts/AssignmentFormModal';
+import AssignmentFormModal from '@/app/(employer)/employer/(app)/(onboarded)/assignments/parts/AssignmentFormModal';
 import { EmployerAssignmentsApiError } from '@/api/employer-assignments-api';
 import type { EmployerAssignment } from '@/types/employer-assignments';
 

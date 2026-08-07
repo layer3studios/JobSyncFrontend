@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import AssignmentsTable from '@/app/(employer)/employer/(app)/(onboarded)/settings/assignments/parts/AssignmentsTable';
+import AssignmentsTable from '@/app/(employer)/employer/(app)/(onboarded)/assignments/parts/AssignmentsTable';
 import type { EmployerAssignment, AssignmentUsage } from '@/types/employer-assignments';
 import type { Role } from '@/types/employer-team';
 
