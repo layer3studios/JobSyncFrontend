@@ -10,7 +10,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock } from 'lucide-react';
 import type { Applicant } from '@/types/employer-applicants';
-import { getScoreBadgeStyle, usableScore, getInitials, formatCompactDuration } from './score-badge-helpers';
+import { getScoreBadgeStyle, usableScore, getInitials } from './score-badge-helpers';
+import TimeInStage from './parts/TimeInStage';
 
 const NO_MOVE_TOOLTIP = "You don't have permission to move applicants. Ask an admin.";
 
@@ -34,8 +35,9 @@ export default function PipelineCard({
   const score = usableScore(applicant.score);
   const badge = getScoreBadgeStyle(score);
   const dragging = isDragging || isActive;
-  // Time in CURRENT stage (lastStageMovedAt), not since applied.
-  const stageAge = formatCompactDuration(applicant.application.lastStageMovedAt ?? applicant.application.appliedAt);
+  // Time in CURRENT stage (lastStageMovedAt), not since applied. Falls back to
+  // appliedAt so a candidate who has never moved still shows an age.
+  const stageMovedAt = applicant.application.lastStageMovedAt ?? applicant.application.appliedAt;
 
   return (
     <div
@@ -79,8 +81,8 @@ export default function PipelineCard({
         <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: badge.background, color: badge.color, fontWeight: 600 }}>
           {score == null ? '—' : `${score} · ${badge.label}`}
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--ink-faint)' }}>
-          <Clock size={12} /> {stageAge}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--ink-faint)' }}>
+          <Clock size={12} /> <TimeInStage movedAt={stageMovedAt} />
         </span>
       </div>
     </div>

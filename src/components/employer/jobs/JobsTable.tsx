@@ -6,35 +6,35 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Table, Badge } from '@/components/ui';
+import { Table } from '@/components/ui';
 import type { Column } from '@/components/ui';
-import type { Posting, PostingStatus } from '@/types/employer-jobs';
+import type { Posting } from '@/types/employer-jobs';
+import { PostingStatusBadge, ApplicantCount } from '@/components/employer/jobs/parts/PostingStatusBadge';
 import { withOrigin, NAV_ORIGINS } from '@/lib/nav-origin';
 
-const STATUS_VARIANT: Record<PostingStatus, 'success' | 'warning' | 'neutral'> = {
-  active: 'success',
-  draft: 'warning',
-  closed: 'neutral',
-};
-
+// The status badge sits INLINE with the title rather than in its own column: a
+// separate Status column repeated the same fact one cell to the right, and the
+// applicant count needs to read as part of the posting's identity, not as a metric
+// column an employer has to scan across for.
 const columns: Column<Posting>[] = [
   {
     key: 'title',
     header: 'Title',
     render: (posting) => (
-      <Link
-        href={withOrigin(`/employer/jobs/${posting.id}`, NAV_ORIGINS.JOBS)}
-        onClick={(event) => event.stopPropagation()}
-        style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}
-      >
-        {posting.title}
-      </Link>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Link
+            href={withOrigin(`/employer/jobs/${posting.id}`, NAV_ORIGINS.JOBS)}
+            onClick={(event) => event.stopPropagation()}
+            style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}
+          >
+            {posting.title}
+          </Link>
+          <PostingStatusBadge status={posting.status} />
+        </span>
+        <ApplicantCount count={posting.applicantCount} />
+      </div>
     ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (posting) => <Badge variant={STATUS_VARIANT[posting.status]}>{posting.status}</Badge>,
   },
   { key: 'location', header: 'Location', render: (posting) => posting.location },
   { key: 'workplaceType', header: 'Work type', render: (posting) => posting.workplaceType },

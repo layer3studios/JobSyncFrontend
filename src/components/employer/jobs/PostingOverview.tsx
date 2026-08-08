@@ -6,34 +6,27 @@
 // confirm dialog with the scheduled-interview warning.
 
 import { useState } from 'react';
-import { Pencil } from 'lucide-react';
-import { Card, Button, Badge, Stack, useToast } from '@/components/ui';
+import { Stack, useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canEditPosting, canClosePosting } from '@/lib/team-permissions';
-import PostingForm from './PostingForm';
-import PostingLivePreview from './PostingLivePreview';
+import PostingEditView from './parts/PostingEditView';
 import type { PostingFormValues } from './posting-form-helpers';
 import PostingConfirmDialog from './PostingConfirmDialog';
 import type { ConfirmAction } from './PostingConfirmDialog';
+import PostingActionBar from './parts/PostingActionBar';
+import PostingFillDialog from './parts/PostingFillDialog';
 import PostingKpiTiles from './PostingKpiTiles';
 import PostingDetailsCard from './PostingDetailsCard';
 import PostingDescriptionCard from './PostingDescriptionCard';
 import { usePostingOverviewData } from './usePostingOverviewData';
 import {
-  updateEmployerPosting, closeEmployerPosting, reopenEmployerPosting, EmployerJobsApiError,
+  updateEmployerPosting, closeEmployerPosting, reopenEmployerPosting, fillEmployerPosting,
+  EmployerJobsApiError,
 } from '@/api/employer-jobs-api';
 import { listInterviewTimes } from '@/api/employer-interview-times-api';
-import type { Posting, PostingStatus, PostingCreateInput } from '@/types/employer-jobs';
+import type { Posting, PostingCreateInput } from '@/types/employer-jobs';
 import { trackEvent } from '@/lib/analytics-events';
 
-const STATUS_VARIANT: Record<PostingStatus, 'success' | 'warning' | 'neutral'> = {
-  active: 'success', draft: 'warning', closed: 'neutral',
-};
-
-function relTime(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-  return days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`;
-}
 const daysOpen = (createdAt: string): number => Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000));
 
 const toFormValues = (p: Posting): PostingFormValues => ({
@@ -56,6 +49,7 @@ export default function PostingOverview({ posting, onReload }: {
   const [confirmOpen, setConfirmOpen] = useState<ConfirmAction | null>(null);
   const [previewValues, setPreviewValues] = useState<PostingFormValues>(() => toFormValues(posting));
   const [bookedInterviewCount, setBookedInterviewCount] = useState(0);
+  const [isFillOpen, setIsFillOpen] = useState(false);
   const data = usePostingOverviewData(posting.id);
 
   const applyUrl = `${window.location.origin}/apply/${company?.slug ?? ''}/${posting.slug}`;
@@ -112,56 +106,58 @@ export default function PostingOverview({ posting, onReload }: {
     }
   };
 
+  /**
+   * Position filled: closes the posting AND archives everyone still waiting, in one
+   * backend call. Reports the archived count back so the employer sees exactly how
+   * many people the action touched rather than a bare success.
+   */
+  const handleFill = async () => {
+    setIsMutating(true);
+    try {
+      const result = await fillEmployerPosting(posting.id);
+      const word = result.archivedCount === 1 ? 'candidate' : 'candidates';
+      showToast('success', `Posting closed. ${result.archivedCount} ${word} archived.`);
+      // Partial failure is possible — the posting still closed, so say so plainly
+      // instead of letting the count quietly under-report.
+      if (result.failedCount > 0) {
+        showToast('error', `${result.failedCount} could not be archived. Archive them manually.`);
+      }
+      await onReload();
+      setIsFillOpen(false);
+    } catch (err) {
+      showToast('error', err instanceof EmployerJobsApiError ? err.message : 'Could not update posting. Try again.');
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
   // Edit mirrors the New-posting layout: form left, live preview right.
   if (mode === 'edit') {
     return (
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ flex: '3 1 420px', minWidth: 340 }}>
-          <Card variant="raised">
-            <PostingForm
-              initialValues={{
-                title: posting.title, description: posting.description, location: posting.location,
-                workplaceType: posting.workplaceType, employmentType: posting.employmentType,
-                salaryMin: posting.salaryMin, salaryMax: posting.salaryMax,
-              }}
-              submitLabel="Save changes"
-              onCancel={() => setMode('view')}
-              onSubmit={handleSave}
-              onSubmitted={() => { void handleSaved(); }}
-              postingId={posting.id}
-              initialAssignmentId={posting.assignmentId}
-              onValuesChange={setPreviewValues}
-            />
-          </Card>
-        </div>
-        <div style={{ flex: '2 1 300px', minWidth: 280 }}>
-          <PostingLivePreview values={previewValues} />
-        </div>
-      </div>
+      <PostingEditView
+        posting={posting}
+        previewValues={previewValues}
+        onValuesChange={setPreviewValues}
+        onCancel={() => setMode('view')}
+        onSubmit={handleSave}
+        onSubmitted={() => { void handleSaved(); }}
+      />
     );
   }
 
   return (
     <Stack gap={14}>
-      {/* Top bar — status + meta on the left, actions on the right. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <Badge variant={STATUS_VARIANT[posting.status]}>{posting.status}</Badge>
-        <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>
-          Created {relTime(posting.createdAt)} · {posting.postedAt ? `Posted ${relTime(posting.postedAt)}` : 'Not yet published'}
-        </span>
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8 }}>
-          {allowEdit && (
-            <Button variant="ghost" size="sm" aria-label="Edit posting" onClick={openEdit}><Pencil size={14} /></Button>
-          )}
-          {posting.status === 'active' && <Button variant="secondary" size="sm" onClick={() => void copyApplyUrl()}>Copy apply link</Button>}
-          {allowClose && (posting.status === 'draft' || posting.status === 'active') && (
-            <Button variant="danger" size="sm" loading={isMutating} onClick={() => void openCloseConfirm()}>Close posting</Button>
-          )}
-          {allowClose && posting.status === 'closed' && (
-            <Button variant="secondary" size="sm" loading={isMutating} onClick={() => setConfirmOpen('reopen')}>Reopen posting</Button>
-          )}
-        </span>
-      </div>
+      <PostingActionBar
+        posting={posting}
+        allowEdit={allowEdit}
+        allowClose={allowClose}
+        isMutating={isMutating}
+        onEdit={openEdit}
+        onCopyApplyUrl={() => void copyApplyUrl()}
+        onCloseposting={() => void openCloseConfirm()}
+        onReopen={() => setConfirmOpen('reopen')}
+        onFill={() => setIsFillOpen(true)}
+      />
 
       <PostingKpiTiles
         totalApplicants={data.totalApplicants}
@@ -190,6 +186,14 @@ export default function PostingOverview({ posting, onReload }: {
         extraWarning={confirmOpen === 'close' && bookedInterviewCount > 0
           ? `${bookedInterviewCount} scheduled interview${bookedInterviewCount === 1 ? '' : 's'} will be cancelled and candidates will be notified.`
           : null}
+      />
+
+      <PostingFillDialog
+        isOpen={isFillOpen}
+        candidateCount={data.totalApplicants ?? 0}
+        isMutating={isMutating}
+        onCancel={() => setIsFillOpen(false)}
+        onConfirm={() => { void handleFill(); }}
       />
     </Stack>
   );
