@@ -25,6 +25,7 @@ export default function CompanySettingsClient() {
   const { showToast } = useToast();
   const canEdit = viewerRole ? canEditCompanySettings(viewerRole) : false;
   const [name, setName] = useState(company?.name ?? '');
+  const [tagline, setTagline] = useState(company?.tagline ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
   if (!company) {
@@ -36,14 +37,25 @@ export default function CompanySettingsClient() {
     );
   }
 
-  const isDirty = name.trim() !== company.name && name.trim().length > 0;
+  const trimmedName = name.trim();
+  const trimmedTagline = tagline.trim();
+  // An empty tagline is null on the server, so '' and null are the same state here —
+  // comparing the trimmed value against (tagline ?? '') keeps clearing it dirty.
+  const isNameDirty = trimmedName !== company.name && trimmedName.length > 0;
+  const isTaglineDirty = trimmedTagline !== (company.tagline ?? '');
+  const isDirty = isNameDirty || isTaglineDirty;
 
   async function handleSave() {
     setIsSaving(true);
     try {
-      await updateEmployerCompany({ name: name.trim() });
+      // One PATCH for both fields. Empty tagline goes as null so the careers page
+      // has a single falsy case and never renders an empty line.
+      await updateEmployerCompany({
+        name: trimmedName,
+        tagline: trimmedTagline === '' ? null : trimmedTagline,
+      });
       await refreshEmployerSession();
-      showToast('success', 'Company name updated.');
+      showToast('success', 'Company details updated.');
     } catch (error) {
       showToast('error', error instanceof EmployerApiError ? error.message : 'Could not save. Please try again.');
     } finally {
@@ -66,6 +78,18 @@ export default function CompanySettingsClient() {
                 maxLength={120}
                 onChange={(event) => setName(event.target.value)}
               />
+              <div style={{ marginTop: 12 }}>
+                <Input
+                  label="Tagline"
+                  placeholder="One line about your company"
+                  value={tagline}
+                  maxLength={120}
+                  onChange={(event) => setTagline(event.target.value)}
+                />
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--ink-faint)', textAlign: 'right' }}>
+                  {tagline.length}/120
+                </p>
+              </div>
               <div style={{ marginTop: 8 }}>
                 <Button size="sm" disabled={!isDirty} loading={isSaving} onClick={handleSave}>
                   Save changes
@@ -76,8 +100,12 @@ export default function CompanySettingsClient() {
             <>
               <p style={FIELD_LABEL}>Company name</p>
               <div style={READ_ONLY_VALUE}>{company.name}</div>
+              <div style={{ marginTop: 12 }}>
+                <p style={FIELD_LABEL}>Tagline</p>
+                <div style={READ_ONLY_VALUE}>{company.tagline ?? 'Not set'}</div>
+              </div>
               <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--ink-faint)' }}>
-                Only a Founder or Owner can change the company name.
+                Only a Founder or Owner can change these.
               </p>
             </>
           )}

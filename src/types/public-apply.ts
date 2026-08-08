@@ -4,6 +4,7 @@
 
 export interface PublicCompany {
   name: string;
+  tagline: string | null;
   slug: string;
   website: string | null;
   logoUrl: string | null;

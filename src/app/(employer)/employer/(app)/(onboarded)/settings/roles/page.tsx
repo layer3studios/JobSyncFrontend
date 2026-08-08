@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import RoleTiles from '../team/parts/RoleTiles';
 import SettingsPageHeader from '../parts/SettingsPageHeader';
+import PermissionMatrix from './parts/PermissionMatrix';
 
 export const metadata: Metadata = {
   title: 'Roles | JobMesh Employer',
@@ -41,6 +42,7 @@ export default function RolesSettingsPage() {
           </div>
         ))}
       </div>
+      <PermissionMatrix />
     </div>
   );
 }

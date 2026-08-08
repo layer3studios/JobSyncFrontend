@@ -83,6 +83,23 @@ export async function reopenEmployerPosting(postingId: string): Promise<Posting>
   return body.posting;
 }
 
+/** Result of the "Position filled" quick action. */
+export interface FillPostingResult {
+  posting: Posting | null;
+  closedCount: number;
+  archivedCount: number;
+  /** Applications the bulk archive could not process; the posting closed regardless. */
+  failedCount: number;
+}
+
+/**
+ * Close the posting AND archive everyone still waiting on it as "Position filled".
+ * One call, two effects — see posting-fill-service.js on the backend.
+ */
+export async function fillEmployerPosting(postingId: string): Promise<FillPostingResult> {
+  return request<FillPostingResult>(`${postingPath(postingId)}/fill`, { method: 'POST' });
+}
+
 // ── Assignment attachment (Chunk 3 backend / 8b UI) ─────────────────────────
 // The attachment lives on its OWN endpoint, not in the posting create/patch body:
 // employer-postings-routes.js rejects an unknown `assignmentId` key on PATCH

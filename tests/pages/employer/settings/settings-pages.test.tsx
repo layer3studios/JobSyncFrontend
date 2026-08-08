@@ -14,7 +14,7 @@ const updateEmployerCompany = vi.fn();
 const copyToClipboard = vi.fn();
 
 const COMPANY: EmployerCompany = {
-  id: 'c1', slug: 'acme', name: 'Acme Labs', website: null, logoUrl: null,
+  id: 'c1', slug: 'acme', name: 'Acme Labs', tagline: null, website: null, logoUrl: null,
   plan: 'free', retentionDays: 180, privacyPolicyUrl: null, dpoEmail: null,
   createdAt: '2026-01-01T00:00:00Z',
 };
@@ -63,7 +63,9 @@ describe('Company settings page', () => {
     render(<CompanySettingsClient />);
     fireEvent.change(screen.getByLabelText(/Company name/), { target: { value: 'Acme Inc' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-    await waitFor(() => expect(updateEmployerCompany).toHaveBeenCalledWith({ name: 'Acme Inc' }));
+    // Name and tagline save together in one PATCH; an untouched empty tagline
+    // goes as null rather than '' so the careers page has one falsy case.
+    await waitFor(() => expect(updateEmployerCompany).toHaveBeenCalledWith({ name: 'Acme Inc', tagline: null }));
     expect(refreshEmployerSession).toHaveBeenCalled();
   });
 
@@ -71,7 +73,7 @@ describe('Company settings page', () => {
     viewerRole = 'member';
     render(<CompanySettingsClient />);
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
-    expect(screen.getByText('Only a Founder or Owner can change the company name.')).toBeTruthy();
+    expect(screen.getByText('Only a Founder or Owner can change these.')).toBeTruthy();
   });
 
   it('shows the DPDP retention note', () => {

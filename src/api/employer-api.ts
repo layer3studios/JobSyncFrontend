@@ -28,10 +28,13 @@ export interface CreateEmployerCompanyInput {
 
 export interface UpdateEmployerCompanyPatch {
   name?: string;
+  tagline?: string | null;
   website?: string | null;
   retentionDays?: number;
   privacyPolicyUrl?: string | null;
   dpoEmail?: string | null;
+  /** Clear-only. A logo is SET by uploadCompanyLogo; the backend rejects a string here. */
+  logoUrl?: null;
 }
 
 interface CompanyEnvelope {
@@ -79,4 +82,32 @@ export async function updateEmployerCompany(
 export async function fetchEmployerCompany(): Promise<EmployerCompany> {
   const body = await request('/employer/company');
   return body.company;
+}
+
+/**
+ * Upload a company logo as multipart/form-data.
+ *
+ * Does not go through request(): that helper sets a JSON Content-Type whenever a
+ * body is present, and setting it by hand on a FormData body strips the multipart
+ * boundary the browser generates, which makes the server reject every upload.
+ */
+export async function uploadCompanyLogo(file: File): Promise<EmployerCompany> {
+  const formData = new FormData();
+  formData.append('logo', file);
+
+  const response = await fetch(apiUrl('/employer/company/logo'), {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new EmployerApiError(
+      response.status,
+      body?.code ?? null,
+      body?.error || `Upload failed (${response.status})`,
+    );
+  }
+  return (body as CompanyEnvelope).company;
 }

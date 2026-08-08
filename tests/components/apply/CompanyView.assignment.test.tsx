@@ -4,7 +4,7 @@ import CompanyView from '@/components/apply/CompanyView';
 import type { PublicCompany, PublicJobSummary } from '@/types/public-apply';
 
 const COMPANY: PublicCompany = {
-  name: 'Acme', slug: 'acme', website: null, logoUrl: null,
+  name: 'Acme', tagline: null, slug: 'acme', website: null, logoUrl: null,
 };
 
 function job(overrides: Partial<PublicJobSummary> = {}): PublicJobSummary {
