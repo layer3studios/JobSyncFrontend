@@ -9,6 +9,7 @@ import { ChevronDown } from 'lucide-react';
 import { Button, useToast } from '@/components/ui';
 import { bulkMoveStage, type BulkMoveResult } from '@/api/employer-applicant-actions-api';
 import type { Stage } from '@/types/employer-applicants';
+import { Z } from '@/theme/tokens';
 
 export default function BulkMoveMenu({ stages, selectedIds, onMoved }: {
   stages: Stage[];
@@ -64,9 +65,9 @@ export default function BulkMoveMenu({ stages, selectedIds, onMoved }: {
       </Button>
       {open && (
         <div role="menu" style={{
-          position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, minWidth: 160, zIndex: 40,
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, minWidth: 160, zIndex: Z.dropdown,
           background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 10,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.18)', padding: 4,
+          boxShadow: 'var(--shadow-lg)', padding: 4,
         }}>
           {targets.map((stage) => (
             <button
@@ -85,9 +86,9 @@ export default function BulkMoveMenu({ stages, selectedIds, onMoved }: {
       )}
       {failures && (
         <div role="alert" style={{
-          position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, width: 280, zIndex: 40,
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, width: 280, zIndex: Z.dropdown,
           background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 10,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.18)', padding: 12,
+          boxShadow: 'var(--shadow-lg)', padding: 12,
         }}>
           <p style={{ margin: '0 0 6px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)' }}>
             {failures.length} candidate{failures.length === 1 ? '' : 's'} could not be moved

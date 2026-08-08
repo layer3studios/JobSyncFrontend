@@ -27,6 +27,7 @@ function errorMessage(error: unknown): string {
 
 export default function ApplicantReviewPanel({
   score, scoreJobStatus = null, applicationId, currentStageId, archived, stages, reasons, stageChanges, onDone,
+  showActions = true,
 }: {
   score: ApplicantScore | null;
   scoreJobStatus?: ScoreJobStatus | null;
@@ -37,6 +38,8 @@ export default function ApplicantReviewPanel({
   reasons: ArchiveReason[];
   stageChanges: StageChange[];
   onDone: () => Promise<void> | void;
+  /** False when a sticky ApplicantActionBar above already owns move + archive. */
+  showActions?: boolean;
 }) {
   const [stageId, setStageId] = useState(currentStageId);
   const [moveNote, setMoveNote] = useState('');
@@ -149,10 +152,10 @@ export default function ApplicantReviewPanel({
         )}
       </div>
 
-      {/* Action bar — always visible below the info region */}
+      {/* Action bar — hidden when a sticky bar above the panel owns these actions */}
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
         {error && <div style={{ marginBottom: 10 }}><Alert type="error">{error}</Alert></div>}
-        {archived ? (
+        {!showActions ? null : archived ? (
           allowArchive
             ? <Button variant="secondary" loading={busy} onClick={() => void run(() => unarchiveApplicant(applicationId))}>Unarchive applicant</Button>
             : <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--ink-muted)' }}>This applicant is archived.</p>

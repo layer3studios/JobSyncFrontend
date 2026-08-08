@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { IJob } from '../../types';
 import JobDetailPanel from './JobDetailPanel';
+import { Z } from '@/theme/tokens';
 
 interface Props {
   job: IJob | null;
@@ -40,7 +41,7 @@ export default function DashboardJobSheet({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 250,
+        position: 'fixed', inset: 0, zIndex: Z.sheet,
         background: 'rgba(15,15,14,0.45)',
         animation: `sheetFadeIn 0.22s ease ${closing ? 'reverse' : 'normal'}`,
       }}

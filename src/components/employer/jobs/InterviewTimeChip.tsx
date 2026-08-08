@@ -9,7 +9,7 @@ import { X } from 'lucide-react';
 import type { InterviewTime } from '@/types/employer-interviews';
 import { formatInterviewClockTime } from '@/utils/format-interview-time';
 
-const AVAILABLE = { bg: '#E6F7EF', border: '#B8E6D0', dot: '#1D9E75' };
+const AVAILABLE = { bg: 'var(--status-success-bg)', border: 'var(--success)', dot: 'var(--cat-green)' };
 
 export default function InterviewTimeChip({ time, onRemove, readOnly = false }: {
   time: InterviewTime;

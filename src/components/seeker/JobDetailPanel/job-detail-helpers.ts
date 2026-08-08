@@ -45,7 +45,7 @@ export function roleBadgeStyle(role: string | null): { bg: string; color: string
   if (r.includes('engineer') || r.includes('developer') || r.includes('dev')) return { bg: 'var(--info-soft)', color: 'var(--info)' };
   if (r.includes('design')) return { bg: 'var(--accent-soft)', color: 'var(--accent)' };
   if (r.includes('product')) return { bg: 'var(--warning-soft)', color: 'var(--warning)' };
-  if (r.includes('data') || r.includes('analyst')) return { bg: '#EEEDFE', color: '#534AB7' };
+  if (r.includes('data') || r.includes('analyst')) return { bg: 'var(--status-purple-bg)', color: 'var(--cat-indigo)' };
   if (r.includes('manag')) return { bg: 'var(--success-soft)', color: 'var(--success)' };
   if (r.includes('sales') || r.includes('account')) return { bg: 'var(--danger-soft)', color: 'var(--danger)' };
   return { bg: 'var(--paper-2)', color: 'var(--ink-muted)' };

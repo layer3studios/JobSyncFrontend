@@ -170,14 +170,14 @@
 }
 
 /* ── Sticky apply bar ──────────────────────────────────────────────────────
-   Desktop and mobile both. z-index is Z.sticky (40) — deliberately below
-   Z.overlay (60) and Z.modal (70), so an open dialog always covers it. */
+   Desktop and mobile both. z-index is var(--z-sticky) — deliberately below
+   the dropdown, sheet, overlay and modal tiers, so an open dialog always covers it. */
 .apply-sticky-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 40;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   gap: 16px;

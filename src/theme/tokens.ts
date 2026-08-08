@@ -30,8 +30,33 @@ export const MOTION = {
   spring: 'cubic-bezier(0.16, 1, 0.3, 1)',
 } as const;
 
+/**
+ * The one stacking order. Every layered element in the app resolves to a tier
+ * here — no raw numbers, and NOTHING sits above `toast`.
+ *
+ * The old scale topped out at 80 while five components hardcoded 100–9999, so a
+ * toast rendered behind the consent banner and a modal rendered behind every nav
+ * dropdown. The tiers below are spaced 10 apart so a future layer can slot
+ * between two without renumbering the rest.
+ *
+ * Mirrored as --z-* custom properties in theme-tokens.css for stylesheets, which
+ * cannot import this file.
+ */
 export const Z = {
-  base: 0, card: 10, sticky: 40, nav: 50, overlay: 60, modal: 70, toast: 80,
+  base: 0,
+  card: 10,
+  sticky: 40,
+  /** Popovers, action menus, filter dropdowns. */
+  dropdown: 50,
+  nav: 60,
+  /** Bottom sheets and side panels that cover the nav. */
+  sheet: 70,
+  /** Full-screen scrims and banners. */
+  overlay: 80,
+  /** Modals and dialogs — above everything except toasts. */
+  modal: 90,
+  /** Always on top. Nothing may exceed this. */
+  toast: 100,
 } as const;
 
 // Box-shadow tokens. These reference the theme CSS variables (defined in

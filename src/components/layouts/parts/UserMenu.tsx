@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { LogOut, BookOpen, BarChart3 } from 'lucide-react';
 import { menuItem } from './types';
+import { Z } from '@/theme/tokens';
 
 interface User { name: string; email: string; picture?: string; }
 
@@ -56,7 +57,7 @@ export default function UserMenu({ user, open, onToggle, onClose, onOpenSkillsEd
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             borderRadius: 12, boxShadow: 'var(--shadow-lg)',
-            padding: 6, zIndex: 100,
+            padding: 6, zIndex: Z.dropdown,
           }}
         >
           <div style={{ padding: '10px 12px 12px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>

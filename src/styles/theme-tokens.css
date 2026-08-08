@@ -3,21 +3,28 @@
    with no FOUC (MIGRATION-MAP Risk 1). The pre-hydration script in the root
    layout sets data-theme before paint; these blocks supply the values. */
 
+/* LIGHT MODE = warm parchment, not bleached paper. The page ground and the card
+   surfaces are now drawn from ONE warm family: previously --paper was warm
+   (#FBFAF7) while cards were pure #FFFFFF, and that warm/cool clash across every
+   card edge was the actual source of eye strain. Overall brightness drops ~5-8%.
+   Dark mode is deliberately untouched. */
 :root {
-  --paper: #FBFAF7;
-  --paper-2: #F4F2EC;
-  --paper-3: #EDEAE1;
-  --ink: #191918;
-  --ink-2: #37352F;
+  --paper: #F5F3ED;
+  --paper-2: #EEEBE3;
+  --paper-3: #E6E3DA;
+  /* Slightly lifted off true black: #2C2C2A on --paper is ~12.6:1, far above the
+     4.5:1 AA floor, while shedding the glare of near-#000 on a bright ground. */
+  --ink: #2C2C2A;
+  --ink-2: #44423C;
   --ink-muted: #6F6E69;
   --ink-faint: #9B9990;
-  --border: rgba(55, 53, 47, 0.09);
-  --border-strong: rgba(55, 53, 47, 0.16);
+  --border: rgba(55, 53, 47, 0.07);
+  --border-strong: rgba(55, 53, 47, 0.13);
   --border-mid: rgba(55, 53, 47, 0.12);
-  --surface: #FFFFFF;
-  --surface-solid: #FFFFFF;
-  --surface-2: #FAFAF7;
-  --surface-alt: rgba(255,255,255,0.78);
+  --surface: #FAF9F6;
+  --surface-solid: #FAF9F6;
+  --surface-2: #F5F3EE;
+  --surface-alt: rgba(250, 249, 246, 0.85);
   --accent: #2D6A4F;
   --accent-hover: #214F3B;
   --accent-soft: rgba(45, 106, 79, 0.10);
@@ -25,7 +32,8 @@
   --primary: #2D6A4F;
   --primary-hover: #214F3B;
   --primary-soft: rgba(45, 106, 79, 0.10);
-  --text-primary: #191918;
+  /* Alias of --ink; moves with it or some text renders darker than the rest. */
+  --text-primary: #2C2C2A;
   --text-secondary: #6F6E69;
   --muted-ink: #6F6E69;
   --subtle-ink: #9B9990;
@@ -35,7 +43,7 @@
   --acid-soft: rgba(45, 106, 79, 0.10);
   --ink-border: rgba(55, 53, 47, 0.12);
   --ink-border-strong: rgba(55, 53, 47, 0.20);
-  --paper2: #F4F2EC;
+  --paper2: #EEEBE3;
   --success: #0F7B5A;
   --success-soft: rgba(15, 123, 90, 0.10);
   --warning: #B66B0A;
@@ -46,16 +54,57 @@
   --info-soft: rgba(10, 108, 199, 0.10);
   --focus-ring: 0 0 0 3px rgba(45, 106, 79, 0.22);
   --link: #2D6A4F;
-  --shadow-xs: 0 1px 2px rgba(15, 15, 14, 0.04);
-  --shadow-sm: 0 1px 2px rgba(15, 15, 14, 0.04), 0 2px 6px rgba(15, 15, 14, 0.03);
+  --shadow-xs: 0 1px 2px rgba(15, 15, 14, 0.03);
+  --shadow-sm: 0 1px 2px rgba(15, 15, 14, 0.03), 0 2px 6px rgba(15, 15, 14, 0.02);
   --shadow-md: 0 4px 8px rgba(15, 15, 14, 0.06), 0 10px 24px rgba(15, 15, 14, 0.04);
   --shadow-lg: 0 8px 16px rgba(15, 15, 14, 0.08), 0 24px 48px rgba(15, 15, 14, 0.06);
   --highlight-edge: inset 0 1px 0 rgba(255,255,255,0.5);
-  --glass-bg: rgba(255, 255, 255, 0.72);
+  /* ── Stacking order ──────────────────────────────────────────────────────
+     Mirrors the Z scale in src/theme/tokens.ts, which stylesheets cannot import.
+     If one changes, change the other. Theme-independent, so these are declared
+     once here and never overridden in the dark block. */
+  --z-base: 0;
+  --z-card: 10;
+  --z-sticky: 40;
+  --z-dropdown: 50;
+  --z-nav: 60;
+  --z-sheet: 70;
+  --z-overlay: 80;
+  --z-modal: 90;
+  --z-toast: 100;
+
+  /* ── Status surfaces ─────────────────────────────────────────────────────
+     Tinted backgrounds for badges and chips. Light mode keeps the original
+     hand-picked pastels; dark mode uses a low-alpha wash of the same hue, so a
+     status chip stays legible instead of becoming a bright block on a dark page. */
+  --status-success-bg: #E6F7EF;
+  --status-danger-bg: #FAECE7;
+  --status-warning-bg: #FAEEDA;
+  --status-info-bg: #E3F2FD;
+  --status-accent-bg: #E1F5EE;
+  --status-purple-bg: #EEEDFE;
+
+  /* ── Categorical palette ─────────────────────────────────────────────────
+     Hues that encode a CATEGORY rather than a state: pipeline stages, activity
+     types, score tiers, chart series, role tiles. They were duplicated as raw
+     hex across ~20 files with no dark variant. Distinct from --success/--danger,
+     which carry a judgement; these only say "a different thing from that one". */
+  --cat-green: #1D9E75;
+  --cat-blue: #378ADD;
+  --cat-amber: #BA7517;
+  --cat-purple: #7F77DD;
+  --cat-indigo: #534AB7;
+  --cat-orange: #D85A30;
+  --cat-red: #E24B4A;
+
+  --glass-bg: rgba(250, 249, 246, 0.72);
   --glass-stroke: rgba(55, 53, 47, 0.10);
-  --surface-raised: #FFFFFF;
-  --surface-sunken: #F4F2EC;
-  --surface-muted: #EDEAE1;
+  /* These three are the card/panel triplet and are aliases of --surface,
+     --paper-2 and --paper-3 respectively. They move together or a card ends up
+     lighter than the surface token it is meant to match. */
+  --surface-raised: #FAF9F6;
+  --surface-sunken: #EEEBE3;
+  --surface-muted: #E6E3DA;
   --text-inverse: #FFFFFF;
   --brand-50: #EAF3EE;
   --brand-500: #2D6A4F;
@@ -113,6 +162,26 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.22);
   --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.40), 0 24px 56px rgba(0, 0, 0, 0.30);
   --highlight-edge: inset 0 1px 0 rgba(255,255,255,0.04);
+  /* Status surfaces: a low-alpha wash of the hue rather than the light pastel,
+     which would read as a bright block on a dark page. The --z-* scale is
+     theme-independent and is NOT redeclared here. */
+  --status-success-bg: rgba(15, 123, 90, 0.15);
+  --status-danger-bg: rgba(197, 56, 15, 0.15);
+  --status-warning-bg: rgba(182, 107, 10, 0.15);
+  --status-info-bg: rgba(10, 108, 199, 0.15);
+  --status-accent-bg: rgba(45, 106, 79, 0.12);
+  --status-purple-bg: rgba(120, 100, 230, 0.15);
+
+  /* Categorical hues, lightened so they clear the dark ground. Same ordering and
+     meaning as the light block — only the luminance changes. */
+  --cat-green: #3DCB89;
+  --cat-blue: #6BAEF0;
+  --cat-amber: #E6A33A;
+  --cat-purple: #A49CF0;
+  --cat-indigo: #9C93F0;
+  --cat-orange: #F08A5D;
+  --cat-red: #F27C7B;
+
   --glass-bg: rgba(25, 25, 24, 0.72);
   --glass-stroke: rgba(255, 255, 255, 0.08);
   --surface-raised: #202020;

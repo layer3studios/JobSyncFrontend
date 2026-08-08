@@ -6,6 +6,7 @@ import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import RoleTiles from '../team/parts/RoleTiles';
 import SettingsPageHeader from '../parts/SettingsPageHeader';
 import PermissionMatrix from './parts/PermissionMatrix';
+import { COPY } from '@/theme/brand';
 
 export const metadata: Metadata = {
   title: 'Roles | JobMesh Employer',
@@ -22,10 +23,10 @@ const DETAIL_ROWS = [
 export default function RolesSettingsPage() {
   return (
     <div>
-      <Breadcrumbs items={[{ label: 'Settings' }, { label: 'Roles' }]} />
+      <Breadcrumbs items={[{ label: COPY.employer.settings.title }, { label: COPY.employer.settings.roles }]} />
       <SettingsPageHeader
-        title="Roles & permissions"
-        subtitle="Role permissions are fixed in the current version. Custom roles are coming soon."
+        title={COPY.employer.settings.rolesTitle}
+        subtitle={COPY.employer.settings.rolesSubtitle}
       />
       <RoleTiles />
       <div style={{

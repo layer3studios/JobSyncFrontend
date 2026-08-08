@@ -21,8 +21,8 @@ import RankedSkillsFilter from './RankedSkillsFilter';
 const SEARCH_DEBOUNCE_MILLISECONDS = 300;
 
 export const SCORE_DOT_COLOR: Record<ScoreFilterValue, string> = {
-  strong: '#1D9E75', good: '#378ADD', partial: '#BA7517',
-  weak: '#D85A30', poor: '#E24B4A', unscored: 'var(--ink-faint)',
+  strong: 'var(--cat-green)', good: 'var(--cat-blue)', partial: 'var(--cat-amber)',
+  weak: 'var(--cat-orange)', poor: 'var(--cat-red)', unscored: 'var(--ink-faint)',
 };
 const SCORE_LABEL: Record<ScoreFilterValue, string> = {
   strong: 'Strong (80+)', good: 'Good (60-79)', partial: 'Partial (40-59)',

@@ -16,6 +16,7 @@ import { LogOut, Sparkles } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { ADMIN_ROUTES } from './routes';
+import { Z } from '@/theme/tokens';
 
 interface AdminNavUser {
   name: string;
@@ -81,7 +82,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
 
   return (
     <header style={{
-      position: 'sticky', top: 0, zIndex: 50,
+      position: 'sticky', top: 0, zIndex: Z.nav,
       background: 'var(--glass-bg)',
       backdropFilter: 'saturate(180%) blur(20px)',
       WebkitBackdropFilter: 'saturate(180%) blur(20px)',
@@ -149,7 +150,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
                 style={{
                   position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 220,
                   background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: 6, zIndex: 100,
+                  borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: 6, zIndex: Z.dropdown,
                 }}
               >
                 <div style={{ padding: '10px 12px 12px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>

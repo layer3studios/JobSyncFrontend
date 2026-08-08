@@ -24,7 +24,7 @@
    Nothing here is mono for decoration; if it is mono, it is data or a label. */
 
 .hm-mono {
-  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

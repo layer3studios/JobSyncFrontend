@@ -16,11 +16,11 @@ import { DashboardCard } from './DashboardCard';
 const ACTIVITY_LIST_MAX_HEIGHT = 'calc(100vh - 340px)';
 
 const DOT_COLOR: Record<DashboardActivityEvent['type'], string> = {
-  application: '#1D9E75',
-  stage_move: '#378ADD',
-  interview_booked: '#378ADD',
-  interview_cancelled: '#BA7517',
-  score_completed: '#1D9E75',
+  application: 'var(--cat-green)',
+  stage_move: 'var(--cat-blue)',
+  interview_booked: 'var(--cat-blue)',
+  interview_cancelled: 'var(--cat-amber)',
+  score_completed: 'var(--cat-green)',
 };
 
 const name = (event: DashboardActivityEvent) => event.candidateName ?? 'A candidate';

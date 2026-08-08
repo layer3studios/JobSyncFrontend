@@ -8,6 +8,7 @@ import BrandLogo from '../../BrandLogo';
 import UserMenu from './UserMenu';
 import MobileDropdown from './MobileDropdown';
 import { utilityBtn, type NavItem } from './types';
+import { Z } from '@/theme/tokens';
 
 interface User { name: string; email: string; picture?: string; }
 
@@ -63,7 +64,7 @@ export default function TopNav(p: Props) {
 
   return (
     <header style={{
-      position: 'sticky', top: 0, zIndex: 50,
+      position: 'sticky', top: 0, zIndex: Z.nav,
       background: 'var(--glass-bg)',
       backdropFilter: 'saturate(180%) blur(20px)',
       WebkitBackdropFilter: 'saturate(180%) blur(20px)',

@@ -104,7 +104,7 @@ export default function CompanyLogo({ name, url, domain, size = 40, borderRadius
   const letterEl = (opacity = 1) => (
     initial ? (
       <span style={{
-        fontFamily: "'Source Serif 4', Georgia, ui-serif, serif",
+        fontFamily: 'var(--font-serif)',
         fontSize: size * 0.5,
         color: 'var(--accent)',
         fontWeight: 600,

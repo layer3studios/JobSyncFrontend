@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { trackEvent } from '../../lib/analytics-events';
 import { MAX_LOCATIONS, SALARY_MAX_LPA } from './dashboard/constants';
 import type { JobFacets } from './dashboard/useJobFacets';
+import { Z } from '@/theme/tokens';
 
 interface Option { value: string; label: string; }
 
@@ -80,7 +81,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, baseStyle }: 
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 60,
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: Z.dropdown,
           minWidth: 190, background: 'var(--surface)',
           border: '1px solid var(--border-strong)', borderRadius: 10,
           boxShadow: 'var(--shadow-md)', padding: 6,
@@ -178,7 +179,7 @@ function LocationPicker({ cities, selected, onChange, baseStyle }: {
       />
       {open && suggestions.length > 0 && !atLimit && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 60,
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: Z.dropdown,
           minWidth: 180, maxHeight: 260, overflowY: 'auto',
           background: 'var(--surface)', border: '1px solid var(--border-strong)',
           borderRadius: 10, boxShadow: 'var(--shadow-md)', padding: 4,

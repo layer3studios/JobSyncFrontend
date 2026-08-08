@@ -7,6 +7,7 @@
 
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui';
+import { Z } from '@/theme/tokens';
 
 export default function BulkArchiveBar({
   selectedCount, onClear, onArchive, isSubmitting, moveSlot,
@@ -25,9 +26,9 @@ export default function BulkArchiveBar({
       aria-live="polite"
       style={{
         position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 30, display: 'flex', alignItems: 'center', gap: 12,
+        zIndex: Z.sticky, display: 'flex', alignItems: 'center', gap: 12,
         background: 'var(--paper)', border: '1px solid var(--border)',
-        borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', padding: '12px 16px',
+        borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: '12px 16px',
       }}
     >
       <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>

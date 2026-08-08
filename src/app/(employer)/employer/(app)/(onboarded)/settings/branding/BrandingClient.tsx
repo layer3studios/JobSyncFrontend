@@ -13,6 +13,7 @@ import { uploadCompanyLogo, updateEmployerCompany, EmployerApiError } from '@/ap
 import { canEditCompanySettings } from '@/lib/team-permissions';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from '../parts/SettingsPageHeader';
+import { COPY } from '@/theme/brand';
 import CareersPageLink from '../parts/CareersPageLink';
 
 const ACCEPTED_TYPES = 'image/png,image/jpeg,image/webp';
@@ -85,8 +86,8 @@ export default function BrandingClient() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: 'Settings' }, { label: 'Branding' }]} />
-      <SettingsPageHeader title="Branding" subtitle="How your company appears to candidates." />
+      <Breadcrumbs items={[{ label: COPY.employer.settings.title }, { label: COPY.employer.settings.branding }]} />
+      <SettingsPageHeader title={COPY.employer.settings.branding} subtitle={COPY.employer.settings.brandingSubtitle} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640 }}>
         <div>

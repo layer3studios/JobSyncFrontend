@@ -63,7 +63,7 @@ const components: Components = {
   code: ({ children }) => (
     <code
       style={{
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '0.82em',
         background: 'var(--paper-2)',
         padding: '1px 5px',

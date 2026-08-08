@@ -4,7 +4,7 @@
 export const STAGES = {
   applied: { label: 'Applied', bg: 'var(--accent-soft)', color: 'var(--accent)' },
   screening: { label: 'Screening', bg: 'var(--info-soft)', color: 'var(--info)' },
-  interview: { label: 'Interview', bg: '#EEEDFE', color: '#534AB7' },
+  interview: { label: 'Interview', bg: 'var(--status-purple-bg)', color: 'var(--cat-indigo)' },
   offer: { label: 'Offer', bg: 'var(--warning-soft)', color: 'var(--warning)' },
   accepted: { label: 'Accepted', bg: 'var(--success-soft)', color: 'var(--success)' },
   rejected: { label: 'Rejected', bg: 'var(--danger-soft)', color: 'var(--danger)' },

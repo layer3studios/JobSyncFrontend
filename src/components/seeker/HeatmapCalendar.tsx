@@ -2,6 +2,7 @@
 // FILE: src/components/seeker/HeatmapCalendar.tsx
 import { useEffect, useMemo, useState } from 'react';
 import type { AppliedJobEntry } from '../../types';
+import { Z } from '@/theme/tokens';
 
 interface Props {
   appliedJobs: AppliedJobEntry[];
@@ -147,7 +148,7 @@ export default function HeatmapCalendar({ appliedJobs, dailyGoal }: Props) {
             fontSize: '0.7rem',
             borderRadius: 6,
             pointerEvents: 'none',
-            zIndex: 100,
+            zIndex: Z.dropdown,
           }}>
             {hovered.count} applied · {hovered.date}
           </div>

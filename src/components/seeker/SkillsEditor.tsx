@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Plus, Sparkles } from 'lucide-react';
 import { useSeeker } from '../../context/seeker/SeekerContext';
 import { Button } from '../ui';
+import { Z } from '@/theme/tokens';
 
 interface Props { onClose: () => void; }
 
@@ -44,7 +45,7 @@ export default function SkillsEditor({ onClose }: Props) {
       role="dialog"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(15,15,14,0.45)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',

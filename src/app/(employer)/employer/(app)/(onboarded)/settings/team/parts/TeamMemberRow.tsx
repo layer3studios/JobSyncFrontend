@@ -15,8 +15,8 @@ import { ROLE_DOT_COLOR } from './RoleTiles';
 const AVATAR_STYLE: Record<string, { bg: string; fg: string }> = {
   founder: { bg: 'var(--accent-soft)', fg: 'var(--accent)' },
   owner: { bg: 'var(--accent-soft)', fg: 'var(--accent)' },
-  member: { bg: '#E1F5EE', fg: '#1D9E75' },
-  interviewer: { bg: '#FAEEDA', fg: '#BA7517' },
+  member: { bg: 'var(--status-accent-bg)', fg: 'var(--cat-green)' },
+  interviewer: { bg: 'var(--status-warning-bg)', fg: 'var(--cat-amber)' },
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const shortDate = (iso: string): string => {

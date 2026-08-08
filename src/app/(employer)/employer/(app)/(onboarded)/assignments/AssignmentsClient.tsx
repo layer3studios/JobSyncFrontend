@@ -25,6 +25,7 @@ import {
   EmployerAssignmentsApiError,
 } from '@/api/employer-assignments-api';
 import { canCreateAssignment } from '@/lib/team-permissions';
+import { COPY } from '@/theme/brand';
 import { trackEvent } from '@/lib/analytics-events';
 import type { Role } from '@/types/employer-team';
 import type { EmployerAssignment, AssignmentUsage } from '@/types/employer-assignments';
@@ -183,25 +184,40 @@ export default function AssignmentsClient({
 
   const createButton = mayCreate ? (
     <Button iconLeft={<Plus size={16} />} onClick={() => setModal({ kind: 'form', mode: 'create', source: null })}>
-      New assignment
+      {COPY.employer.assignments.newAssignment}
     </Button>
   ) : (
     // Disabled with a reason, never absent — the same rule the table follows.
     <Tooltip content="Only Members and above can create assignments.">
-      <Button iconLeft={<Plus size={16} />} disabled>New assignment</Button>
+      <Button iconLeft={<Plus size={16} />} disabled>{COPY.employer.assignments.newAssignment}</Button>
     </Tooltip>
   );
 
   return (
-    <div className="container-xl" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="container-xl" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* No eyebrow. It read "SETTINGS" while this lived under settings/, which is
           now simply false — Assignments is its own top-level nav section. The other
           top-level employer pages (Jobs, Dashboard) pass no label either: the nav
           already says where you are, and an eyebrow repeating it is noise. */}
       <PageHeader
-        title="Assignments"
-        subtitle="Reusable take-home tasks you can attach to postings."
-        actions={createButton}
+        title={COPY.employer.assignments.pageTitle}
+        subtitle={COPY.employer.assignments.pageSubtitle}
+        actions={(
+          // The archived toggle belongs beside the primary action, not floating
+          // loose above the table where it read as an orphaned control.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--ink-muted)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => handleToggleArchived(e.target.checked)}
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              {COPY.employer.assignments.showArchived}
+            </label>
+            {createButton}
+          </div>
+        )}
       />
 
       {!mayCreate && (
@@ -233,7 +249,6 @@ export default function AssignmentsClient({
           currentRole={currentRole}
           showArchived={showArchived}
           busyId={busyId}
-          onToggleArchived={handleToggleArchived}
           onCreate={() => setModal({ kind: 'form', mode: 'create', source: null })}
           onEdit={(assignment) => setModal({ kind: 'form', mode: 'edit', source: assignment })}
           onView={(assignment) => setModal({ kind: 'view', assignment })}

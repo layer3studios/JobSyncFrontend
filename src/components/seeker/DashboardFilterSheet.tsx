@@ -6,6 +6,7 @@ import { Button } from '../ui';
 import { Group, Chips, MultiChips } from './DashboardFilterSheetParts';
 import { MAX_LOCATIONS, SALARY_MAX_LPA } from './dashboard/constants';
 import type { JobFacets } from './dashboard/useJobFacets';
+import { Z } from '@/theme/tokens';
 
 interface Option { value: string; label: string; }
 
@@ -88,7 +89,7 @@ export default function DashboardFilterSheet({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 200,
+        position: 'fixed', inset: 0, zIndex: Z.sheet,
         background: 'rgba(15,15,14,0.45)',
         animation: `${closing ? 'sheetFadeIn' : 'sheetFadeIn'} 0.22s ease ${closing ? 'reverse' : 'normal'}`,
       }}

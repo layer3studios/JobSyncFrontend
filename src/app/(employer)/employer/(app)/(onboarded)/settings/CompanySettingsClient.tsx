@@ -14,6 +14,7 @@ import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from './parts/SettingsPageHeader';
 import CareersPageLink from './parts/CareersPageLink';
 import CompanyProfileFields from './parts/CompanyProfileFields';
+import { COPY } from '@/theme/brand';
 import type { SocialLinkValues } from './parts/CompanyProfileFields';
 import {
   socialUrlError, buildSocialLinksPatch, hasSocialErrors, socialLinksEqual,
@@ -53,7 +54,7 @@ export default function CompanySettingsClient() {
   if (!company) {
     return (
       <div>
-        <SettingsPageHeader title="Company" />
+        <SettingsPageHeader title={COPY.employer.settings.company} />
         <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)' }}>Loading company…</p>
       </div>
     );
@@ -96,8 +97,8 @@ export default function CompanySettingsClient() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: 'Settings' }, { label: 'Company' }]} />
-      <SettingsPageHeader title="Company" subtitle="Your company profile and public careers page." />
+      <Breadcrumbs items={[{ label: COPY.employer.settings.title }, { label: COPY.employer.settings.company }]} />
+      <SettingsPageHeader title={COPY.employer.settings.company} subtitle={COPY.employer.settings.companySubtitle} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640 }}>
         <div>

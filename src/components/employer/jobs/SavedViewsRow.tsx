@@ -12,13 +12,18 @@ import {
   EmployerApplicantsApiError,
 } from '@/api/employer-applicants-api';
 import type { SavedView } from '@/types/employer-applicants';
+import { Z } from '@/theme/tokens';
+import { createPortal } from 'react-dom';
+import { useAnchoredPosition } from '@/components/ui/ActionsMenu';
 
 const SAVE_ERROR_MESSAGE = 'Could not save the view.';
 
-function ViewChipMenu({ onRename, onDelete, onClose }: {
+function ViewChipMenu({ onRename, onDelete, onClose, anchorRef }: {
   onRename: () => void; onDelete: () => void; onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const position = useAnchoredPosition(anchorRef, menuRef, true);
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) onClose();
@@ -33,15 +38,22 @@ function ViewChipMenu({ onRename, onDelete, onClose }: {
     fontFamily: 'inherit', fontSize: '0.8125rem', color: 'var(--ink)',
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  // Portalled: the chip row is overflowX:auto, which would otherwise clip this
+  // menu and add a horizontal scrollbar to the row when it opens.
+  return createPortal(
     <div ref={menuRef} style={{
-      position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 40,
+      position: 'fixed', zIndex: Z.dropdown,
+      top: position?.top ?? 0, left: position?.left ?? 0,
+      visibility: position ? 'visible' : 'hidden',
       minWidth: 120, background: 'var(--paper)', border: '1px solid var(--border)',
-      borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', overflow: 'hidden',
+      borderRadius: 8, boxShadow: 'var(--shadow-md)', overflow: 'hidden',
     }}>
       <button type="button" style={itemStyle} onClick={onRename}>Rename</button>
       <button type="button" style={{ ...itemStyle, color: 'var(--danger)' }} onClick={onDelete}>Delete</button>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -57,6 +69,8 @@ export default function SavedViewsRow({ postingId, isViewActive, canSave, onAppl
 }) {
   const [views, setViews] = useState<SavedView[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // The ⋯ element that opened the menu, so the portalled panel can anchor to it.
+  const menuAnchorRef = useRef<HTMLElement | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'rename'; view: SavedView } | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,12 +146,13 @@ export default function SavedViewsRow({ postingId, isViewActive, canSave, onAppl
                 {view.name}
                 <span
                   role="button" aria-label={`Options for ${view.name}`}
-                  onClick={(event) => { event.stopPropagation(); setOpenMenuId(openMenuId === view.id ? null : view.id); }}
+                  onClick={(event) => { event.stopPropagation(); menuAnchorRef.current = event.currentTarget; setOpenMenuId(openMenuId === view.id ? null : view.id); }}
                   style={{ padding: '0 2px', fontWeight: 700, lineHeight: 1 }}
                 >⋯</span>
               </button>
               {openMenuId === view.id && (
                 <ViewChipMenu
+                  anchorRef={menuAnchorRef}
                   onClose={() => setOpenMenuId(null)}
                   onRename={() => { setOpenMenuId(null); setNameInput(view.name); setModal({ mode: 'rename', view }); }}
                   onDelete={() => void handleDelete(view)}

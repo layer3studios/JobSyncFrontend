@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ExternalLink, Clock, MoreHorizontal } from 'lucide-react';
 import { STAGES, STAGE_ORDER, type StageName } from './pipeline-stages';
+import { Z } from '@/theme/tokens';
 
 // Re-export for back-compat (other files import these from PipelineCard)
 export { STAGES, STAGE_ORDER };
@@ -125,7 +126,7 @@ export default function PipelineCard({
                 borderRadius: 10,
                 boxShadow: 'var(--shadow-md)',
                 padding: 4,
-                zIndex: 10,
+                zIndex: Z.card,
               }}
             >
               {STAGE_ORDER.map(s => (

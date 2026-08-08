@@ -8,17 +8,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Building2, Users, Shield, Mail, Palette, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { COPY } from '@/theme/brand';
 
 interface SettingsNavItem { label: string; href: string; icon: ReactNode; danger?: boolean }
 
 const SETTINGS_ROOT = '/employer/settings';
 
 export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
-  { label: 'Company', href: SETTINGS_ROOT, icon: <Building2 size={14} /> },
-  { label: 'Team', href: `${SETTINGS_ROOT}/team`, icon: <Users size={14} /> },
-  { label: 'Roles', href: `${SETTINGS_ROOT}/roles`, icon: <Shield size={14} /> },
-  { label: 'Email', href: `${SETTINGS_ROOT}/email`, icon: <Mail size={14} /> },
-  { label: 'Branding', href: `${SETTINGS_ROOT}/branding`, icon: <Palette size={14} /> },
+  { label: COPY.employer.settings.company, href: SETTINGS_ROOT, icon: <Building2 size={14} /> },
+  { label: COPY.employer.settings.team, href: `${SETTINGS_ROOT}/team`, icon: <Users size={14} /> },
+  { label: COPY.employer.settings.roles, href: `${SETTINGS_ROOT}/roles`, icon: <Shield size={14} /> },
+  { label: COPY.employer.settings.email, href: `${SETTINGS_ROOT}/email`, icon: <Mail size={14} /> },
+  { label: COPY.employer.settings.branding, href: `${SETTINGS_ROOT}/branding`, icon: <Palette size={14} /> },
   // Assignments used to sit here. It moved to /employer/assignments (top nav,
   // beside Jobs) because it describes postings, not company configuration — and
   // because Settings is owner-only, which left members unable to reach a library
@@ -26,7 +27,7 @@ export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
 ];
 
 export const DANGER_NAV_ITEM: SettingsNavItem = {
-  label: 'Danger zone', href: `${SETTINGS_ROOT}/danger`, icon: <Trash2 size={14} />, danger: true,
+  label: COPY.employer.settings.dangerZone, href: `${SETTINGS_ROOT}/danger`, icon: <Trash2 size={14} />, danger: true,
 };
 
 const ITEM_STYLE = {

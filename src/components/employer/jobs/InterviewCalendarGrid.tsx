@@ -75,7 +75,7 @@ export default function InterviewCalendarGrid({
           <ChevronRight size={16} />
         </MonthNavButton>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 10 }}>
-          <LegendDot color="#1D9E75" label="available" />
+          <LegendDot color="var(--cat-green)" label="available" />
           <LegendDot color="var(--accent)" label="booked" />
           <LegendDot color="var(--ink-faint)" label="past" />
         </span>

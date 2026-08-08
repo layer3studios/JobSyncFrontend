@@ -10,6 +10,7 @@ import SettingsPageHeader from '../parts/SettingsPageHeader';
 import EmailTemplatePreviews from './parts/EmailTemplatePreviews';
 import RejectionTemplateEditor from './parts/RejectionTemplateEditor';
 import { canEditCompanySettings } from '@/lib/team-permissions';
+import { COPY } from '@/theme/brand';
 
 const PLATFORM_SENDING_DOMAIN = 'jobmesh.in';
 const PLATFORM_FROM_ADDRESS = 'hello@jobmesh.in';
@@ -31,7 +32,7 @@ export default function EmailSettingsClient() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: 'Settings' }, { label: 'Email' }]} />
+      <Breadcrumbs items={[{ label: COPY.employer.settings.title }, { label: COPY.employer.settings.email }]} />
       <SettingsPageHeader
         title="Email settings"
         subtitle="How candidate-facing emails are sent for your company."

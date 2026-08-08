@@ -1,7 +1,6 @@
 'use client';
 // FILE: src/components/seeker/LoginScreen.tsx
 // Quiet, paper-textured sign-in card. Apple-style focus, no theatre.
-
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +11,7 @@ import BrandLogo from '../BrandLogo';
 import { LOGIN_BENEFITS } from './login-benefits';
 import { trackEvent } from '../../lib/analytics-events';
 import { getFromRoute } from '../../lib/from-route';
+import { Z } from '@/theme/tokens';
 
 export default function LoginScreen() {
   const { login } = useSeeker();
@@ -32,7 +32,7 @@ export default function LoginScreen() {
     <div style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 9999,
+      zIndex: Z.overlay,
       background: 'var(--paper)',
       display: 'flex',
       alignItems: isMobile ? 'flex-start' : 'center',
