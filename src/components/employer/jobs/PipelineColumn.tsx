@@ -8,7 +8,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import PipelineCard from '@/components/employer/jobs/PipelineCard';
-import type { Applicant, Stage } from '@/types/employer-applicants';
+import type { Applicant, Stage, ArchiveReason } from '@/types/employer-applicants';
 
 /** Stage accent by (case-insensitive) name; custom stages fall back to grey. */
 const STAGE_COLOR_BY_NAME: Record<string, string> = {
@@ -20,6 +20,7 @@ export const stageColor = (stageName: string): string =>
 
 export default function PipelineColumn({
   stage, applicants, canMove = true, onOpen, scrollMode = false,
+  archiveReasons = [], canArchive = false, onArchived,
 }: {
   stage: Stage;
   applicants: Applicant[];
@@ -27,6 +28,10 @@ export default function PipelineColumn({
   onOpen?: (applicantId: string) => void;
   /** >6 stages: fixed-width columns inside a horizontal scroller. */
   scrollMode?: boolean;
+  /** Passed straight through to each card's quick-archive popover. */
+  archiveReasons?: ArchiveReason[];
+  canArchive?: boolean;
+  onArchived?: (candidateName: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stageId: stage.id } });
   const color = stageColor(stage.text);
@@ -65,7 +70,15 @@ export default function PipelineColumn({
           strategy={verticalListSortingStrategy}
         >
           {applicants.map((applicant) => (
-            <PipelineCard key={applicant.application.id} applicant={applicant} canMove={canMove} onOpen={onOpen} />
+            <PipelineCard
+              key={applicant.application.id}
+              applicant={applicant}
+              canMove={canMove}
+              onOpen={onOpen}
+              archiveReasons={archiveReasons}
+              canArchive={canArchive}
+              onArchived={onArchived}
+            />
           ))}
           {applicants.length === 0 && (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--ink-faint)' }}>

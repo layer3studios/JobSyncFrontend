@@ -6,6 +6,7 @@
 
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { getInitials } from './score-badge-helpers';
+import { formatDeadline } from './deadline-helpers';
 import type { PostingFormValues } from './posting-form-helpers';
 
 const PREVIEW_DESCRIPTION_LIMIT = 300;
@@ -21,6 +22,8 @@ export default function PostingLivePreview({ values }: { values: PostingFormValu
   const description = values.description.trim();
   const salaryText = values.salaryMinStr || values.salaryMaxStr
     ? `₹ ${values.salaryMinStr || '—'} – ${values.salaryMaxStr || '—'} LPA` : '';
+  // The form holds a yyyy-mm-dd; the banner shows it the way candidates will read it.
+  const deadlineLabel = formatDeadline(values.applicationDeadline);
   const pills = [
     values.location.trim(),
     WORKPLACE_LABEL[values.workplaceType] ?? '',
@@ -55,6 +58,16 @@ export default function PostingLivePreview({ values }: { values: PostingFormValu
         {description && (
           <p style={{ margin: '0 0 12px', fontSize: 12, lineHeight: 1.6, color: 'var(--ink-2)', whiteSpace: 'pre-wrap' }}>
             {description.length > PREVIEW_DESCRIPTION_LIMIT ? `${description.slice(0, PREVIEW_DESCRIPTION_LIMIT)}...` : description}
+          </p>
+        )}
+        {/* Candidates see this above the form, so it belongs above the button here
+            too — the preview should not imply it is a footnote. */}
+        {deadlineLabel && (
+          <p style={{
+            margin: '0 0 10px', padding: '6px 10px', borderRadius: 8, fontSize: 11,
+            background: 'var(--warning-soft)', color: 'var(--warning)',
+          }}>
+            Applications close on {deadlineLabel}
           </p>
         )}
         <span aria-hidden style={{

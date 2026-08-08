@@ -8,6 +8,8 @@ import { useEmployer } from '@/context/employer/EmployerContext';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from '../parts/SettingsPageHeader';
 import EmailTemplatePreviews from './parts/EmailTemplatePreviews';
+import RejectionTemplateEditor from './parts/RejectionTemplateEditor';
+import { canEditCompanySettings } from '@/lib/team-permissions';
 
 const PLATFORM_SENDING_DOMAIN = 'jobmesh.in';
 const PLATFORM_FROM_ADDRESS = 'hello@jobmesh.in';
@@ -20,7 +22,10 @@ const LABEL = { width: 160, flexShrink: 0, fontSize: 13, fontWeight: 500, color:
 const VALUE = { flex: 1, minWidth: 220, fontSize: 13, color: 'var(--ink-2)' } as const;
 
 export default function EmailSettingsClient() {
-  const { company } = useEmployer();
+  const { company, viewerRole } = useEmployer();
+  // Editing the wording sent under the company's name is an Owner+ action; a
+  // Member still sees the templates, read-only.
+  const canEdit = viewerRole ? canEditCompanySettings(viewerRole) : false;
   // The reply-to a candidate sees is the company's own site when one is set.
   const website = company?.website ?? null;
 
@@ -57,6 +62,11 @@ export default function EmailSettingsClient() {
       </p>
 
       <EmailTemplatePreviews companyName={company?.name ?? 'your company'} />
+
+      <RejectionTemplateEditor
+        companyName={company?.name ?? 'your company'}
+        canEdit={canEdit}
+      />
     </div>
   );
 }

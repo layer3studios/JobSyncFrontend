@@ -5,18 +5,23 @@
 // lives in RankedCandidateRow.
 
 import { Button } from '@/components/ui';
-import type { Applicant, Stage } from '@/types/employer-applicants';
+import type { Applicant, Stage, ArchiveReason } from '@/types/employer-applicants';
 import RankedCandidateRow from './RankedCandidateRow';
 
 const HEADER_CELL = { fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' } as const;
 
 export default function RankedCandidateTable({
   applicants, postingId, stages, showSelect, showAssignment = false, selectedIds, onToggleSelect, onClearFilters,
+  archiveReasons, canArchive, onArchived,
 }: {
   applicants: Applicant[];
   postingId: string;
   stages: Stage[];
   showSelect: boolean;
+  /** Passed straight through to each row's quick-archive popover. */
+  archiveReasons: ArchiveReason[];
+  canArchive: boolean;
+  onArchived: (candidateName: string) => void;
   /**
    * True only for a posting with an assignment. When false the table renders
    * exactly as it did before 8c — no Task header, no Task cell.
@@ -49,7 +54,7 @@ export default function RankedCandidateTable({
         {showAssignment && <span style={{ width: 110, flexShrink: 0, ...HEADER_CELL }}>Task</span>}
         <span style={{ width: 100, flexShrink: 0, ...HEADER_CELL }}>Stage</span>
         <span style={{ width: 80, flexShrink: 0, ...HEADER_CELL }}>Applied</span>
-        <span style={{ width: 60, flexShrink: 0 }} />
+        <span style={{ width: 92, flexShrink: 0 }} />
       </div>
       {applicants.map((applicant, index) => (
         <div key={applicant.application.id} style={{ borderBottom: index < applicants.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
@@ -61,6 +66,9 @@ export default function RankedCandidateTable({
             showAssignment={showAssignment}
             isSelected={selectedIds.has(applicant.application.id)}
             onToggleSelect={onToggleSelect}
+            archiveReasons={archiveReasons}
+            canArchive={canArchive}
+            onArchived={onArchived}
           />
         </div>
       ))}

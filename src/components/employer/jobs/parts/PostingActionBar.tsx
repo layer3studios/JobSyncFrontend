@@ -5,10 +5,11 @@
 // Purely presentational: every action is a callback the parent owns, so the
 // mutation logic and this layout never drift into the same component.
 
-import { Pencil } from 'lucide-react';
+import { Pencil, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button, Badge } from '@/components/ui';
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
+import { formatDeadline, deadlineUrgency } from '../deadline-helpers';
 
 const STATUS_VARIANT: Record<PostingStatus, 'success' | 'warning' | 'neutral'> = {
   active: 'success', draft: 'warning', closed: 'neutral',
@@ -34,6 +35,8 @@ export default function PostingActionBar({
   onFill: () => void;
 }) {
   const isOpenForApplicants = posting.status === 'draft' || posting.status === 'active';
+  const deadlineLabel = formatDeadline(posting.applicationDeadline);
+  const urgency = deadlineUrgency(posting.applicationDeadline);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -41,6 +44,20 @@ export default function PostingActionBar({
       <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>
         Created {relativeTime(posting.createdAt)} · {posting.postedAt ? `Posted ${relativeTime(posting.postedAt)}` : 'Not yet published'}
       </span>
+      {deadlineLabel && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12,
+          // Elapsed but still active is the state that needs acting on: auto-close
+          // has not run (or was never on) while the apply page already refuses.
+          color: urgency === 'passed' ? 'var(--danger)'
+            : urgency === 'soon' ? 'var(--warning)' : 'var(--ink-muted)',
+        }}>
+          <Clock size={12} aria-hidden />
+          {urgency === 'passed' && posting.status === 'active'
+            ? `Expired ${deadlineLabel} — will close automatically`
+            : `Closes ${deadlineLabel}`}
+        </span>
+      )}
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
         {allowEdit && (
           <Button variant="ghost" size="sm" aria-label="Edit posting" onClick={onEdit}><Pencil size={14} /></Button>

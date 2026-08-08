@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Button, Alert, Stack, EmptyState, SkeletonCard } from '@/components/ui';
+import { Button, Alert, Stack, EmptyState, SkeletonCard, useToast } from '@/components/ui';
 import {
   listApplicantsWithStats, listStages, listArchiveReasons,
   fetchApplicantFacets, EmployerApplicantsApiError,
@@ -42,6 +42,7 @@ export default function RankedTab({ postingId }: { postingId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const isNarrow = useIsNarrowViewport();
+  const { showToast } = useToast();
 
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   // Rendered exactly as the API returns it. undefined means the posting has no
@@ -229,6 +230,12 @@ export default function RankedTab({ postingId }: { postingId: string }) {
             selectedIds={selectedIds}
             onToggleSelect={(id) => setSelectedIds((prev) => toggleSetValue(prev, id))}
             onClearFilters={clearAllFilters}
+            archiveReasons={reasons}
+            canArchive={allowArchive}
+            onArchived={(name) => {
+              showToast('success', `Archived ${name}`);
+              void load(sort);
+            }}
           />
         </div>
       </div>

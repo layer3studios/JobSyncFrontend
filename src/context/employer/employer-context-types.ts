@@ -25,6 +25,10 @@ export interface EmployerCompany {
   name: string;
   /** One-line company description shown on the public careers page. */
   tagline: string | null;
+  /** Longer company description (≤500 chars) shown on the careers page. */
+  about: string | null;
+  /** Optional LinkedIn/X/GitHub URLs. Null when none are set. */
+  socialLinks: { linkedin?: string; twitter?: string; github?: string } | null;
   website: string | null;
   /** Public read URL for the uploaded logo, or null when none is set. */
   logoUrl: string | null;

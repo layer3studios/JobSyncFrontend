@@ -30,6 +30,7 @@ function posting(overrides: Partial<Posting> = {}): Posting {
     id: 'p1', slug: 'be', title: 'Backend Engineer', description: 'JD-BODY-TEXT', descriptionPlain: 'x',
     location: 'Bengaluru', workplaceType: 'hybrid', employmentType: 'full-time',
     salaryMin: 12, salaryMax: 18, salaryCurrency: 'INR', status: 'active',
+    applicationDeadline: null, autoCloseOnDeadline: false, closedAt: null,
     postedAt: new Date(Date.now() - 28 * 86400000).toISOString(),
     createdAt: new Date(Date.now() - 28 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),

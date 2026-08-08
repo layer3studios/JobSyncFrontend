@@ -6,13 +6,18 @@
 // update everywhere at once.
 
 import { useState } from 'react';
-import { Input, Button, useToast } from '@/components/ui';
+import { Button, useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { updateEmployerCompany, EmployerApiError } from '@/api/employer-api';
 import { canEditCompanySettings } from '@/lib/team-permissions';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from './parts/SettingsPageHeader';
 import CareersPageLink from './parts/CareersPageLink';
+import CompanyProfileFields from './parts/CompanyProfileFields';
+import type { SocialLinkValues } from './parts/CompanyProfileFields';
+import {
+  socialUrlError, buildSocialLinksPatch, hasSocialErrors, socialLinksEqual,
+} from './company-settings-helpers';
 
 const FIELD_LABEL = { margin: '0 0 6px', fontSize: 13, fontWeight: 500, color: 'var(--ink)' } as const;
 const READ_ONLY_VALUE = {
@@ -26,7 +31,24 @@ export default function CompanySettingsClient() {
   const canEdit = viewerRole ? canEditCompanySettings(viewerRole) : false;
   const [name, setName] = useState(company?.name ?? '');
   const [tagline, setTagline] = useState(company?.tagline ?? '');
+  const [about, setAbout] = useState(company?.about ?? '');
+  const [social, setSocial] = useState<SocialLinkValues>({
+    linkedin: company?.socialLinks?.linkedin ?? '',
+    twitter: company?.socialLinks?.twitter ?? '',
+    github: company?.socialLinks?.github ?? '',
+  });
+  const [socialErrors, setSocialErrors] = useState<Partial<Record<keyof SocialLinkValues, string | null>>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  const setSocialField = (key: keyof SocialLinkValues, value: string) => {
+    setSocial((previous) => ({ ...previous, [key]: value }));
+    setSocialErrors((previous) => ({ ...previous, [key]: null }));
+  };
+  // Validated on blur, not on every keystroke: an in-progress "https:/" is not an
+  // error yet, and flagging it while someone types reads as the field being broken.
+  const validateSocialField = (key: keyof SocialLinkValues) => {
+    setSocialErrors((previous) => ({ ...previous, [key]: socialUrlError(social[key]) }));
+  };
 
   if (!company) {
     return (
@@ -41,18 +63,27 @@ export default function CompanySettingsClient() {
   const trimmedTagline = tagline.trim();
   // An empty tagline is null on the server, so '' and null are the same state here —
   // comparing the trimmed value against (tagline ?? '') keeps clearing it dirty.
+  const trimmedAbout = about.trim();
+  const nextSocial = buildSocialLinksPatch(social);
   const isNameDirty = trimmedName !== company.name && trimmedName.length > 0;
   const isTaglineDirty = trimmedTagline !== (company.tagline ?? '');
-  const isDirty = isNameDirty || isTaglineDirty;
+  const isAboutDirty = trimmedAbout !== (company.about ?? '');
+  const isSocialDirty = !socialLinksEqual(nextSocial, company.socialLinks);
+  // Blocked rather than silently dropped: saving past a bad URL would quietly
+  // discard something the employer typed.
+  const socialInvalid = hasSocialErrors(social);
+  const isDirty = (isNameDirty || isTaglineDirty || isAboutDirty || isSocialDirty) && !socialInvalid;
 
   async function handleSave() {
     setIsSaving(true);
     try {
-      // One PATCH for both fields. Empty tagline goes as null so the careers page
-      // has a single falsy case and never renders an empty line.
+      // One PATCH for the whole profile. Empty text fields go as null so the
+      // careers page has a single falsy case and never renders an empty line.
       await updateEmployerCompany({
         name: trimmedName,
         tagline: trimmedTagline === '' ? null : trimmedTagline,
+        about: trimmedAbout === '' ? null : trimmedAbout,
+        socialLinks: nextSocial,
       });
       await refreshEmployerSession();
       showToast('success', 'Company details updated.');
@@ -72,25 +103,19 @@ export default function CompanySettingsClient() {
         <div>
           {canEdit ? (
             <>
-              <Input
-                label="Company name"
-                value={name}
-                maxLength={120}
-                onChange={(event) => setName(event.target.value)}
+              <CompanyProfileFields
+                name={name}
+                tagline={tagline}
+                about={about}
+                social={social}
+                socialErrors={socialErrors}
+                onNameChange={setName}
+                onTaglineChange={setTagline}
+                onAboutChange={setAbout}
+                onSocialChange={setSocialField}
+                onSocialBlur={validateSocialField}
               />
               <div style={{ marginTop: 12 }}>
-                <Input
-                  label="Tagline"
-                  placeholder="One line about your company"
-                  value={tagline}
-                  maxLength={120}
-                  onChange={(event) => setTagline(event.target.value)}
-                />
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--ink-faint)', textAlign: 'right' }}>
-                  {tagline.length}/120
-                </p>
-              </div>
-              <div style={{ marginTop: 8 }}>
                 <Button size="sm" disabled={!isDirty} loading={isSaving} onClick={handleSave}>
                   Save changes
                 </Button>

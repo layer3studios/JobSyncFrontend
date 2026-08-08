@@ -2,9 +2,18 @@
 // Public apply-flow types — mirror the backend 5A public shapes
 // (public-apply-routes.js). Public audience: unauthenticated candidates.
 
+/** The three social networks an employer can link from their careers page. */
+export interface PublicSocialLinks {
+  linkedin?: string;
+  twitter?: string;
+  github?: string;
+}
+
 export interface PublicCompany {
   name: string;
   tagline: string | null;
+  about: string | null;
+  socialLinks: PublicSocialLinks | null;
   slug: string;
   website: string | null;
   logoUrl: string | null;
@@ -21,6 +30,8 @@ export interface PublicJob {
   salaryMin: number | null;
   salaryMax: number | null;
   salaryCurrency: string;
+  /** ISO instant applications stop being accepted, or null. */
+  applicationDeadline: string | null;
   postedAt: string | null;
 }
 
@@ -52,6 +63,9 @@ export interface PublicJobSummary {
   title: string;
   location: string;
   employmentType: string;
+  /** Null on older rows that predate the field being projected. */
+  workplaceType: string | null;
+  postedAt: string | null;
   assignment: PublicAssignmentSummary | null;
 }
 
@@ -64,6 +78,11 @@ export interface ApplyFormData {
   consent_dpdp: boolean;
   consent_futureOpportunities: boolean;
   resume: File | null;
+  /**
+   * "How did you hear about us?" — submitted as `utm_source`, which apply-service
+   * already reads into application.sourceDetail. Empty string means unanswered.
+   */
+  source: string;
   /** Honeypot — bots fill this hidden field; real users leave it empty (R4). */
   honeypot: string;
 }

@@ -14,7 +14,8 @@ const updateEmployerCompany = vi.fn();
 const copyToClipboard = vi.fn();
 
 const COMPANY: EmployerCompany = {
-  id: 'c1', slug: 'acme', name: 'Acme Labs', tagline: null, website: null, logoUrl: null,
+  id: 'c1', slug: 'acme', name: 'Acme Labs', tagline: null, about: null, socialLinks: null,
+  website: null, logoUrl: null,
   plan: 'free', retentionDays: 180, privacyPolicyUrl: null, dpoEmail: null,
   createdAt: '2026-01-01T00:00:00Z',
 };
@@ -65,7 +66,11 @@ describe('Company settings page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     // Name and tagline save together in one PATCH; an untouched empty tagline
     // goes as null rather than '' so the careers page has one falsy case.
-    await waitFor(() => expect(updateEmployerCompany).toHaveBeenCalledWith({ name: 'Acme Inc', tagline: null }));
+    // The whole profile saves in one PATCH. Untouched optional fields go as null
+    // so clearing one is indistinguishable from never setting it.
+    await waitFor(() => expect(updateEmployerCompany).toHaveBeenCalledWith({
+      name: 'Acme Inc', tagline: null, about: null, socialLinks: null,
+    }));
     expect(refreshEmployerSession).toHaveBeenCalled();
   });
 

@@ -12,7 +12,8 @@
 // posting submits byte-identically to before this chunk.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Card, Button, Alert, Stack } from '@/components/ui';
 import ApplyFormFields from './ApplyFormFields';
 import AssignmentSection from './AssignmentSection';
@@ -26,12 +27,16 @@ import { useAssignmentFiles } from './useAssignmentFiles';
 import { readDraft, writeDraft, clearDraft } from './assignment-draft';
 import type { DraftPayload } from './assignment-draft';
 import { copyToClipboard } from '@/lib/clipboard';
+import CompanyLogoMark from '@/components/company/CompanyLogoMark';
+import { sourceFromQuery } from './apply-source';
+import { formatDeadline } from '@/components/employer/jobs/deadline-helpers';
 import type { ApplyFormData, PublicCompany, PublicJob, PublicAssignment } from '@/types/public-apply';
 import { trackEvent } from '@/lib/analytics-events';
 
 const EMPTY: ApplyFormData = {
   firstName: '', lastName: '', email: '', phone: '', coverNote: '',
-  consent_dpdp: false, consent_futureOpportunities: false, resume: null, honeypot: '',
+  consent_dpdp: false, consent_futureOpportunities: false, resume: null,
+  source: '', honeypot: '',
 };
 
 // Every major ATS (LinkedIn, Greenhouse, Lever, Ashby) puts the JD on the left and
@@ -65,7 +70,7 @@ function formatSalaryLPA(min: number | null, max: number | null): string | null 
 
 /** A blocking, non-dismissible outcome that must survive on screen (7b). */
 interface BlockingNotice {
-  kind: 'assignment_changed' | 'posting_closed';
+  kind: 'assignment_changed' | 'posting_closed' | 'deadline_passed';
   message: string;
 }
 
@@ -89,7 +94,12 @@ export default function ApplyFormClient({
   company, job, companySlug, jobSlug, assignment = null, assignmentPreview = null,
 }: Props) {
   const router = useRouter();
-  const [data, setData] = useState<ApplyFormData>(EMPTY);
+  // Resolved once, from the URL the candidate actually arrived on. When it maps to
+  // a known channel the dropdown is pre-answered and hidden.
+  const querySource = sourceFromQuery(useSearchParams().get('source'));
+  const [data, setData] = useState<ApplyFormData>(
+    () => (querySource ? { ...EMPTY, source: querySource } : EMPTY),
+  );
   const [errors, setErrors] = useState<ApplyErrors>({});
   const [submitting, setSubmitting] = useState(false);
   // First-focus-per-field dedup (session-scoped, per form instance — not global).
@@ -401,6 +411,9 @@ export default function ApplyFormClient({
       form.append('consent_dpdp', String(data.consent_dpdp));
       form.append('consent_futureOpportunities', String(data.consent_futureOpportunities));
       form.append('website_url', data.honeypot);
+      // Sent as utm_source: apply-service already reads that key into
+      // application.sourceDetail, so this needs no new backend field.
+      if (data.source) form.append('utm_source', data.source);
       if (data.resume) form.append('resume', data.resume);
 
       if (assignment) {
@@ -439,6 +452,15 @@ export default function ApplyFormClient({
       query.set('jid', job.id);
       router.replace(`/apply/${companySlug}/${jobSlug}/success?${query.toString()}`);
     } catch (err) {
+      // The deadline passed between page load and submit. Applies to every posting,
+      // assignment or not, so it is handled before the assignment-only branch.
+      if (err instanceof PublicApiError && err.code === 'POSTING_DEADLINE_PASSED') {
+        setNotice({
+          kind: 'deadline_passed',
+          message: 'This posting has closed since you opened the page. Your application was not submitted.',
+        });
+        return;
+      }
       if (err instanceof PublicApiError && assignment) {
         // Each of these leaves the DRAFT INTACT. The candidate's work is the whole
         // point of the feature; none of these outcomes means it should be thrown away.
@@ -495,11 +517,26 @@ export default function ApplyFormClient({
     setCopyState(ok ? 'copied' : 'failed');
   }, [myWorkAsText]);
 
+  // The server already refused to render this page on a PASSED deadline, so any
+  // label here is necessarily for a future date.
+  const deadlineLabel = formatDeadline(job.applicationDeadline);
+
   const jdBlock = (
     <div>
+      {/* The employer's own mark, so the page reads as THEIR careers surface rather
+          than a generic form. Falls back to initials when no logo is uploaded. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <CompanyLogoMark name={company.name} logoUrl={company.logoUrl} size={44} borderRadius={10} />
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>{company.name}</p>
+          {company.tagline && (
+            <p style={{ margin: '1px 0 0', fontSize: '0.825rem', color: 'var(--ink-muted)' }}>{company.tagline}</p>
+          )}
+        </div>
+      </div>
       <h1 className="font-display" style={{ fontSize: 'clamp(1.4rem, 4vw, 1.9rem)', fontWeight: 600, color: 'var(--ink)' }}>{job.title}</h1>
       <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted)', marginTop: 4 }}>
-        {[company.name, job.location, job.employmentType, formatSalaryLPA(job.salaryMin, job.salaryMax)].filter(Boolean).join(' · ')}
+        {[job.location, job.employmentType, formatSalaryLPA(job.salaryMin, job.salaryMax)].filter(Boolean).join(' · ')}
       </p>
       {/* ABOVE the description, deliberately. A take-home is the single largest
           cost a candidate is being asked to accept, and burying that disclosure
@@ -592,6 +629,31 @@ export default function ApplyFormClient({
           </Alert>
         )}
 
+        {/* Lost the race: the deadline passed while they were filling the form.
+            Says plainly that nothing was submitted, and offers the one useful
+            next step rather than leaving them on a dead form. */}
+        {notice?.kind === 'deadline_passed' && (
+          <Alert type="error">
+            <p>{notice.message}</p>
+            <div style={{ marginTop: 8 }}>
+              <Link href={`/apply/${companySlug}`}>
+                <Button type="button" size="sm" variant="secondary">See other roles</Button>
+              </Link>
+            </div>
+          </Alert>
+        )}
+
+        {/* Stated before the form, not after: the cost of finding out late is a
+            filled-in form that cannot be submitted. */}
+        {deadlineLabel && !notice && (
+          <p style={{
+            margin: 0, padding: '8px 12px', borderRadius: 8, fontSize: 12,
+            background: 'var(--warning-soft)', color: 'var(--warning)',
+          }}>
+            Applications close on {deadlineLabel}
+          </p>
+        )}
+
         {restoreNotice && <Alert type="warning">{restoreNotice}</Alert>}
         {expiredNotice && <Alert type="warning">{expiredNotice}</Alert>}
         {errors._form && <Alert type="error">{errors._form}</Alert>}
@@ -603,6 +665,7 @@ export default function ApplyFormClient({
         <ApplyFormFields
           data={data} errors={errors} companyName={company.name}
           set={set} onBlur={onBlur} onFieldFocus={onFieldFocus}
+          showSourceField={querySource === null}
           submissionSlot={assignment && (
           <>
             <AssignmentSection

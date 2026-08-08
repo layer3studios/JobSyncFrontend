@@ -20,7 +20,7 @@ import { useDuplicateSource } from '@/hooks/employer/useDuplicateSource';
 
 const EMPTY_VALUES: PostingFormValues = {
   title: '', description: '', location: '', workplaceType: '', employmentType: '',
-  salaryMinStr: '', salaryMaxStr: '',
+  salaryMinStr: '', salaryMaxStr: '', applicationDeadline: '', autoCloseOnDeadline: false,
 };
 
 export default function EmployerJobsNew() {

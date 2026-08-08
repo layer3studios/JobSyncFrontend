@@ -7,7 +7,8 @@ function posting(overrides: Partial<Posting>): Posting {
     id: 'j1', slug: 'job', title: 'Backend Engineer', description: '', descriptionPlain: '',
     location: 'Bengaluru', workplaceType: 'remote', employmentType: 'full-time',
     salaryMin: null, salaryMax: null, salaryCurrency: 'INR', status: 'active',
-    assignmentId: null, postedAt: null, createdAt: '', updatedAt: '',
+    assignmentId: null, applicationDeadline: null, autoCloseOnDeadline: false,
+    postedAt: null, closedAt: null, createdAt: '', updatedAt: '',
     ...overrides,
   };
 }

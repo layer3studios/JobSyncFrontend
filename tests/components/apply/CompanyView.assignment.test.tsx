@@ -4,13 +4,15 @@ import CompanyView from '@/components/apply/CompanyView';
 import type { PublicCompany, PublicJobSummary } from '@/types/public-apply';
 
 const COMPANY: PublicCompany = {
-  name: 'Acme', tagline: null, slug: 'acme', website: null, logoUrl: null,
+  name: 'Acme', tagline: null, about: null, socialLinks: null,
+  slug: 'acme', website: null, logoUrl: null,
 };
 
 function job(overrides: Partial<PublicJobSummary> = {}): PublicJobSummary {
   return {
     id: 'j1', slug: 'react-dev', title: 'React Developer',
-    location: 'Bengaluru', employmentType: 'full-time', assignment: null,
+    location: 'Bengaluru', employmentType: 'full-time',
+    workplaceType: null, postedAt: null, assignment: null,
     ...overrides,
   };
 }
@@ -30,11 +32,11 @@ describe('CompanyView — assignment badge', () => {
     const { container } = render(<CompanyView company={COMPANY} jobs={[job()]} />);
     expect(container.textContent).not.toContain('Assignment');
 
-    // Everything the card rendered before this chunk is still exactly there.
+    // Everything the row rendered before this chunk is still exactly there.
     expect(container.textContent).toContain('React Developer');
     expect(container.textContent).toContain('Bengaluru · full-time');
-    expect(container.querySelectorAll('.card')).toHaveLength(1);
-    const link = container.querySelector('a[href="/apply/acme/react-dev"]');
+    expect(container.querySelectorAll('.careers-role')).toHaveLength(1);
+    const link = container.querySelector('a[href="/apply/acme/react-dev?source=careers"]');
     expect(link).toBeTruthy();
   });
 
@@ -52,8 +54,8 @@ describe('CompanyView — assignment badge', () => {
     const badges = container.textContent?.match(/Assignment · /g) ?? [];
     expect(badges).toHaveLength(1);
     expect(container.textContent).toContain('Assignment · ~3 hrs');
-    // All three cards still render.
-    expect(container.querySelectorAll('.card')).toHaveLength(3);
+    // All three rows still render.
+    expect(container.querySelectorAll('.careers-role')).toHaveLength(3);
   });
 
   it('never shows accepted formats on the list surface (badge data only)', () => {

@@ -10,6 +10,7 @@ import { Stack, useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canEditPosting, canClosePosting } from '@/lib/team-permissions';
 import PostingEditView from './parts/PostingEditView';
+import { isoToDeadlineInput } from './posting-form-helpers';
 import type { PostingFormValues } from './posting-form-helpers';
 import PostingConfirmDialog from './PostingConfirmDialog';
 import type { ConfirmAction } from './PostingConfirmDialog';
@@ -34,6 +35,7 @@ const toFormValues = (p: Posting): PostingFormValues => ({
   workplaceType: p.workplaceType, employmentType: p.employmentType,
   salaryMinStr: p.salaryMin != null ? String(p.salaryMin) : '',
   salaryMaxStr: p.salaryMax != null ? String(p.salaryMax) : '',
+  applicationDeadline: isoToDeadlineInput(p.applicationDeadline), autoCloseOnDeadline: p.autoCloseOnDeadline === true,
 });
 
 export default function PostingOverview({ posting, onReload }: {
@@ -106,11 +108,8 @@ export default function PostingOverview({ posting, onReload }: {
     }
   };
 
-  /**
-   * Position filled: closes the posting AND archives everyone still waiting, in one
-   * backend call. Reports the archived count back so the employer sees exactly how
-   * many people the action touched rather than a bare success.
-   */
+  // Position filled: closes the posting AND archives everyone still waiting, in one
+  // backend call. Reports the archived count so the employer sees what it touched.
   const handleFill = async () => {
     setIsMutating(true);
     try {

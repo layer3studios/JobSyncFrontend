@@ -14,6 +14,9 @@ export interface PostingFormValues {
   employmentType: EmploymentType | '';
   salaryMinStr: string;
   salaryMaxStr: string;
+  /** yyyy-mm-dd from the date input, or '' when no deadline is set. */
+  applicationDeadline: string;
+  autoCloseOnDeadline: boolean;
 }
 
 export interface PostingFormErrors {
@@ -23,6 +26,7 @@ export interface PostingFormErrors {
   workplaceType?: string;
   employmentType?: string;
   salary?: string;
+  applicationDeadline?: string;
   _form?: string;
   /**
    * The posting saved but the assignment attach failed. Kept distinct from _form
@@ -56,6 +60,49 @@ export function validateSalaryStrings(salaryMinStr: string, salaryMaxStr: string
   return { salaryMin: min.value, salaryMax: max.value };
 }
 
+/**
+ * Deadline handling is date-only and IST-anchored.
+ *
+ * The employer picks a DAY, not an instant, and this product is India-only. A bare
+ * "2026-08-20" would be parsed as UTC midnight, which is 05:30 IST — so a deadline
+ * would expire mid-morning on the chosen day. Anchoring to the END of that day in
+ * IST (+05:30) means "close on the 20th" means the 20th is still open.
+ */
+const IST_END_OF_DAY_SUFFIX = 'T23:59:59+05:30';
+
+/** yyyy-mm-dd → the ISO instant the deadline actually expires at. */
+export function deadlineToIso(dateStr: string): string | null {
+  const trimmed = dateStr.trim();
+  if (trimmed === '') return null;
+  const parsed = new Date(`${trimmed}${IST_END_OF_DAY_SUFFIX}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+/** An ISO instant back to the yyyy-mm-dd the picker should show, in IST. */
+export function isoToDeadlineInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  // en-CA formats as yyyy-mm-dd, which is exactly what <input type="date"> wants.
+  return parsed.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+/** Tomorrow in IST — the `min` for the picker, so today is already too late. */
+export function minimumDeadlineDate(now: Date = new Date()): string {
+  const tomorrow = new Date(now.getTime() + 86_400_000);
+  return tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+/** The picker's `min` is advisory — a typed date still has to be checked. */
+export function deadlineError(dateStr: string): string | undefined {
+  const trimmed = dateStr.trim();
+  if (trimmed === '') return undefined;
+  const iso = deadlineToIso(trimmed);
+  if (!iso) return 'Enter a valid date.';
+  if (new Date(iso).getTime() <= Date.now()) return 'The deadline must be in the future.';
+  return undefined;
+}
+
 /** Full client-side validation; returns an errors object ({} when valid). */
 export function validatePostingFormValues(values: PostingFormValues): PostingFormErrors {
   const errors: PostingFormErrors = {};
@@ -73,6 +120,8 @@ export function validatePostingFormValues(values: PostingFormValues): PostingFor
   if (values.employmentType === '') errors.employmentType = 'Select an employment type.';
   const salary = validateSalaryStrings(values.salaryMinStr, values.salaryMaxStr);
   if (salary.error) errors.salary = salary.error;
+  const deadline = deadlineError(values.applicationDeadline);
+  if (deadline) errors.applicationDeadline = deadline;
   return errors;
 }
 
@@ -88,6 +137,12 @@ export function buildPostingInput(values: PostingFormValues): PostingCreateInput
   };
   if (salaryMin != null) input.salaryMin = salaryMin;
   if (salaryMax != null) input.salaryMax = salaryMax;
+  // Always sent, both keys together: clearing the date has to reach the server as
+  // an explicit null, and the backend turns auto-close off whenever the date is
+  // absent so the flag can never be armed with nothing to fire on.
+  const deadlineIso = deadlineToIso(values.applicationDeadline);
+  input.applicationDeadline = deadlineIso;
+  input.autoCloseOnDeadline = deadlineIso != null && values.autoCloseOnDeadline;
   return input;
 }
 
@@ -100,6 +155,8 @@ export function mapServerErrorToFields(code: string | null, message: string): Po
     case 'INVALID_WORKPLACE_TYPE': return { workplaceType: message };
     case 'INVALID_EMPLOYMENT_TYPE': return { employmentType: message };
     case 'INVALID_SALARY': return { salary: message };
+    case 'INVALID_DEADLINE': return { applicationDeadline: message };
+    case 'INVALID_AUTO_CLOSE': return { applicationDeadline: message };
     default: return { _form: message || 'Could not save posting. Please try again.' };
   }
 }
