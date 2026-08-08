@@ -18,7 +18,9 @@ describe('getScoreBadgeStyle', () => {
 
   it('carries the paired colours', () => {
     expect(getScoreBadgeStyle(90)).toEqual({ background: 'var(--success-soft)', color: 'var(--success)', label: 'strong' });
-    expect(getScoreBadgeStyle(25)).toEqual({ background: '#FAECE7', color: '#D85A30', label: 'weak' });
+    // Tokenized alongside the other tiers: the raw hex had no dark-mode variant,
+    // so the 'weak' badge rendered as a light block on a dark page.
+    expect(getScoreBadgeStyle(25)).toEqual({ background: 'var(--status-danger-bg)', color: 'var(--cat-orange)', label: 'weak' });
     expect(getScoreBadgeStyle(null).background).toBe('var(--surface-raised)');
   });
 });

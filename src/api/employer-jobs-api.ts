@@ -78,6 +78,15 @@ export async function closeEmployerPosting(postingId: string): Promise<Posting> 
   return body.posting;
 }
 
+/**
+ * Permanently remove a draft posting. Owner+ and draft-with-no-applicants only —
+ * the backend re-checks both, so a stale list never deletes something it shouldn't.
+ * Throws EmployerJobsApiError with NOT_A_DRAFT or HAS_APPLICANTS when refused.
+ */
+export async function deleteEmployerPosting(postingId: string): Promise<void> {
+  await request<{ deleted: boolean }>(postingPath(postingId), { method: 'DELETE' });
+}
+
 export async function reopenEmployerPosting(postingId: string): Promise<Posting> {
   const body = await request<{ posting: Posting }>(`${postingPath(postingId)}/reopen`, { method: 'POST' });
   return body.posting;

@@ -12,8 +12,8 @@ import type { Applicant, Stage, ArchiveReason } from '@/types/employer-applicant
 
 /** Stage accent by (case-insensitive) name; custom stages fall back to grey. */
 const STAGE_COLOR_BY_NAME: Record<string, string> = {
-  applied: '#1D9E75', shortlisted: 'var(--accent)', interview: '#BA7517',
-  offer: '#7F77DD', hired: '#1D9E75',
+  applied: 'var(--cat-green)', shortlisted: 'var(--accent)', interview: 'var(--cat-amber)',
+  offer: 'var(--cat-purple)', hired: 'var(--cat-green)',
 };
 export const stageColor = (stageName: string): string =>
   STAGE_COLOR_BY_NAME[stageName.trim().toLowerCase()] ?? 'var(--ink-2)';

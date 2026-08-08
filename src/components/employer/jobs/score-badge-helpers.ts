@@ -11,7 +11,7 @@ export function getScoreBadgeStyle(score: number | null): ScoreBadgeStyle {
   if (score >= 80) return { background: 'var(--success-soft)', color: 'var(--success)', label: 'strong' };
   if (score >= 60) return { background: 'var(--accent-soft)', color: 'var(--accent)', label: 'good' };
   if (score >= 40) return { background: 'var(--warning-soft)', color: 'var(--warning)', label: 'partial' };
-  if (score >= 20) return { background: '#FAECE7', color: '#D85A30', label: 'weak' };
+  if (score >= 20) return { background: 'var(--status-danger-bg)', color: 'var(--cat-orange)', label: 'weak' };
   return { background: 'var(--danger-soft)', color: 'var(--danger)', label: 'poor' };
 }
 

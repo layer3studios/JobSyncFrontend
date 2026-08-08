@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import JobsList from '@/components/employer/jobs/JobsList';
+import { ToastProvider } from '@/components/ui/Toast';
 
 let viewer: { viewerRole: string | null };
 vi.mock('@/context/employer/EmployerContext', () => ({ useEmployer: () => viewer }));
@@ -16,7 +17,8 @@ describe('JobsList create-posting gating', () => {
 
   it('hides "New posting" for an Interviewer', async () => {
     viewer = { viewerRole: 'interviewer' };
-    render(<JobsList />);
+    // JobsList reports close/delete/fill outcomes through a toast.
+    render(<ToastProvider><JobsList /></ToastProvider>);
     await waitFor(() => expect(screen.getByText('No postings yet')).toBeTruthy());
     expect(screen.queryByText('+ New posting')).toBeNull();
     expect(screen.queryByText('Create your first posting')).toBeNull();
@@ -24,8 +26,11 @@ describe('JobsList create-posting gating', () => {
 
   it('shows "New posting" for a Member', async () => {
     viewer = { viewerRole: 'member' };
-    render(<JobsList />);
+    // JobsList reports close/delete/fill outcomes through a toast.
+    render(<ToastProvider><JobsList /></ToastProvider>);
     await waitFor(() => expect(screen.getByText('No postings yet')).toBeTruthy());
-    expect(screen.getByText('+ New posting')).toBeTruthy();
+    // Two on an empty list now: the page-header action and the empty-state CTA,
+    // which share a label. The gate is that a Member sees at least one.
+    expect(screen.getAllByText('+ New posting').length).toBeGreaterThan(0);
   });
 });

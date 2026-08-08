@@ -46,7 +46,7 @@ export default function TimeInStage({
       title={title ?? `In this stage for ${formatDaysInStage(days)}`}
       style={{
         fontSize: 11,
-        fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+        fontFamily: 'var(--font-mono)',
         color: isStale ? 'var(--warning)' : 'var(--ink-faint)',
         whiteSpace: 'nowrap',
       }}

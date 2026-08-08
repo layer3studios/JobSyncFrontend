@@ -5,7 +5,7 @@
 // Purely presentational: every action is a callback the parent owns, so the
 // mutation logic and this layout never drift into the same component.
 
-import { Pencil, Clock } from 'lucide-react';
+import { Pencil, Clock, StopCircle, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button, Badge } from '@/components/ui';
 import type { Posting, PostingStatus } from '@/types/employer-jobs';
@@ -76,11 +76,30 @@ export default function PostingActionBar({
         {allowClose && isOpenForApplicants && (
           <Button variant="secondary" size="sm" loading={isMutating} onClick={onFill}>Position filled</Button>
         )}
+        {/* "Close applications", not "Close posting": the neighbouring action
+            ("Position filled") ALSO archives every remaining candidate, and the two
+            were previously a word apart. This one only stops new submissions. */}
         {allowClose && isOpenForApplicants && (
-          <Button variant="danger" size="sm" loading={isMutating} onClick={onCloseposting}>Close posting</Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={isMutating}
+            iconLeft={<StopCircle size={14} aria-hidden />}
+            onClick={onCloseposting}
+          >
+            Close applications
+          </Button>
         )}
         {allowClose && posting.status === 'closed' && (
-          <Button variant="secondary" size="sm" loading={isMutating} onClick={onReopen}>Reopen posting</Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={isMutating}
+            iconLeft={<PlayCircle size={14} aria-hidden />}
+            onClick={onReopen}
+          >
+            Reopen
+          </Button>
         )}
       </span>
     </div>

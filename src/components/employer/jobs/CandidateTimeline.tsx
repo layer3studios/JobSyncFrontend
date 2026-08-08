@@ -16,8 +16,8 @@ import { formatCompactDuration } from './score-badge-helpers';
 import { formatInterviewTimeShort } from '@/utils/format-interview-time';
 
 const DOT: Record<TimelineEvent['type'], string> = {
-  applied: 'var(--success)', scored: 'var(--success)', stage_move: '#378ADD',
-  interview_proposed: '#378ADD', interview_booked: '#378ADD',
+  applied: 'var(--success)', scored: 'var(--success)', stage_move: 'var(--cat-blue)',
+  interview_proposed: 'var(--cat-blue)', interview_booked: 'var(--cat-blue)',
   interview_completed: 'var(--success)', interview_no_show: 'var(--danger)',
   interview_cancelled: 'var(--warning)', note_added: 'var(--ink-faint)',
 };

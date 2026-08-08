@@ -6,7 +6,7 @@
 
 import type { CalendarCellData } from './interview-calendar-helpers';
 
-const AVAILABLE_GREEN = '#1D9E75';
+const AVAILABLE_GREEN = 'var(--cat-green)';
 const MAX_DOTS = 5;
 
 export default function InterviewCalendarCell({

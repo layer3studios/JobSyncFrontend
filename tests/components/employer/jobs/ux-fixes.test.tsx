@@ -2,7 +2,7 @@
 // UX fixes: clickable jobs rows, breadcrumbs, edit-mode live preview + pills,
 // single "New posting" heading.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import JobsTable from '@/components/employer/jobs/JobsTable';
 import { PostingDetail } from '@/components/employer/jobs/Detail';
@@ -75,8 +75,21 @@ describe('Breadcrumbs', () => {
 
 describe('JobsTable row click', () => {
   it('navigates to the posting detail when clicking anywhere on the row', () => {
-    render(<JobsTable postings={[posting()]} />);
-    fireEvent.click(screen.getByText('Bengaluru')); // a non-link cell
+    // ToastProvider is required now: the row's ⋯ menu reports close/delete
+    // outcomes through a toast.
+    render(
+      <ToastProvider>
+        <JobsTable
+          postings={[posting()]}
+          canEdit canClose canDelete={false}
+          onFill={() => {}} onChanged={() => {}}
+        />
+      </ToastProvider>,
+    );
+    // The desktop table and the mobile cards are both in the DOM (CSS picks one),
+    // so scope the click to the table to avoid matching the card's copy.
+    const table = document.querySelector('.jobs-table-desktop') as HTMLElement;
+    fireEvent.click(within(table).getByText('Bengaluru')); // a non-link cell
     expect(routerPush).toHaveBeenCalledWith('/employer/jobs/p1?from=jobs');
   });
 });

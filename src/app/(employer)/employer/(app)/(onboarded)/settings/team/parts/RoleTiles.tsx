@@ -3,7 +3,7 @@
 // The four role explainer tiles above the member table.
 
 export const ROLE_DOT_COLOR: Record<string, string> = {
-  founder: 'var(--accent)', owner: '#7F77DD', member: '#1D9E75', interviewer: '#BA7517',
+  founder: 'var(--accent)', owner: 'var(--cat-purple)', member: 'var(--cat-green)', interviewer: 'var(--cat-amber)',
 };
 
 const TILES = [

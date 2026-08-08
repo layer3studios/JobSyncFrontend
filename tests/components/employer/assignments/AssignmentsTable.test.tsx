@@ -33,7 +33,6 @@ function renderTable(props: {
   role?: Role;
   showArchived?: boolean;
   onCreate?: () => void;
-  onToggleArchived?: (next: boolean) => void;
 } = {}) {
   return render(
     <AssignmentsTable
@@ -42,7 +41,6 @@ function renderTable(props: {
       currentRole={props.role ?? 'owner'}
       showArchived={props.showArchived ?? false}
       busyId={null}
-      onToggleArchived={props.onToggleArchived ?? noop}
       onCreate={props.onCreate ?? noop}
       onEdit={noop}
       onView={noop}
@@ -53,16 +51,24 @@ function renderTable(props: {
   );
 }
 
-const editButton = () => screen.getByRole('button', { name: 'Edit' }) as HTMLButtonElement;
-const cloneButton = () => screen.getByRole('button', { name: 'Clone' }) as HTMLButtonElement;
+/** Row actions live behind the ⋯ menu now, so every assertion opens it first. */
+function openMenu(title = 'Frontend take-home') {
+  fireEvent.click(screen.getByRole('button', { name: `Actions — ${title}` }));
+}
+
+// The accessible name of a blocked item includes its reason line, so match on the
+// leading label rather than the whole string.
+const item = (label: string) =>
+  screen.getByRole('menuitem', { name: new RegExp(`^${label}`) }) as HTMLButtonElement;
 
 beforeEach(() => cleanup());
 
 describe('in-use rows', () => {
   it('renders Edit DISABLED with a visible reason and an enabled Clone — never hides it', () => {
     renderTable({ usage: { a1: USAGE } });
+    openMenu();
 
-    const edit = editButton();
+    const edit = item('Edit');
     expect(edit).toBeTruthy();          // rendered, not removed
     expect(edit.disabled).toBe(true);   // and disabled
 
@@ -72,11 +78,12 @@ describe('in-use rows', () => {
       'In use by 2 postings. Editing is locked so candidates answering it all see the same task. Clone it to make changes.',
     )).toBeTruthy();
 
-    expect(cloneButton().disabled).toBe(false);
+    expect(item('Clone').disabled).toBe(false);
   });
 
   it('singularizes the reason for one posting', () => {
     renderTable({ usage: { a1: [USAGE[0]] } });
+    openMenu();
     // Edit and Archive are blocked for different reasons, so both are stated.
     expect(screen.getByText(/^In use by 1 posting\. Editing is locked/)).toBeTruthy();
     expect(screen.getByText(/^In use by 1 posting\. Detach it/)).toBeTruthy();
@@ -91,14 +98,16 @@ describe('in-use rows', () => {
 
   it('offers a View action for the read-only detail of a locked assignment', () => {
     renderTable({ usage: { a1: USAGE } });
-    expect(screen.getByRole('button', { name: 'View' })).toBeTruthy();
+    openMenu();
+    expect(item('View')).toBeTruthy();
   });
 });
 
 describe('unused rows', () => {
   it('Edit is enabled and no reason is shown', () => {
     renderTable();
-    expect(editButton().disabled).toBe(false);
+    openMenu();
+    expect(item('Edit').disabled).toBe(false);
     expect(screen.queryByText(/Editing is locked/)).toBeNull();
   });
 
@@ -113,34 +122,39 @@ describe('unused rows', () => {
 describe('role gating', () => {
   it('interviewer: Edit and Clone are disabled with reasons, and Archive too', () => {
     renderTable({ role: 'interviewer' });
-    expect(editButton().disabled).toBe(true);
+    openMenu();
+    expect(item('Edit').disabled).toBe(true);
     expect(screen.getByText('Only Members and above can edit assignments.')).toBeTruthy();
-    expect(cloneButton().disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Archive' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(item('Clone').disabled).toBe(true);
+    expect(item('Archive').disabled).toBe(true);
   });
 
   it('member: Edit and Clone enabled, Archive disabled with the owner reason', () => {
     renderTable({ role: 'member' });
-    expect(editButton().disabled).toBe(false);
-    expect(cloneButton().disabled).toBe(false);
-    expect((screen.getByRole('button', { name: 'Archive' }) as HTMLButtonElement).disabled).toBe(true);
+    openMenu();
+    expect(item('Edit').disabled).toBe(false);
+    expect(item('Clone').disabled).toBe(false);
+    expect(item('Archive').disabled).toBe(true);
     expect(screen.getByText('Only Owners can archive assignments.')).toBeTruthy();
   });
 
   it('owner: Archive is enabled', () => {
     renderTable({ role: 'owner' });
-    expect((screen.getByRole('button', { name: 'Archive' }) as HTMLButtonElement).disabled).toBe(false);
+    openMenu();
+    expect(item('Archive').disabled).toBe(false);
   });
 
   it('founder: Archive is enabled', () => {
     renderTable({ role: 'founder' });
-    expect((screen.getByRole('button', { name: 'Archive' }) as HTMLButtonElement).disabled).toBe(false);
+    openMenu();
+    expect(item('Archive').disabled).toBe(false);
   });
 
   it('an in-use row reports the USAGE reason to a Member, not the role reason', () => {
     // Precedence: the lock applies to every role, so blaming permissions here would
     // send the Member to ask an Owner for something no Owner can do either.
     renderTable({ role: 'member', usage: { a1: USAGE } });
+    openMenu();
     expect(screen.getByText(/Editing is locked/)).toBeTruthy();
     expect(screen.queryByText('Only Members and above can edit assignments.')).toBeNull();
   });
@@ -159,15 +173,12 @@ describe('archived rows', () => {
     renderTable({ assignments: rows, showArchived: true });
     expect(screen.getByText('Retired task')).toBeTruthy();
     expect(screen.getByText('Archived')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Unarchive' })).toBeTruthy();
+    openMenu('Retired task');
+    expect(item('Unarchive')).toBeTruthy();
   });
 
-  it('the toggle reports the change to the parent', () => {
-    const onToggleArchived = vi.fn();
-    renderTable({ assignments: rows, onToggleArchived });
-    fireEvent.click(screen.getByLabelText('Show archived'));
-    expect(onToggleArchived).toHaveBeenCalledWith(true);
-  });
+  // The "Show archived" control moved into the page header (AssignmentsClient), so
+  // this component no longer owns it and no longer takes onToggleArchived.
 });
 
 describe('empty state', () => {

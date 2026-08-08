@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavItem } from './types';
+import { Z } from '@/theme/tokens';
 
 interface Props { items: NavItem[]; }
 
@@ -17,7 +18,7 @@ export default function BottomNav({ items }: Props) {
     <nav
       aria-label="Primary"
       style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: Z.nav,
         paddingBottom: 'env(safe-area-inset-bottom)',
         background: 'var(--glass-bg)',
         backdropFilter: 'saturate(180%) blur(24px)',

@@ -46,7 +46,7 @@ export function LogoImg({ companyName, size = 44 }: Props) {
         fontSize: size * 0.5, color: 'var(--accent)', fontWeight: 700,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '100%', height: '100%',
-        fontFamily: "'Source Serif 4', Georgia, ui-serif, serif",
+        fontFamily: 'var(--font-serif)',
       }}>
         {companyName.charAt(0).toUpperCase()}
       </span>

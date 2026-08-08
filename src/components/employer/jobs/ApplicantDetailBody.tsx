@@ -5,9 +5,14 @@
 // per-load-state rendering (skeleton / not-found / error / loaded). Behaviour is
 // identical to the original single-file page — this is a mechanical extraction.
 
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, Button, Alert, Stack, SkeletonCard } from '@/components/ui';
+import { Card, Button, Alert, Stack, SkeletonCard, useToast } from '@/components/ui';
+import { useEmployer } from '@/context/employer/EmployerContext';
+import { canMoveApplicant, canArchiveApplicant, canScheduleInterview } from '@/lib/team-permissions';
+import { moveApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ApplicantDetail, Stage, ArchiveReason } from '@/types/employer-applicants';
 import ApplicantResumeViewer from './ApplicantResumeViewer';
 import ApplicantReviewPanel from './ApplicantReviewPanel';
@@ -17,6 +22,7 @@ import ApplicantNotesCard from './ApplicantNotesCard';
 import InterviewSection from './InterviewSection';
 import CandidateTimeline from './CandidateTimeline';
 import AssignmentReviewPanel from './parts/AssignmentReviewPanel';
+import ApplicantActionBar from './parts/ApplicantActionBar';
 
 export type LoadState = 'loading' | 'loaded' | 'error' | 'not_found';
 
@@ -30,6 +36,7 @@ const RIGHT_COLUMN_STYLE: CSSProperties = { height: '100%', overflowY: 'auto', o
 
 export default function ApplicantDetailBody({
   loadState, detail, stages, reasons, lastError, load, twoColumn, backHref, currentEmployerUserId = null,
+  previousHref = null, nextHref = null, positionText = '',
 }: {
   loadState: LoadState;
   detail: ApplicantDetail | null;
@@ -41,7 +48,43 @@ export default function ApplicantDetailBody({
   backHref: string;
   /** Distinguishes "my review" from "a teammate's" — see AssignmentReviewPanel. */
   currentEmployerUserId?: string | null;
+  /** Prev/next, mirrored into the sticky action bar so triage never leaves it. */
+  previousHref?: string | null;
+  nextHref?: string | null;
+  positionText?: string;
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants } = useEmployer();
+  const [isMoving, setIsMoving] = useState(false);
+
+  // UX gates only — the backend enforces each of these. Unknown role → allow.
+  const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
+  const canArchive = viewerRole ? canArchiveApplicant(viewerRole, viewerCanArchiveApplicants) : true;
+  const canSchedule = viewerRole ? canScheduleInterview(viewerRole) : true;
+
+  const applicationId = detail?.application.id ?? '';
+  const onMove = async (stageId: string) => {
+    if (!applicationId || stageId === detail?.application.stageId) return;
+    setIsMoving(true);
+    try {
+      await moveApplicant(applicationId, { stageId });
+      showToast('success', `Moved to ${stages.find((s) => s.id === stageId)?.text ?? 'stage'}`);
+      await load();
+    } catch (error) {
+      showToast('error', error instanceof EmployerApplicantsApiError ? error.message : 'Could not move this applicant.');
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  // Archiving removes the applicant from the active pipeline, so staying on a page
+  // that now describes an archived record is disorienting — go back to the list.
+  const onArchived = (candidateName: string) => {
+    showToast('success', `Archived ${candidateName}`);
+    router.push(backHref);
+  };
+
   if (loadState === 'loading') return <SkeletonCard lines={6} />;
   if (loadState === 'not_found') {
     return (
@@ -65,17 +108,42 @@ export default function ApplicantDetailBody({
   }
 
   const viewer = <ApplicantResumeViewer applicationId={detail.application.id} resumeMeta={detail.resumeMeta} initialUrl={detail.resumeDownloadUrl} />;
+  const isArchived = Boolean(detail.application.archived);
   const sidebar = (
     <ApplicantReviewPanel
       score={detail.score}
       scoreJobStatus={detail.scoreJobStatus}
       applicationId={detail.application.id}
       currentStageId={detail.application.stageId}
-      archived={Boolean(detail.application.archived)}
+      archived={isArchived}
       stages={stages}
       reasons={reasons}
       stageChanges={detail.stageChanges}
       onDone={load}
+      // While active, the sticky bar owns move + archive. Once archived it hands
+      // back, because unarchive lives on the panel and nowhere else.
+      showActions={isArchived}
+    />
+  );
+  // Pinned to the top of the sidebar so the decision is reachable without scrolling
+  // past the contact card, the cover note and the whole score region.
+  const actionBar = (
+    <ApplicantActionBar
+      candidateName={detail.contact?.fullName ?? 'this candidate'}
+      applicationId={detail.application.id}
+      currentStageId={detail.application.stageId}
+      stages={stages}
+      reasons={reasons}
+      archived={isArchived}
+      canMove={canMove}
+      canArchive={canArchive}
+      canSchedule={canSchedule}
+      isMoving={isMoving}
+      previousHref={previousHref}
+      nextHref={nextHref}
+      positionText={positionText}
+      onMove={onMove}
+      onArchived={onArchived}
     />
   );
   // Contact "business card" at the very top of the sidebar — what the employer reaches
@@ -117,13 +185,13 @@ export default function ApplicantDetailBody({
   ) : null;
 
   if (!twoColumn) {
-    return <Stack gap={16}>{viewer}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
+    return <Stack gap={16}>{viewer}{actionBar}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
   }
   return (
     <div style={GRID_STYLE}>
       <div style={LEFT_COLUMN_STYLE}>{viewer}</div>
       <div style={RIGHT_COLUMN_STYLE}>
-        <Stack gap={16}>{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
+        <Stack gap={16}>{actionBar}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
       </div>
     </div>
   );

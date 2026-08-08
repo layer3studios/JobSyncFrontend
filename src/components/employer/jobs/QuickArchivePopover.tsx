@@ -8,13 +8,13 @@
 // archive is cheap to trigger, not cheap to get wrong.
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Select, Checkbox } from '@/components/ui';
+import { useAnchoredPosition } from '@/components/ui/ActionsMenu';
 import { archiveApplicant } from '@/api/employer-applicants-api';
 import { EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ArchiveReason } from '@/types/employer-applicants';
-
-// Below this much room under the button, the popover flips above it.
-const REQUIRED_SPACE_BELOW = 250;
+import { Z } from '@/theme/tokens';
 
 export default function QuickArchivePopover({
   candidateName, applicationId, reasons, anchorRef, isOpen, onClose, onArchived,
@@ -33,16 +33,12 @@ export default function QuickArchivePopover({
   const [sendEmail, setSendEmail] = useState(true);
   const [isArchiving, setIsArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [flipAbove, setFlipAbove] = useState(false);
+  // Viewport coordinates, so the panel can be portalled out of the ranked table
+  // and the pipeline column — both of which are overflow:hidden and were
+  // clipping this popover.
+  const position = useAnchoredPosition(anchorRef, popoverRef, isOpen);
 
-  // Measured when it opens, not on every render: the anchor cannot move while the
-  // popover is up, and reading layout during render would thrash.
-  useEffect(() => {
-    if (!isOpen) return;
-    const rect = anchorRef.current?.getBoundingClientRect();
-    setFlipAbove(rect != null && rect.bottom > window.innerHeight - REQUIRED_SPACE_BELOW);
-    setError(null);
-  }, [isOpen, anchorRef]);
+  useEffect(() => { if (isOpen) setError(null); }, [isOpen]);
 
   // Escape closes, and a click anywhere outside closes. Both are registered only
   // while open, so a closed popover costs nothing.
@@ -85,18 +81,21 @@ export default function QuickArchivePopover({
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       ref={popoverRef}
       role="dialog"
       aria-label={`Archive ${candidateName}`}
       onClick={(event) => event.stopPropagation()}
       style={{
-        position: 'absolute', right: 0, zIndex: 40,
-        ...(flipAbove ? { bottom: 'calc(100% + 6px)' } : { top: 'calc(100% + 6px)' }),
+        position: 'fixed', zIndex: Z.dropdown,
+        top: position?.top ?? 0, left: position?.left ?? 0,
+        visibility: position ? 'visible' : 'hidden',
         minWidth: 240, maxWidth: 280, padding: 12, borderRadius: 10,
         background: 'var(--surface-raised)', border: '0.5px solid var(--border)',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)', cursor: 'default',
+        boxShadow: 'var(--shadow-lg)', cursor: 'default',
       }}
     >
       <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>
@@ -154,6 +153,7 @@ export default function QuickArchivePopover({
           </div>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

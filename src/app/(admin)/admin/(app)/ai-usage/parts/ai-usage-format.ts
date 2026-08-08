@@ -4,9 +4,9 @@
 import type { AiTier } from '@/types/admin-ai-usage';
 
 export const TIER_COLOR: Record<AiTier, string> = {
-  employer: '#1D9E75', // green
-  seeker: '#378ADD',   // blue
-  scraper: '#BA7517',  // amber
+  employer: 'var(--cat-green)', // green
+  seeker: 'var(--cat-blue)',   // blue
+  scraper: 'var(--cat-amber)',  // amber
 };
 
 export const TIERS: AiTier[] = ['employer', 'seeker', 'scraper'];

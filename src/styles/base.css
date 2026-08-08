@@ -84,15 +84,15 @@ a { color: inherit; }
 }
 
 .font-display {
-  font-family: 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, ui-serif, serif;
+  font-family: var(--font-serif);
   font-feature-settings: 'liga', 'kern';
   letter-spacing: -0.025em;
 }
 .font-mono {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 .font-sketch, .font-sketch-num {
-  font-family: 'Source Serif 4', 'Iowan Old Style', Georgia, ui-serif, serif;
+  font-family: var(--font-serif);
   letter-spacing: -0.01em;
 }
 

@@ -7,6 +7,7 @@
 // Rendered at the root so it is present on every route.
 import { Button } from '@/components/ui';
 import { useAnalyticsConsent } from '@/hooks/useAnalyticsConsent';
+import { Z } from '@/theme/tokens';
 
 export default function AnalyticsConsentBanner() {
   const { isBannerOpen, grant, decline } = useAnalyticsConsent();
@@ -23,7 +24,7 @@ export default function AnalyticsConsentBanner() {
         left: 16,
         right: 16,
         bottom: 16,
-        zIndex: 1000,
+        zIndex: Z.overlay,
         maxWidth: 720,
         margin: '0 auto',
         background: 'var(--paper)',

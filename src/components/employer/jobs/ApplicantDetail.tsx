@@ -149,6 +149,7 @@ export default function ApplicantDetail() {
       loadState={loadState} detail={detail} stages={stages} reasons={reasons}
       lastError={lastError} load={load} twoColumn={twoColumn} backHref={backHref}
       currentEmployerUserId={employerUser?.id ?? null}
+      previousHref={previousHref} nextHref={nextHref} positionText={positionText}
     />
   );
 

@@ -36,7 +36,7 @@ export default function BrandLogo({ size = 'md', compact = false }: BrandLogoPro
     }}>
       <Mark size={s.svg} />
       <span style={{
-        fontFamily: "'Source Serif 4', 'Iowan Old Style', Georgia, ui-serif, serif",
+        fontFamily: 'var(--font-serif)',
         fontSize: s.text,
         fontWeight: 600,
         letterSpacing: '-0.02em',

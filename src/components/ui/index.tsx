@@ -36,6 +36,8 @@ export { ToastProvider, useToast } from './Toast';
 // Navigation & data
 export { Tabs } from './Tabs';
 export type { TabItem } from './Tabs';
+export { ActionsMenu } from './ActionsMenu';
+export type { ActionsMenuItem } from './ActionsMenu';
 export { Table } from './Table';
 export type { Column } from './Table';
 export { Stepper } from './Stepper';

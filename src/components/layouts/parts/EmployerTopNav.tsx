@@ -1,22 +1,22 @@
 'use client';
 // FILE: src/components/layouts/parts/EmployerTopNav.tsx
-// Employer top-nav bar (STEP-N1). Mirrors the seeker TopNav visual language
-// token-for-token but carries no seeker-specific items (no skills editor, no
-// today count, no streak). Left: brand + company name. Middle: Dashboard / Jobs
-// links. Right: a lean avatar dropdown with name/email + Sign out. The dropdown
-// is keyboard- and pointer-accessible (R4): aria-haspopup, aria-expanded,
-// role="menu"/menuitem, Escape + click-outside + route-change close.
+// Employer top-nav bar (STEP-N1). Mirrors the seeker TopNav token-for-token but
+// carries no seeker-specific items. Left: brand + company. Middle: nav links.
+// Right: theme toggle + avatar dropdown (aria-haspopup/expanded, role=menu,
+// Escape + click-outside + route-change close).
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, Sun, Moon } from 'lucide-react';
 import BrandLogo from '../../BrandLogo';
 import { utilityBtn, menuItem } from './types';
 import { EMPLOYER_ROUTES } from './routes';
 import { canEditCompanySettings } from '../../../lib/team-permissions';
 import { parseNavOrigin, originCrumb } from '../../../lib/nav-origin';
 import type { Role } from '../../../types/employer-team';
+import { COPY } from '../../../theme/brand';
+import { Z } from '@/theme/tokens';
 
 interface EmployerNavUser {
   name: string;
@@ -30,10 +30,16 @@ interface Props {
   companyName: string | null;
   /** The viewer's company role. Gates the Settings link (Founder/Owner only). */
   role?: Role | null;
+  /** Theme for the toggle's icon/label. The toggle hides when no handler is given,
+   *  so callers without ThemeProvider still render. */
+  themeMode?: 'light' | 'dark';
+  onThemeToggle?: () => void;
   onLogout: () => void;
 }
 
-export default function EmployerTopNav({ isCompact, currentUser, companyName, role, onLogout }: Props) {
+export default function EmployerTopNav({
+  isCompact, currentUser, companyName, role, themeMode = 'light', onThemeToggle, onLogout,
+}: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -90,7 +96,7 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
 
   return (
     <header style={{
-      position: 'sticky', top: 0, zIndex: 50,
+      position: 'sticky', top: 0, zIndex: Z.nav,
       background: 'var(--glass-bg)',
       backdropFilter: 'saturate(180%) blur(20px)',
       WebkitBackdropFilter: 'saturate(180%) blur(20px)',
@@ -105,13 +111,13 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
         </Link>
         {!isCompact && companyName && (
           <span style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
-            Hire · {companyName}
+            {COPY.employer.nav.hireSuffix} · {companyName}
           </span>
         )}
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16 }}>
-          {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, 'Dashboard')}
-          {renderNavLink(EMPLOYER_ROUTES.JOBS, 'Jobs')}
+          {renderNavLink(EMPLOYER_ROUTES.DASHBOARD, COPY.employer.nav.dashboard)}
+          {renderNavLink(EMPLOYER_ROUTES.JOBS, COPY.employer.nav.jobs)}
           {/* UNGATED, and independently of Settings. Reading the assignment library
               is not sensitive: an interviewer reviewing a submission needs to see
               the task that was set. Create/edit stays member+ and archive stays
@@ -121,17 +127,32 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
               This closes a real gap. A member could already create an assignment
               through the API and the posting form but had no way to open the
               library, because it used to live behind the owner-only Settings link. */}
-          {renderNavLink(EMPLOYER_ROUTES.ASSIGNMENTS, 'Assignments')}
+          {renderNavLink(EMPLOYER_ROUTES.ASSIGNMENTS, COPY.employer.nav.assignments)}
           {/* Points at the settings INDEX rather than straight at the team page,
               because settings has more than one subpage.
               The Owner+ gate is deliberately UNCHANGED. It is asserted by
               tests/components/layouts/EmployerTopNav.test.tsx, and widening it is a
               product decision about global navigation, not a side effect of moving
               a page. Assignments above has its own gate — which is to say, none. */}
-          {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS, 'Settings')}
+          {role && canEditCompanySettings(role) && renderNavLink(EMPLOYER_ROUTES.SETTINGS, COPY.employer.nav.settings)}
         </nav>
 
         <div style={{ flex: 1 }} />
+
+        {/* Same control, same icons, same aria copy as the seeker TopNav: one
+            person may use both audiences, and the toggle should not move or
+            change shape when they switch. */}
+        {onThemeToggle && (
+          <button
+            onClick={onThemeToggle}
+            aria-label={themeMode === 'dark' ? COPY.nav.switchToLight : COPY.nav.switchToDark}
+            style={utilityBtn}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--ink)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--ink-muted)'; }}
+          >
+            {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        )}
 
         {currentUser && (
           <div ref={menuRef} style={{ position: 'relative' }}>
@@ -158,7 +179,7 @@ export default function EmployerTopNav({ isCompact, currentUser, companyName, ro
                 style={{
                   position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 220,
                   background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: 6, zIndex: 100,
+                  borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: 6, zIndex: Z.dropdown,
                 }}
               >
                 <div style={{ padding: '10px 12px 12px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>

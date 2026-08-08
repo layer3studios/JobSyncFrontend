@@ -7,6 +7,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useEmployer } from '../../context/employer/EmployerContext';
+import { useTheme } from '../../context/theme/ThemeProvider';
 import { useViewport } from '../../hooks/shared/useViewport';
 import EmployerTopNav from './parts/EmployerTopNav';
 
@@ -16,6 +17,10 @@ export default function EmployerAppShell({ children }: { children: ReactNode }) 
   // viewerRole is resolved centrally in EmployerContext (from the roster); the shell
   // just forwards it to gate the Settings nav link (Chunk 4).
   const { employerUser, company, viewerRole, logout } = useEmployer();
+  // ThemeProvider is mounted globally in Providers.tsx (root layout), so the
+  // employer tree reads the SAME context the seeker does — one toggle, one
+  // localStorage key, one theme across both audiences.
+  const { mode, toggle } = useTheme();
   const viewport = useViewport();
   const isCompact = viewport.w < COMPACT_BREAKPOINT_WIDTH;
 
@@ -42,6 +47,8 @@ export default function EmployerAppShell({ children }: { children: ReactNode }) 
         currentUser={currentUser}
         companyName={company?.name ?? null}
         role={viewerRole}
+        themeMode={mode}
+        onThemeToggle={toggle}
         onLogout={logout}
       />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
