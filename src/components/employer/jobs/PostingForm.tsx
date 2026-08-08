@@ -65,6 +65,10 @@ const EMPLOYMENT_OPTIONS = [
   { value: 'contract', label: 'Contract' }, { value: 'internship', label: 'Internship' },
 ];
 
+const TWO_COLUMN_ROW = {
+  display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12,
+} as const;
+
 export default function PostingForm({
   initialValues, submitLabel, onSubmit, onCancel, onValuesChange,
   postingId, applicationCount, initialAssignmentId = null, onSubmitted,
@@ -225,15 +229,23 @@ export default function PostingForm({
     : 'Aim for at least 50 characters.';
 
   return (
-    <Stack gap={16}>
+    <Stack gap={12}>
       {errors._form && <Alert type="error">{errors._form}</Alert>}
 
-      <Input
-        label="Job title" required maxLength={200} value={values.title} error={errors.title}
-        onKeyDown={submitOnEnter} onChange={(event) => setField('title', event.target.value)}
-      />
+      {/* Two short text inputs share a row; auto-fit collapses them back to one
+          column once the form column is too narrow to hold both. */}
+      <div style={TWO_COLUMN_ROW}>
+        <Input
+          label="Job title" required maxLength={200} value={values.title} error={errors.title}
+          onKeyDown={submitOnEnter} onChange={(event) => setField('title', event.target.value)}
+        />
+        <Input
+          label="Location" required maxLength={200} value={values.location} error={errors.location}
+          onKeyDown={submitOnEnter} onChange={(event) => setField('location', event.target.value)}
+        />
+      </div>
 
-      <Stack gap={16} dir="row" wrap>
+      <Stack gap={12} dir="row" wrap>
         <PillToggleGroup
           label="Workplace" options={WORKPLACE_OPTIONS} value={values.workplaceType} error={errors.workplaceType}
           onChange={(value) => setField('workplaceType', value as PostingFormValues['workplaceType'])}
@@ -243,11 +255,6 @@ export default function PostingForm({
           onChange={(value) => setField('employmentType', value as PostingFormValues['employmentType'])}
         />
       </Stack>
-
-      <Input
-        label="Location" required maxLength={200} value={values.location} error={errors.location}
-        onKeyDown={submitOnEnter} onChange={(event) => setField('location', event.target.value)}
-      />
 
       <div>
         <p style={{ fontSize: TYPE.sm, fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>
@@ -272,20 +279,18 @@ export default function PostingForm({
         )}
       </div>
 
-      <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 14 }}>
-        {/* Label row is a flex row so the AI-generate button can slot in later
-            without restructuring. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} />
-        <JobDescriptionTextarea
-          label="Job description" required value={values.description} error={errors.description}
-          hint={descriptionHint}
-          style={{ resize: 'vertical' }}
-          placeholder="Describe the role, responsibilities, requirements, and what you offer..."
-          minRows={9} maxRows={12} /* caps at ~300px; longer JDs scroll inside */
-          onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
-          onChange={(event) => setField('description', event.target.value)}
-        />
-      </div>
+      {/* The one full-width field. maxRows caps growth at ~200px so a long JD scrolls
+          inside the textarea instead of pushing the submit button below the fold (R2).
+          The cap must be expressed as maxRows — TextareaAutosize rejects style.maxHeight. */}
+      <JobDescriptionTextarea
+        label="Job description" required value={values.description} error={errors.description}
+        hint={descriptionHint}
+        style={{ resize: 'vertical' }}
+        placeholder="Describe the role, responsibilities, requirements, and what you offer..."
+        minRows={6} maxRows={8}
+        onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
+        onChange={(event) => setField('description', event.target.value)}
+      />
 
       <AssignmentSection
         postingId={postingId}

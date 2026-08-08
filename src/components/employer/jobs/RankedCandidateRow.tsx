@@ -11,6 +11,7 @@ import type { Applicant } from '@/types/employer-applicants';
 import { getScoreBadgeStyle, usableScore } from './score-badge-helpers';
 import { formatRelativeTime } from './applicant-view-helpers';
 import AssignmentColumn from './parts/AssignmentColumn';
+import TimeInStage from './parts/TimeInStage';
 
 export function ScorePill({ applicant }: { applicant: Applicant }) {
   // One source of truth for score colours — shared with the Pipeline card.
@@ -71,7 +72,13 @@ export default function RankedCandidateRow({
       {/* Resume 0–100 and Task 1–5 stay in SEPARATE cells with separate labels.
           Nothing anywhere blends them into one number or one ordering. */}
       {showAssignment && <div style={{ width: 110, flexShrink: 0 }}><AssignmentColumn applicant={applicant} /></div>}
-      <div style={{ width: 100, flexShrink: 0, fontSize: 13, color: 'var(--ink)' }}>{stageName}</div>
+      <div style={{
+        width: 100, flexShrink: 0, fontSize: 13, color: 'var(--ink)',
+        display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0,
+      }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stageName}</span>
+        <TimeInStage movedAt={applicant.application.lastStageMovedAt} />
+      </div>
       <div style={{ width: 80, flexShrink: 0, fontSize: 12, color: 'var(--ink-2)' }}>
         {formatRelativeTime(applicant.application.appliedAt)}
       </div>

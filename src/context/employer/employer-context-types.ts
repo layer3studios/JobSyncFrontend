@@ -23,7 +23,10 @@ export interface EmployerCompany {
   id: string;
   slug: string;
   name: string;
+  /** One-line company description shown on the public careers page. */
+  tagline: string | null;
   website: string | null;
+  /** Public read URL for the uploaded logo, or null when none is set. */
   logoUrl: string | null;
   plan: 'free' | 'paid';
   retentionDays: number;

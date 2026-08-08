@@ -7,6 +7,7 @@
 import { useEmployer } from '@/context/employer/EmployerContext';
 import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from '../parts/SettingsPageHeader';
+import EmailTemplatePreviews from './parts/EmailTemplatePreviews';
 
 const PLATFORM_SENDING_DOMAIN = 'jobmesh.in';
 const PLATFORM_FROM_ADDRESS = 'hello@jobmesh.in';
@@ -52,8 +53,10 @@ export default function EmailSettingsClient() {
         </div>
       </div>
       <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--ink-faint)' }}>
-        Email templates and custom sender addresses are coming soon.
+        Custom sender addresses are coming soon.
       </p>
+
+      <EmailTemplatePreviews companyName={company?.name ?? 'your company'} />
     </div>
   );
 }
