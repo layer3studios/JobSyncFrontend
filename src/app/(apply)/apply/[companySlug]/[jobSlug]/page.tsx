@@ -7,6 +7,8 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/schema/JsonLd';
 import ApplyFormClient from '@/components/apply/ApplyFormClient';
 import AssignmentPreview from '@/components/apply/AssignmentPreview';
+import ApplyClosedNotice from '@/components/apply/ApplyClosedNotice';
+import { isDeadlinePassed } from '@/components/employer/jobs/deadline-helpers';
 import { buildJobPostingSchema, buildBreadcrumbListSchema } from '@/lib/schema';
 import { getPublicJobServer } from '@/lib/server-api/public';
 import { absoluteUrl } from '@/lib/site-url';
@@ -58,6 +60,20 @@ export default async function ApplyJobPage(
   const data = await loadJob(companySlug, jobSlug);
   if (!data) notFound();
   const { company, job, assignment } = data;
+
+  // Decided on the SERVER: a candidate whose deadline has passed never receives the
+  // form at all, so there is nothing to fill in and nothing to disable. The apply
+  // endpoint enforces the same rule with a 410 for the race where it passes
+  // between this render and submit.
+  if (isDeadlinePassed(job.applicationDeadline)) {
+    return (
+      <ApplyClosedNotice
+        companySlug={companySlug}
+        companyName={company.name}
+        jobTitle={job.title}
+      />
+    );
+  }
 
   const jobPostingSchema = buildJobPostingSchema(
     {

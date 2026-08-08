@@ -16,11 +16,13 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Alert, Button, Stack, SkeletonCard, useToast } from '@/components/ui';
 import PipelineColumn from '@/components/employer/jobs/PipelineColumn';
 import PipelineCard from '@/components/employer/jobs/PipelineCard';
-import { listApplicantsForPosting, listStages, moveApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
-import type { Applicant, Stage } from '@/types/employer-applicants';
+import {
+  listApplicantsForPosting, listStages, listArchiveReasons, moveApplicant, EmployerApplicantsApiError,
+} from '@/api/employer-applicants-api';
+import type { Applicant, Stage, ArchiveReason } from '@/types/employer-applicants';
 import { groupApplicantsByStage, findApplicantById, moveApplicantInMap } from '@/components/employer/jobs/pipeline-tab-helpers';
 import { useEmployer } from '@/context/employer/EmployerContext';
-import { canMoveApplicant } from '@/lib/team-permissions';
+import { canMoveApplicant, canArchiveApplicant } from '@/lib/team-permissions';
 import { trackEvent } from '@/lib/analytics-events';
 
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -29,6 +31,7 @@ const LOAD_ERROR_MESSAGE = 'Could not load the pipeline.';
 export default function PipelineTab({ postingId }: { postingId: string }) {
   const [byStage, setByStage] = useState<Map<string, Applicant[]>>(new Map());
   const [stages, setStages] = useState<Stage[]>([]);
+  const [reasons, setReasons] = useState<ArchiveReason[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [lastError, setLastError] = useState<string>(LOAD_ERROR_MESSAGE);
   const [activeApplicantId, setActiveApplicantId] = useState<string | null>(null);
@@ -38,8 +41,9 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   // that click so dropping a card never also navigates (cleared next tick).
   const recentDragRef = useRef(false);
   // UX gate only — the backend still enforces the move. Unknown role → allow.
-  const { viewerRole, viewerCanMoveApplicants, company } = useEmployer();
+  const { viewerRole, viewerCanMoveApplicants, viewerCanArchiveApplicants, company } = useEmployer();
   const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
+  const canArchive = viewerRole ? canArchiveApplicant(viewerRole, viewerCanArchiveApplicants) : true;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -49,11 +53,13 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
   const load = useCallback(async () => {
     setLoadState('loading');
     try {
-      const [applicants, stagesResult] = await Promise.all([
+      const [applicants, stagesResult, reasonsResult] = await Promise.all([
         listApplicantsForPosting(postingId),
         listStages(),
+        listArchiveReasons(),
       ]);
       setStages(stagesResult);
+      setReasons(reasonsResult);
       setByStage(groupApplicantsByStage(applicants, stagesResult));
       setLoadState('loaded');
     } catch (error) {
@@ -150,6 +156,8 @@ export default function PipelineTab({ postingId }: { postingId: string }) {
           <PipelineColumn
             key={stage.id} stage={stage} applicants={byStage.get(stage.id) ?? []}
             canMove={canMove} onOpen={handleOpenApplicant} scrollMode={stages.length > 6}
+            archiveReasons={reasons} canArchive={canArchive}
+            onArchived={(name) => { showToast('success', `Archived ${name}`); void load(); }}
           />
         ))}
       </div>

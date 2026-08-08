@@ -16,6 +16,7 @@ import { useRef } from 'react';
 import { Input, Textarea, Checkbox, Button, Stack } from '@/components/ui';
 import type { ApplyFormData } from '@/types/public-apply';
 import type { ApplyErrors } from './apply-form-helpers';
+import { SOURCE_OPTIONS } from './apply-source';
 
 interface Props {
   data: ApplyFormData;
@@ -33,10 +34,13 @@ interface Props {
    * identical to before.
    */
   submissionSlot?: React.ReactNode;
+  /** False when ?source= already answered it — then the field is not rendered. */
+  showSourceField?: boolean;
 }
 
 export default function ApplyFormFields({
-  data, errors, companyName, set, onBlur, onFieldFocus, submissionSlot = null,
+  data, errors, companyName, set, onBlur, onFieldFocus,
+  submissionSlot = null, showSourceField = true,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -46,23 +50,25 @@ export default function ApplyFormFields({
         <legend className="apply-legend">Your details</legend>
         <div className="apply-field-stack">
           <Stack gap={12} dir="row" wrap>
+            {/* autoComplete lets the browser fill the whole block in one gesture,
+                which is the single biggest time saving available on this form. */}
             <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
-              <Input label="First name" required value={data.firstName} error={errors.firstName}
+              <Input label="First name" required autoComplete="given-name" value={data.firstName} error={errors.firstName}
                 onChange={(e) => set('firstName', e.target.value)} onBlur={() => onBlur('firstName')} />
             </div>
             <div style={{ flex: '1 1 160px' }} onFocus={() => onFieldFocus('name')}>
-              <Input label="Last name" required value={data.lastName} error={errors.lastName}
+              <Input label="Last name" required autoComplete="family-name" value={data.lastName} error={errors.lastName}
                 onChange={(e) => set('lastName', e.target.value)} onBlur={() => onBlur('lastName')} />
             </div>
           </Stack>
 
           <div onFocus={() => onFieldFocus('email')}>
-            <Input label="Email" required type="email" inputMode="email" value={data.email} error={errors.email}
+            <Input label="Email" required type="email" inputMode="email" autoComplete="email" value={data.email} error={errors.email}
               onChange={(e) => set('email', e.target.value)} onBlur={() => onBlur('email')} />
           </div>
 
           <div onFocus={() => onFieldFocus('phone')}>
-            <Input label="Phone" type="text" inputMode="tel" value={data.phone} error={errors.phone}
+            <Input label="Phone" type="text" inputMode="tel" autoComplete="tel" value={data.phone} error={errors.phone}
               onChange={(e) => set('phone', e.target.value)} onBlur={() => onBlur('phone')} />
           </div>
         </div>
@@ -94,6 +100,31 @@ export default function ApplyFormFields({
         <Textarea label="Cover note" rows={4} value={data.coverNote}
           placeholder="Why are you interested in this role?" onChange={(e) => set('coverNote', e.target.value)} />
       </div>
+
+      {/* Hidden entirely when the URL already answered it — asking someone where
+          they came from when we just watched them arrive is noise. */}
+      {showSourceField && (
+        <div onFocus={() => onFieldFocus('source')}>
+          <label
+            htmlFor="apply-source"
+            style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}
+          >
+            How did you hear about us?
+          </label>
+          <select
+            id="apply-source"
+            value={data.source}
+            onChange={(e) => set('source', e.target.value)}
+            style={{
+              width: '100%', fontSize: '0.875rem', padding: '8px 10px', borderRadius: 8,
+              border: '0.5px solid var(--border)', background: 'var(--surface-raised)', color: 'var(--ink)',
+            }}
+          >
+            <option value="">Prefer not to say</option>
+            {SOURCE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </div>
+      )}
 
       {submissionSlot}
 

@@ -4,6 +4,8 @@
 @import "../styles/primitives.css";
 @import "../styles/home.css";
 @import "../styles/apply.css";
+@import "../styles/careers.css";
+@import "../styles/quick-archive.css";
 
 /* Tailwind v4 CSS-first tokens (R7). Mapped from frontend/src/theme/tokens.ts +
    themes.ts. Colors reference the runtime CSS vars in theme-tokens.css so both

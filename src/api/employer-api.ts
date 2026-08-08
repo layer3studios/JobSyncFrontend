@@ -26,9 +26,19 @@ export interface CreateEmployerCompanyInput {
   retentionDays?: number;
 }
 
+/** Per-stage custom rejection bodies. A null value resets that stage to the default. */
+export interface RejectionEmailTemplates {
+  application?: string | null;
+  positionFilled?: string | null;
+  postInterview?: string | null;
+}
+
 export interface UpdateEmployerCompanyPatch {
   name?: string;
   tagline?: string | null;
+  about?: string | null;
+  socialLinks?: { linkedin?: string; twitter?: string; github?: string } | null;
+  rejectionEmailTemplates?: RejectionEmailTemplates | null;
   website?: string | null;
   retentionDays?: number;
   privacyPolicyUrl?: string | null;
@@ -82,6 +92,26 @@ export async function updateEmployerCompany(
 export async function fetchEmployerCompany(): Promise<EmployerCompany> {
   const body = await request('/employer/company');
   return body.company;
+}
+
+/**
+ * Read the company's custom rejection bodies.
+ *
+ * These are NOT on the company object: toPublicCompany models the careers-facing
+ * shape, and what a company writes when rejecting someone is internal. Hence a
+ * dedicated Owner+ endpoint.
+ */
+export async function fetchRejectionTemplates(): Promise<RejectionEmailTemplates> {
+  const response = await fetch(apiUrl('/employer/company/rejection-templates'), {
+    credentials: 'include',
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new EmployerApiError(
+      response.status, body?.code ?? null, body?.error || `Request failed (${response.status})`,
+    );
+  }
+  return (body?.rejectionEmailTemplates ?? {}) as RejectionEmailTemplates;
 }
 
 /**

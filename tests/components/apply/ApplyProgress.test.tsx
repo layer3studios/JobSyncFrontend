@@ -6,7 +6,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('@/lib/posthog', () => ({ getPostHogClient: () => null }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  // ApplyFormClient reads ?source= to pre-answer the "how did you hear about us" field.
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/api/public-api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/public-api')>()),
   submitApplication: vi.fn(),

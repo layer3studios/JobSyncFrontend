@@ -22,8 +22,21 @@
   align-items: start;
 }
 
+/* STACKED ORDER: form first, job description second.
+   A candidate who opened this page on a phone has usually already decided to
+   apply — they read the JD wherever they found the link. Making them scroll past
+   500 words to reach the first input taxes the one action the page exists for.
+   `order` reorders the visual flow only; the DOM, tab order and FormData are
+   untouched, so this is not a second tree and cannot remount the form (the bug
+   the JS width branch used to cause). Above 900px both columns are visible at
+   once and order is irrelevant, so the rule simply stops applying. */
 .apply-jd-column {
   min-width: 0;
+  order: 2;
+}
+
+.apply-form-column {
+  order: 1;
 }
 
 /* A grid child defaults to min-width: auto, which means "never shrink below my
@@ -53,7 +66,11 @@
     gap: 32px;
   }
 
+  /* Two visible columns — the JD belongs on the left, where it is written. */
+  .apply-jd-column { order: 1; }
+
   .apply-form-column {
+    order: 2;
     position: sticky;
     top: 20px;
     max-height: calc(100vh - 40px);

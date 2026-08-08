@@ -9,20 +9,26 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock } from 'lucide-react';
-import type { Applicant } from '@/types/employer-applicants';
+import type { Applicant, ArchiveReason } from '@/types/employer-applicants';
 import { getScoreBadgeStyle, usableScore, getInitials } from './score-badge-helpers';
 import TimeInStage from './parts/TimeInStage';
+import QuickArchiveButton from './QuickArchiveButton';
 
 const NO_MOVE_TOOLTIP = "You don't have permission to move applicants. Ask an admin.";
 
 /** `canMove` gates drag (UX only — the backend still enforces the move). */
 export default function PipelineCard({
   applicant, isDragging, canMove = true, onOpen,
+  archiveReasons = [], canArchive = false, onArchived,
 }: {
   applicant: Applicant;
   isDragging?: boolean;
   canMove?: boolean;
   onOpen?: (applicantId: string) => void;
+  /** Omitted by the drag overlay, which renders a non-interactive copy. */
+  archiveReasons?: ArchiveReason[];
+  canArchive?: boolean;
+  onArchived?: (candidateName: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isActive } = useSortable({
     id: applicant.application.id,
@@ -44,6 +50,7 @@ export default function PipelineCard({
       ref={setNodeRef}
       {...attributes}
       {...(canMove ? listeners : {})}
+      className="pipeline-card"
       title={canMove ? undefined : NO_MOVE_TOOLTIP}
       onClick={() => onOpen?.(applicant.application.id)}
       onMouseEnter={() => setHovered(true)}
@@ -69,13 +76,25 @@ export default function PipelineCard({
             {contact?.email ?? ''}
           </div>
         </div>
-        <span aria-hidden style={{
-          width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 500, background: badge.background, color: badge.color,
-        }}>
-          {getInitials(contact?.fullName)}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {onArchived && (
+            <QuickArchiveButton
+              candidateName={contact?.fullName ?? 'this candidate'}
+              applicationId={applicant.application.id}
+              reasons={archiveReasons}
+              canArchive={canArchive}
+              isArchived={applicant.application.archived != null}
+              onArchived={onArchived}
+            />
+          )}
+          <span aria-hidden style={{
+            width: 28, height: 28, borderRadius: '50%',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 500, background: badge.background, color: badge.color,
+          }}>
+            {getInitials(contact?.fullName)}
+          </span>
+        </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
         <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: badge.background, color: badge.color, fontWeight: 600 }}>

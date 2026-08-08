@@ -4,7 +4,11 @@ import { render } from '@testing-library/react';
 const capture = vi.fn();
 vi.mock('@/lib/posthog', () => ({ getPostHogClient: () => ({ capture }) }));
 vi.mock('@/hooks/shared/useViewport', () => ({ useViewport: () => ({ w: 1200 }) }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  // ApplyFormClient reads ?source= to pre-answer the "how did you hear about us" field.
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/api/public-api', () => ({
   submitApplication: vi.fn(async () => ({ applicationId: 'a1' })),
   PublicApiError: class PublicApiError extends Error {},

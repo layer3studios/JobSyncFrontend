@@ -12,7 +12,11 @@ const { capture, submitApplication, uploadAssignmentFile, copyToClipboard } = vi
 
 vi.mock('@/lib/posthog', () => ({ getPostHogClient: () => ({ capture }) }));
 vi.mock('@/hooks/shared/useViewport', () => ({ useViewport: () => ({ w: 1200 }) }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  // ApplyFormClient reads ?source= to pre-answer the "how did you hear about us" field.
+  useSearchParams: () => new URLSearchParams(),
+}));
 // Only submitApplication is replaced — PublicApiError and expiredFilesFrom stay real
 // so the error-handling tests exercise the actual body-parsing path.
 vi.mock('@/api/public-api', async (importOriginal) => ({

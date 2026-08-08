@@ -72,6 +72,9 @@ describe('ZERO REGRESSION — toggle off', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     const payload = onSubmit.mock.calls[0][0] as unknown as Record<string, unknown>;
     expect(Object.keys(payload).sort()).toEqual([
+      // applicationDeadline/autoCloseOnDeadline are always present (null/false when
+      // unset) — still no assignment key, which is what this test guards.
+      'applicationDeadline', 'autoCloseOnDeadline',
       'description', 'employmentType', 'location', 'title', 'workplaceType',
     ]);
     expect('assignmentId' in payload).toBe(false);

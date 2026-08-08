@@ -7,7 +7,7 @@
 // the click closure during a rapid double-click) (R1).
 
 import { useMemo, useRef, useState } from 'react';
-import { Input, Button, Alert, Stack } from '@/components/ui';
+import { Input, Button, Alert, Stack, Checkbox } from '@/components/ui';
 import { PillToggleGroup } from './PillToggle';
 import { TYPE } from '@/theme/tokens';
 import { JobDescriptionTextarea } from '@/components/employer/JobDescriptionTextarea';
@@ -16,6 +16,7 @@ import type { PostingCreateInput } from '@/types/employer-jobs';
 import type { EmployerAssignment } from '@/types/employer-assignments';
 import {
   validatePostingFormValues, validateSalaryStrings, buildPostingInput, mapServerErrorToFields,
+  isoToDeadlineInput, minimumDeadlineDate, deadlineError,
 } from '@/components/employer/jobs/posting-form-helpers';
 import type { PostingFormValues, PostingFormErrors } from '@/components/employer/jobs/posting-form-helpers';
 import AssignmentSection from '@/components/employer/jobs/parts/AssignmentSection';
@@ -81,7 +82,11 @@ export default function PostingForm({
     employmentType: initialValues?.employmentType ?? '',
     salaryMinStr: initialValues?.salaryMin != null ? String(initialValues.salaryMin) : '',
     salaryMaxStr: initialValues?.salaryMax != null ? String(initialValues.salaryMax) : '',
+    applicationDeadline: isoToDeadlineInput(initialValues?.applicationDeadline),
+    autoCloseOnDeadline: initialValues?.autoCloseOnDeadline === true,
   }));
+  // Computed once per mount: "tomorrow" only has to be right when the form opens.
+  const minimumDeadline = useMemo(() => minimumDeadlineDate(), []);
   const [errors, setErrors] = useState<PostingFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
@@ -287,10 +292,56 @@ export default function PostingForm({
         hint={descriptionHint}
         style={{ resize: 'vertical' }}
         placeholder="Describe the role, responsibilities, requirements, and what you offer..."
-        minRows={6} maxRows={8}
+        minRows={5} maxRows={8}
         onFocus={() => setIsDescriptionFocused(true)} onBlur={() => setIsDescriptionFocused(false)}
         onChange={(event) => setField('description', event.target.value)}
       />
+
+      {/* Optional. Candidates see the date on the apply page, and the apply
+          endpoint refuses submissions past it whether or not auto-close is on. */}
+      <div>
+        <p style={{ fontSize: TYPE.sm, fontWeight: 500, color: 'var(--ink-muted)', marginBottom: 6 }}>
+          Application deadline (optional)
+        </p>
+        <input
+          type="date"
+          aria-label="Application deadline"
+          value={values.applicationDeadline}
+          min={minimumDeadline}
+          onChange={(event) => {
+            const next = event.target.value;
+            setField('applicationDeadline', next);
+            // Clearing the date disarms auto-close: a flag with no date to fire on
+            // is a rule that can never run. The backend enforces this too.
+            if (next === '') setField('autoCloseOnDeadline', false);
+            setErrors((previous) => ({ ...previous, applicationDeadline: deadlineError(next) }));
+          }}
+          style={{
+            fontSize: TYPE.sm, padding: '8px 10px', borderRadius: 8, colorScheme: 'light dark',
+            border: `1px solid ${errors.applicationDeadline ? 'var(--danger)' : 'var(--border)'}`,
+            background: 'var(--surface-raised)', color: 'var(--ink)',
+          }}
+        />
+        {values.applicationDeadline !== '' && (
+          <div style={{ marginTop: 8 }}>
+            <Checkbox
+              checked={values.autoCloseOnDeadline}
+              onChange={(checked) => setField('autoCloseOnDeadline', checked)}
+              label="Auto-close posting on this date"
+            />
+          </div>
+        )}
+        {errors.applicationDeadline ? (
+          <p role="alert" style={{ color: 'var(--danger)', fontSize: TYPE.xs, marginTop: 5, fontWeight: 500 }}>
+            {errors.applicationDeadline}
+          </p>
+        ) : (
+          <p style={{ fontSize: TYPE.xs, color: 'var(--ink-faint)', marginTop: 5 }}>
+            Shown to candidates on the apply page (IST). With auto-close, the posting
+            closes itself on this date.
+          </p>
+        )}
+      </div>
 
       <AssignmentSection
         postingId={postingId}

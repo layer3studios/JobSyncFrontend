@@ -75,9 +75,12 @@ describe('New posting form', () => {
     fireEvent.change(screen.getByLabelText('Salary maximum'), { target: { value: '18' } });
     fireEvent.click(screen.getByText('Create posting'));
     await waitFor(() => expect(createEmployerPosting).toHaveBeenCalledTimes(1));
+    // The deadline keys are ALWAYS sent, both together: clearing a deadline has to
+    // reach the server as an explicit null, and auto-close is off without one.
     expect(createEmployerPosting).toHaveBeenCalledWith({
       title: 'Backend Engineer', description: DESCRIPTION, location: 'Bengaluru',
       workplaceType: 'hybrid', employmentType: 'full-time', salaryMin: 12, salaryMax: 18,
+      applicationDeadline: null, autoCloseOnDeadline: false,
     });
     expect(routerPush).toHaveBeenCalledWith('/employer/jobs/p1');
   });

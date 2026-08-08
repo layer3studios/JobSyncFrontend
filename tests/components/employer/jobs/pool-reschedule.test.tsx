@@ -183,7 +183,8 @@ describe('close posting warning', () => {
     id: 'p1', slug: 'be', title: 'Backend Engineer', description: 'x', descriptionPlain: 'x',
     location: 'Bengaluru', workplaceType: 'onsite', employmentType: 'full-time',
     salaryMin: null, salaryMax: null, salaryCurrency: 'INR', status: 'active',
-    postedAt: null, createdAt: '2030-01-01T00:00:00Z', updatedAt: '2030-01-01T00:00:00Z',
+    applicationDeadline: null, autoCloseOnDeadline: false,
+    postedAt: null, closedAt: null, createdAt: '2030-01-01T00:00:00Z', updatedAt: '2030-01-01T00:00:00Z',
     assignmentId: null,
   };
 

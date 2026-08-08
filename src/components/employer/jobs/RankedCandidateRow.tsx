@@ -7,7 +7,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import type { Applicant } from '@/types/employer-applicants';
+import type { Applicant, ArchiveReason } from '@/types/employer-applicants';
+import QuickArchiveButton from './QuickArchiveButton';
 import { getScoreBadgeStyle, usableScore } from './score-badge-helpers';
 import { formatRelativeTime } from './applicant-view-helpers';
 import AssignmentColumn from './parts/AssignmentColumn';
@@ -26,6 +27,7 @@ export function ScorePill({ applicant }: { applicant: Applicant }) {
 
 export default function RankedCandidateRow({
   applicant, postingId, stageName, showSelect, showAssignment, isSelected, onToggleSelect,
+  archiveReasons, canArchive, onArchived,
 }: {
   applicant: Applicant;
   postingId: string;
@@ -35,15 +37,21 @@ export default function RankedCandidateRow({
   showAssignment: boolean;
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
+  /** Cached by RankedTab — the popover never fetches these itself. */
+  archiveReasons: ArchiveReason[];
+  canArchive: boolean;
+  onArchived: (candidateName: string) => void;
 }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const id = applicant.application.id;
   const detailHref = `/employer/jobs/${postingId}/applicants/${id}?from=ranked`;
+  const candidateName = applicant.contact?.fullName ?? 'this candidate';
 
   return (
     <div
       role="row"
+      className="ranked-row"
       onClick={() => router.push(detailHref)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -82,8 +90,18 @@ export default function RankedCandidateRow({
       <div style={{ width: 80, flexShrink: 0, fontSize: 12, color: 'var(--ink-2)' }}>
         {formatRelativeTime(applicant.application.appliedAt)}
       </div>
-      <div style={{ width: 60, flexShrink: 0 }} onClick={(event) => event.stopPropagation()}>
+      <div style={{
+        width: 92, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2,
+      }} onClick={(event) => event.stopPropagation()}>
         <Button variant="ghost" size="sm" onClick={() => router.push(detailHref)}>View</Button>
+        <QuickArchiveButton
+          candidateName={candidateName}
+          applicationId={id}
+          reasons={archiveReasons}
+          canArchive={canArchive}
+          isArchived={applicant.application.archived != null}
+          onArchived={onArchived}
+        />
       </div>
     </div>
   );

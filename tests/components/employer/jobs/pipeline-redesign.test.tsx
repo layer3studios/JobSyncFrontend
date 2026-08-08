@@ -20,6 +20,9 @@ vi.mock('@/api/employer-applicants-api', async (importOriginal) => {
     ...actual,
     listApplicantsForPosting: (...args: unknown[]) => listApplicantsForPosting(...args),
     listStages: async () => STAGES,
+    // PipelineTab now loads archive reasons for the quick-archive popover; the
+    // real one would fetch and reject, failing the whole load.
+    listArchiveReasons: async () => [],
     moveApplicant: vi.fn(),
   };
 });

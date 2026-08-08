@@ -28,7 +28,10 @@ export interface Posting {
    * "Used by" without an extra endpoint. Attaching/detaching is Chunk 8b.
    */
   assignmentId: string | null;
+  applicationDeadline: string | null;
+  autoCloseOnDeadline: boolean;
   postedAt: string | null;
+  closedAt: string | null;
   createdAt: string;
   updatedAt: string;
   /**
@@ -49,6 +52,9 @@ export interface PostingCreateInput {
   salaryMin?: number | null;
   salaryMax?: number | null;
   status?: PostingStatus;
+  /** ISO instant the posting stops accepting applications, or null. */
+  applicationDeadline?: string | null;
+  autoCloseOnDeadline?: boolean;
 }
 
 export type PostingPatch = Partial<PostingCreateInput>;
