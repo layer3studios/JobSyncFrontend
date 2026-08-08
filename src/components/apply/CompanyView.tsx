@@ -7,6 +7,7 @@
 import Link from 'next/link';
 import { Container, Card, Stack, EmptyState } from '@/components/ui';
 import AssignmentBadge from './AssignmentBadge';
+import CompanyLogoMark from '@/components/company/CompanyLogoMark';
 import type { PublicCompany, PublicJobSummary } from '@/types/public-apply';
 
 interface Props {
@@ -20,13 +21,19 @@ export default function CompanyView({ company, jobs }: Props) {
   return (
     <Container size="md" style={{ paddingTop: 32, paddingBottom: 60 }}>
       <Stack gap={20}>
-        <div>
-          <h1 className="font-display" style={{ fontSize: 'clamp(1.6rem, 4vw, 2.1rem)', fontWeight: 600, color: 'var(--ink)' }}>{company.name}</h1>
-          {company.website && (
-            <a href={company.website} target="_blank" rel="noreferrer" style={{ fontSize: '0.9rem', color: 'var(--link)' }}>
-              {company.website}
-            </a>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <CompanyLogoMark name={company.name} logoUrl={company.logoUrl} size={48} borderRadius={12} />
+          <div style={{ minWidth: 0 }}>
+            <h1 className="font-display" style={{ fontSize: 'clamp(1.6rem, 4vw, 2.1rem)', fontWeight: 600, color: 'var(--ink)' }}>{company.name}</h1>
+            {company.tagline && (
+              <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--ink-muted)' }}>{company.tagline}</p>
+            )}
+            {company.website && (
+              <a href={company.website} target="_blank" rel="noreferrer" style={{ fontSize: '0.9rem', color: 'var(--link)' }}>
+                {company.website}
+              </a>
+            )}
+          </div>
         </div>
 
         <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--ink)' }}>Open positions</h2>

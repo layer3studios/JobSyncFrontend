@@ -31,6 +31,11 @@ export interface Posting {
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Non-archived applications on this posting. Present on the LIST endpoint only —
+   * the single-posting GET does not compute it, hence optional.
+   */
+  applicantCount?: number;
   /** Pool-scheduling configuration; null/absent until configured. */
   interviewDefaults?: InterviewDefaults | null;
 }

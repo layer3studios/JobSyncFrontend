@@ -1,6 +1,6 @@
 'use client';
 // FILE: src/components/employer/jobs/PostingLivePreview.tsx
-// Sticky live preview beside the New Posting form — a miniature apply page
+// Live preview beside the New Posting form — a miniature apply page
 // rendered purely client-side from the in-progress form values. Pills appear
 // only for filled fields; the Apply button is decorative.
 
@@ -28,8 +28,9 @@ export default function PostingLivePreview({ values }: { values: PostingFormValu
     salaryText,
   ].filter(Boolean);
 
+  // Stickiness is owned by the parent column in New.tsx, not here.
   return (
-    <div style={{ position: 'sticky', top: 16, alignSelf: 'start' }}>
+    <div>
       <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Live preview</p>
       <p style={{ margin: '0 0 10px', fontSize: 11, color: 'var(--ink-faint)' }}>How candidates see it</p>
       <div style={{ background: 'var(--surface-raised)', border: '0.5px solid var(--border)', borderRadius: 12, padding: 16 }}>
