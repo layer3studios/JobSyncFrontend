@@ -13,6 +13,23 @@ import { getScoreBadgeStyle, usableScore } from './score-badge-helpers';
 import { formatRelativeTime } from './applicant-view-helpers';
 import AssignmentColumn from './parts/AssignmentColumn';
 import TimeInStage from './parts/TimeInStage';
+import TagPill from './TagPill';
+
+/** Two pills, then a count. A row is scanned, not read — three pills already crowd
+ *  the name they sit beside, and the detail page holds the full list. */
+function RowTags({ tags }: { tags: string[] }) {
+  if (tags.length === 0) return null;
+  const visible = tags.slice(0, 2);
+  const overflow = tags.length - visible.length;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+      {visible.map((tag) => <TagPill key={tag} name={tag} size="sm" />)}
+      {overflow > 0 && (
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)' }}>+{overflow}</span>
+      )}
+    </span>
+  );
+}
 
 export function ScorePill({ applicant }: { applicant: Applicant }) {
   // One source of truth for score colours — shared with the Pipeline card.
@@ -27,7 +44,7 @@ export function ScorePill({ applicant }: { applicant: Applicant }) {
 
 export default function RankedCandidateRow({
   applicant, postingId, stageName, showSelect, showAssignment, isSelected, onToggleSelect,
-  archiveReasons, canArchive, onArchived,
+  archiveReasons, canArchive, onArchived, isActive = false,
 }: {
   applicant: Applicant;
   postingId: string;
@@ -41,6 +58,8 @@ export default function RankedCandidateRow({
   archiveReasons: ArchiveReason[];
   canArchive: boolean;
   onArchived: (candidateName: string) => void;
+  /** The keyboard highlight (↑/↓/j/k). Distinct from checkbox selection. */
+  isActive?: boolean;
 }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
@@ -52,12 +71,17 @@ export default function RankedCandidateRow({
     <div
       role="row"
       className="ranked-row"
+      // The keyboard layer finds rows and their controls through this id.
+      data-application-id={id}
       onClick={() => router.push(detailHref)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer',
-        background: hovered ? 'var(--surface-raised)' : 'transparent',
+        background: isActive || hovered ? 'var(--surface-raised)' : 'transparent',
+        // An inset marker rather than an outline: it marks the row without shifting
+        // any of its content by a pixel.
+        boxShadow: isActive ? 'inset 3px 0 0 var(--accent)' : 'none',
       }}
     >
       {showSelect && (
@@ -71,7 +95,12 @@ export default function RankedCandidateRow({
         />
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{applicant.contact?.fullName ?? '—'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {applicant.contact?.fullName ?? '—'}
+          </span>
+          <RowTags tags={applicant.application.tags ?? []} />
+        </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {applicant.contact?.email ?? ''}
         </div>

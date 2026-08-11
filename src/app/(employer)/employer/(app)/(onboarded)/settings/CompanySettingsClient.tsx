@@ -14,6 +14,7 @@ import Breadcrumbs from '@/components/employer/Breadcrumbs';
 import SettingsPageHeader from './parts/SettingsPageHeader';
 import CareersPageLink from './parts/CareersPageLink';
 import CompanyProfileFields from './parts/CompanyProfileFields';
+import AutoArchiveSettings from './parts/AutoArchiveSettings';
 import { COPY } from '@/theme/brand';
 import type { SocialLinkValues } from './parts/CompanyProfileFields';
 import {
@@ -146,6 +147,12 @@ export default function CompanySettingsClient() {
         </div>
 
         <CareersPageLink slug={company.slug} onCopied={() => showToast('success', 'Careers link copied.')} />
+
+        <AutoArchiveSettings
+          value={company.autoArchiveStaleDays ?? null}
+          canEdit={canEdit}
+          onSaved={refreshEmployerSession}
+        />
 
         <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 16 }}>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)' }}>

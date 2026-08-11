@@ -12,7 +12,7 @@ const HEADER_CELL = { fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' } as 
 
 export default function RankedCandidateTable({
   applicants, postingId, stages, showSelect, showAssignment = false, selectedIds, onToggleSelect, onClearFilters,
-  archiveReasons, canArchive, onArchived,
+  archiveReasons, canArchive, onArchived, activeId = null,
 }: {
   applicants: Applicant[];
   postingId: string;
@@ -30,6 +30,8 @@ export default function RankedCandidateTable({
   selectedIds: ReadonlySet<string>;
   onToggleSelect: (id: string) => void;
   onClearFilters: () => void;
+  /** The keyboard-highlighted row, or null. Not the same as selection. */
+  activeId?: string | null;
 }) {
   const stageNameById = new Map(stages.map((stage) => [stage.id, stage.text]));
 
@@ -65,6 +67,7 @@ export default function RankedCandidateTable({
             showSelect={showSelect}
             showAssignment={showAssignment}
             isSelected={selectedIds.has(applicant.application.id)}
+            isActive={activeId === applicant.application.id}
             onToggleSelect={onToggleSelect}
             archiveReasons={archiveReasons}
             canArchive={canArchive}

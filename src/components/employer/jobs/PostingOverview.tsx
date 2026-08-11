@@ -163,6 +163,7 @@ export default function PostingOverview({ posting, onReload }: {
         averageScore={data.averageScore}
         interviewsScheduled={data.interviewsScheduled}
         daysOpen={daysOpen(posting.createdAt)}
+        viewCount={posting.viewCount ?? 0}
       />
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>

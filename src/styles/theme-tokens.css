@@ -97,6 +97,18 @@
   --cat-orange: #D85A30;
   --cat-red: #E24B4A;
 
+  /* ── Candidate tag pills ─────────────────────────────────────────────────
+     Six soft grounds, one per --cat-* hue above. A tag is assigned one by a hash
+     of its name, so "referral" is the same colour everywhere it appears. The
+     colour carries no meaning beyond "not that other tag" — pair each ground with
+     its --cat-* hue for the label. */
+  --tag-1-bg: rgba(29, 158, 117, 0.12);
+  --tag-2-bg: rgba(55, 138, 221, 0.12);
+  --tag-3-bg: rgba(186, 117, 23, 0.12);
+  --tag-4-bg: rgba(127, 119, 221, 0.12);
+  --tag-5-bg: rgba(83, 74, 183, 0.12);
+  --tag-6-bg: rgba(216, 90, 48, 0.12);
+
   --glass-bg: rgba(250, 249, 246, 0.72);
   --glass-stroke: rgba(55, 53, 47, 0.10);
   /* These three are the card/panel triplet and are aliases of --surface,
@@ -181,6 +193,15 @@
   --cat-indigo: #9C93F0;
   --cat-orange: #F08A5D;
   --cat-red: #F27C7B;
+
+  /* Tag grounds: the same six hues at a lower alpha, so a pill sits on the dark
+     page as a tint rather than a block. Ordering matches the light block exactly. */
+  --tag-1-bg: rgba(61, 203, 137, 0.16);
+  --tag-2-bg: rgba(107, 174, 240, 0.16);
+  --tag-3-bg: rgba(230, 163, 58, 0.16);
+  --tag-4-bg: rgba(164, 156, 240, 0.16);
+  --tag-5-bg: rgba(156, 147, 240, 0.16);
+  --tag-6-bg: rgba(240, 138, 93, 0.16);
 
   --glass-bg: rgba(25, 25, 24, 0.72);
   --glass-stroke: rgba(255, 255, 255, 0.08);

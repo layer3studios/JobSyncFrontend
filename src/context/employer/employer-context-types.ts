@@ -34,6 +34,8 @@ export interface EmployerCompany {
   logoUrl: string | null;
   plan: 'free' | 'paid';
   retentionDays: number;
+  /** Days of inactivity before a candidate is auto-archived. null = turned off. */
+  autoArchiveStaleDays: number | null;
   privacyPolicyUrl: string | null;
   dpoEmail: string | null;
   createdAt: string;

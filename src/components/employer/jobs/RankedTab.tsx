@@ -32,6 +32,8 @@ import RankedCandidateTable from './RankedCandidateTable';
 import RankedBulkActions from './RankedBulkActions';
 import RankedMobileFilters from './RankedMobileFilters';
 import SavedViewsRow from './SavedViewsRow';
+import RankedToolbarActions from './RankedToolbarActions';
+import { useRankedTriage } from './useRankedKeyboard';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { canBulkArchive } from '@/lib/team-permissions';
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -116,9 +118,13 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [searchParams, router, pathname]);
 
+  // A saved view restores the sort as well as the filters: "the view I was looking
+  // at" includes how it was ordered.
   const activePayloadJson = JSON.stringify(serverFiltersToViewPayload(serverFilters));
   const handleApplyView = useCallback((view: SavedView) => {
     handleServerFiltersChange(serverFiltersFromViewPayload(view.filters));
+    const savedSort = (view.filters as { sort?: ApplicantSort })?.sort;
+    if (savedSort === 'score' || savedSort === 'date' || savedSort === 'assignment') setSort(savedSort);
   }, [handleServerFiltersChange]);
   const isViewActive = useCallback((view: SavedView) =>
     JSON.stringify(serverFiltersToViewPayload(serverFiltersFromViewPayload(view.filters))) === activePayloadJson,
@@ -137,12 +143,22 @@ export default function RankedTab({ postingId }: { postingId: string }) {
     handleServerFiltersChange(createInitialServerFilterState());
   };
 
-  const visibleIds = filteredApplicants.map((item) => item.application.id);
+  const visibleIds = useMemo(
+    () => filteredApplicants.map((item) => item.application.id), [filteredApplicants],
+  );
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
   const someSelected = visibleIds.some((id) => selectedIds.has(id));
   const handleTogglePage = () => setSelectedIds((prev) => {
     if (!allSelected) return new Set([...prev, ...visibleIds]);
     return new Set([...prev].filter((id) => !visibleIds.includes(id)));
+  });
+
+  // Keyboard triage: ↑/↓/j/k, Enter, a, m, s, ? — see useRankedKeyboard.
+  const { activeId, isHelpOpen, openHelp, closeHelp, setModalOpen } = useRankedTriage({
+    visibleIds, postingId,
+    onNavigate: (href) => router.push(href),
+    onSelect: (id) => setSelectedIds((prev) => new Set(prev).add(id)),
+    onToggleSelect: (id) => setSelectedIds((prev) => toggleSetValue(prev, id)),
   });
 
   // The presence of `stats` IS the signal. A plain posting gets no strip, no chips,
@@ -191,9 +207,9 @@ export default function RankedTab({ postingId }: { postingId: string }) {
       <SavedViewsRow
         postingId={postingId}
         isViewActive={isViewActive}
-        canSave={isServerFilterActive(serverFilters)}
+        canSave={isServerFilterActive(serverFilters) || sort !== 'score'}
         onApply={handleApplyView}
-        onSaveCurrent={() => serverFiltersToViewPayload(serverFilters)}
+        onSaveCurrent={() => ({ ...serverFiltersToViewPayload(serverFilters), sort })}
       />
       {isNarrow && <RankedMobileFilters activeFilterCount={activeFilterCount}>{sidebar}</RankedMobileFilters>}
       <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
@@ -220,11 +236,23 @@ export default function RankedTab({ postingId }: { postingId: string }) {
             showSelect={allowArchive}
             showAssignmentSort={hasAssignment}
             allSelected={allSelected} someSelected={someSelected} onTogglePage={handleTogglePage}
+            actions={(
+              <RankedToolbarActions
+                postingId={postingId}
+                canManage={allowArchive}
+                onImported={() => void load(sort)}
+                helpOpen={isHelpOpen}
+                onHelpOpen={openHelp}
+                onHelpClose={closeHelp}
+                onModalStateChange={setModalOpen}
+              />
+            )}
           />
           <RankedCandidateTable
             applicants={filteredApplicants}
             postingId={postingId}
             stages={stages}
+            activeId={activeId}
             showSelect={allowArchive}
             showAssignment={hasAssignment}
             selectedIds={selectedIds}

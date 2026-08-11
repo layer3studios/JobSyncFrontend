@@ -58,6 +58,8 @@ export default function BulkMoveMenu({ stages, selectedIds, onMoved }: {
       <Button
         variant="secondary" size="sm" loading={moving}
         aria-haspopup="menu" aria-expanded={open}
+        // The ranked table's "m" shortcut selects a row, then clicks this trigger.
+        data-bulk-move-trigger
         onClick={() => setOpen((value) => !value)}
         iconRight={<ChevronDown size={13} />}
       >

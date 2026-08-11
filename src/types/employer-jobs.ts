@@ -39,6 +39,11 @@ export interface Posting {
    * the single-posting GET does not compute it, hence optional.
    */
   applicantCount?: number;
+  /**
+   * Views of the public apply page. Employer visits and bot traffic are excluded
+   * server-side, so this counts candidates who opened the posting.
+   */
+  viewCount?: number;
   /** Pool-scheduling configuration; null/absent until configured. */
   interviewDefaults?: InterviewDefaults | null;
 }
