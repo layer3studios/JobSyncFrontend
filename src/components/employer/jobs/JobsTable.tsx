@@ -12,6 +12,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Eye } from 'lucide-react';
 import { Table } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import type { Posting } from '@/types/employer-jobs';
@@ -51,6 +52,16 @@ function ApplicantCountCell({ posting }: { posting: Posting }) {
   );
 }
 
+/** Apply-page views. Sits beside the applicant count as the top of the same funnel. */
+function ViewCountCell({ posting }: { posting: Posting }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--ink-muted)' }}>
+      <Eye size={13} aria-hidden="true" />
+      {posting.viewCount ?? 0}
+    </span>
+  );
+}
+
 function buildColumns(props: Omit<JobsTableProps, 'postings'>): Column<Posting>[] {
   return [
     {
@@ -67,6 +78,7 @@ function buildColumns(props: Omit<JobsTableProps, 'postings'>): Column<Posting>[
       ),
     },
     { key: 'applicantCount', header: 'Applicants', render: (posting) => <ApplicantCountCell posting={posting} /> },
+    { key: 'viewCount', header: 'Views', render: (posting) => <ViewCountCell posting={posting} /> },
     { key: 'location', header: 'Location', render: (posting) => posting.location },
     { key: 'workplaceType', header: 'Work type', render: (posting) => <WorkplaceBadge workplaceType={posting.workplaceType} /> },
     { key: 'status', header: 'Status', render: (posting) => <PostingStatusBadge status={posting.status} /> },
@@ -100,6 +112,7 @@ export default function JobsTable({ postings, ...actionProps }: JobsTableProps) 
                 <WorkplaceBadge workplaceType={posting.workplaceType} />
                 <ApplicantCountCell posting={posting} />
                 <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>applicants</span>
+                <ViewCountCell posting={posting} />
               </div>
             </div>
             <PostingRowActions posting={posting} {...actionProps} />

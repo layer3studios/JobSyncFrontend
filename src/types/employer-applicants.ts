@@ -185,6 +185,8 @@ export interface Applicant {
     /** Candidate-written note submitted at apply time (7A). Null when they left it blank. */
     coverNote: string | null;
     lastStageMovedAt: string;
+    /** Recruiter-applied labels drawn from the company tag library. Max 10. */
+    tags?: string[];
   };
   contact: {
     id: string;
@@ -240,6 +242,16 @@ export interface BulkArchiveResult {
 export interface ApplicantFacets {
   skills: Array<{ skill: string; count: number }>;
   cities: Array<{ city: string; count: number }>;
+}
+
+/**
+ * One tag in the company's shared library. Names are canonical — lowercase and
+ * trimmed by the backend — so "Referral" and "referral" are the same tag.
+ */
+export interface CandidateTag {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 
 /** A recruiter's saved filter combination for one posting (per-user, not shared). */

@@ -16,7 +16,7 @@ const ASSIGNMENT_SORT_OPTION = { value: 'assignment', label: 'Task score: high t
 
 export default function RankedTableToolbar({
   applicantCount, activeFilterCount, sort, onSortChange,
-  showSelect, showAssignmentSort = false, allSelected, someSelected, onTogglePage,
+  showSelect, showAssignmentSort = false, allSelected, someSelected, onTogglePage, actions = null,
 }: {
   applicantCount: number;
   activeFilterCount: number;
@@ -27,6 +27,8 @@ export default function RankedTableToolbar({
   allSelected: boolean;
   someSelected: boolean;
   onTogglePage: () => void;
+  /** Posting-level actions (export, import, shortcuts) — rendered before the sort. */
+  actions?: React.ReactNode;
 }) {
   const summary = activeFilterCount > 0
     ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'} · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} active`
@@ -46,6 +48,7 @@ export default function RankedTableToolbar({
           Select all
         </label>
       )}
+      {actions && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{actions}</div>}
       <div style={{ width: 200 }}>
         <Select aria-label="Sort applicants" value={sort}
           options={showAssignmentSort ? [...SORT_OPTIONS, ASSIGNMENT_SORT_OPTION] : SORT_OPTIONS}

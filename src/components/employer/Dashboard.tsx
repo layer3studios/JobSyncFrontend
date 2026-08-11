@@ -18,6 +18,7 @@ import { KpiTile, kpiValue } from './dashboard/DashboardCard';
 import ActiveJobsCard from './dashboard/ActiveJobsCard';
 import TopCandidatesCard from './dashboard/TopCandidatesCard';
 import { UpcomingInterviewsCard, ActivityCard } from './dashboard/ActivityCard';
+import CompanyActivityCard from './dashboard/CompanyActivityCard';
 
 const PAGE_STYLE = { padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 } as const;
 // Desktop pins the page to the viewport minus the top nav and clips it, so the
@@ -117,6 +118,10 @@ export default function EmployerDashboard() {
         }}>
           <ActiveJobsCard jobs={summary.activeJobs} />
           <TopCandidatesCard candidates={summary.topCandidates} jobs={summary.activeJobs} />
+          {/* Company-wide and actor-led — the team's work across every posting.
+              The right rail's feed answers a different question (what happened to
+              candidates), so the two sit in different columns rather than merging. */}
+          <CompanyActivityCard />
         </div>
         <div style={{
           width: narrow ? '100%' : 380, flexShrink: 0,

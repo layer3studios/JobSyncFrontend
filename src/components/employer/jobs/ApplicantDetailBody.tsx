@@ -17,6 +17,7 @@ import type { ApplicantDetail, Stage, ArchiveReason } from '@/types/employer-app
 import ApplicantResumeViewer from './ApplicantResumeViewer';
 import ApplicantReviewPanel from './ApplicantReviewPanel';
 import ApplicantContactCard from './ApplicantContactCard';
+import ApplicantTagsCard from './ApplicantTagsCard';
 import ApplicantCoverNote from './ApplicantCoverNote';
 import ApplicantNotesCard from './ApplicantNotesCard';
 import InterviewSection from './InterviewSection';
@@ -149,6 +150,15 @@ export default function ApplicantDetailBody({
   // Contact "business card" at the very top of the sidebar — what the employer reaches
   // for first, visible on load without scrolling. Renders nothing if there's no contact.
   const contactCard = detail.contact ? <ApplicantContactCard contact={detail.contact} /> : null;
+  // Tags sit under the contact card: the same "who is this" region of the sidebar.
+  // Editing is Member+ — canMove is the same boundary the backend applies to tags.
+  const tagsCard = (
+    <ApplicantTagsCard
+      applicationId={detail.application.id}
+      initialTags={detail.application.tags ?? []}
+      canEdit={canMove}
+    />
+  );
   // Candidate-voiced note (R1/R2): shown above the review panel, only when non-empty (R3).
   const coverNote = detail.application.coverNote?.trim() || null;
   const coverNoteCard = coverNote ? <ApplicantCoverNote coverNote={coverNote} /> : null;
@@ -185,13 +195,13 @@ export default function ApplicantDetailBody({
   ) : null;
 
   if (!twoColumn) {
-    return <Stack gap={16}>{viewer}{actionBar}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
+    return <Stack gap={16}>{viewer}{actionBar}{contactCard}{tagsCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
   }
   return (
     <div style={GRID_STYLE}>
       <div style={LEFT_COLUMN_STYLE}>{viewer}</div>
       <div style={RIGHT_COLUMN_STYLE}>
-        <Stack gap={16}>{actionBar}{contactCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
+        <Stack gap={16}>{actionBar}{contactCard}{tagsCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
       </div>
     </div>
   );

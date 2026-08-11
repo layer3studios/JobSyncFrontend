@@ -45,6 +45,8 @@ export interface UpdateEmployerCompanyPatch {
   dpoEmail?: string | null;
   /** Clear-only. A logo is SET by uploadCompanyLogo; the backend rejects a string here. */
   logoUrl?: null;
+  /** Days of inactivity before a candidate is auto-archived. null turns it off. */
+  autoArchiveStaleDays?: number | null;
 }
 
 interface CompanyEnvelope {
