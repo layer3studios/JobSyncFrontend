@@ -11,19 +11,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Button, Alert, Stack, SkeletonCard, useToast } from '@/components/ui';
 import { useEmployer } from '@/context/employer/EmployerContext';
-import { canMoveApplicant, canArchiveApplicant, canScheduleInterview } from '@/lib/team-permissions';
+import { canMoveApplicant, canArchiveApplicant, canScheduleInterview, canAnonymizeCandidate } from '@/lib/team-permissions';
 import { moveApplicant, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
 import type { ApplicantDetail, Stage, ArchiveReason } from '@/types/employer-applicants';
 import ApplicantResumeViewer from './ApplicantResumeViewer';
 import ApplicantReviewPanel from './ApplicantReviewPanel';
-import ApplicantContactCard from './ApplicantContactCard';
-import ApplicantTagsCard from './ApplicantTagsCard';
-import ApplicantCoverNote from './ApplicantCoverNote';
-import ApplicantNotesCard from './ApplicantNotesCard';
-import InterviewSection from './InterviewSection';
-import CandidateTimeline from './CandidateTimeline';
-import AssignmentReviewPanel from './parts/AssignmentReviewPanel';
 import ApplicantActionBar from './parts/ApplicantActionBar';
+import ApplicantSidebarCards from './parts/ApplicantSidebarCards';
 
 export type LoadState = 'loading' | 'loaded' | 'error' | 'not_found';
 
@@ -63,6 +57,9 @@ export default function ApplicantDetailBody({
   const canMove = viewerRole ? canMoveApplicant(viewerRole, viewerCanMoveApplicants) : true;
   const canArchive = viewerRole ? canArchiveApplicant(viewerRole, viewerCanArchiveApplicants) : true;
   const canSchedule = viewerRole ? canScheduleInterview(viewerRole) : true;
+  // Defaults to FALSE with an unknown role, unlike the others: hiding an
+  // irreversible action we are unsure about is the safe direction to be wrong in.
+  const canAnonymize = viewerRole ? canAnonymizeCandidate(viewerRole) : false;
 
   const applicationId = detail?.application.id ?? '';
   const onMove = async (stageId: string) => {
@@ -139,69 +136,37 @@ export default function ApplicantDetailBody({
       canMove={canMove}
       canArchive={canArchive}
       canSchedule={canSchedule}
+      canAnonymize={canAnonymize}
       isMoving={isMoving}
       previousHref={previousHref}
       nextHref={nextHref}
       positionText={positionText}
       onMove={onMove}
       onArchived={onArchived}
+      onAnonymized={load}
     />
   );
-  // Contact "business card" at the very top of the sidebar — what the employer reaches
-  // for first, visible on load without scrolling. Renders nothing if there's no contact.
-  const contactCard = detail.contact ? <ApplicantContactCard contact={detail.contact} /> : null;
-  // Tags sit under the contact card: the same "who is this" region of the sidebar.
-  // Editing is Member+ — canMove is the same boundary the backend applies to tags.
-  const tagsCard = (
-    <ApplicantTagsCard
-      applicationId={detail.application.id}
-      initialTags={detail.application.tags ?? []}
-      canEdit={canMove}
-    />
-  );
-  // Candidate-voiced note (R1/R2): shown above the review panel, only when non-empty (R3).
-  const coverNote = detail.application.coverNote?.trim() || null;
-  const coverNoteCard = coverNote ? <ApplicantCoverNote coverNote={coverNote} /> : null;
-  // Notes (C3) sit last in the sidebar and fetch their own list (D8). The card grows
-  // inside RIGHT_COLUMN_STYLE's own overflow-y region, so the page still never scrolls (P8).
-  const notesCard = <ApplicantNotesCard applicationId={detail.application.id} />;
-  // Merged history sits ABOVE notes: the story first, the conversation below.
-  // Notes stay as their own card — composing a note inline in a timeline is
-  // clumsy, and notes also appear inside the timeline as events.
-  const timeline = (
-    <CandidateTimeline applicationId={detail.application.id} candidateName={detail.contact?.fullName ?? null} />
-  );
-  // Interview scheduling sits below the review panel, above the timeline.
-  const interviewSection = (
-    <InterviewSection
-      applicationId={detail.application.id}
-      candidateName={detail.contact?.fullName ?? null}
-      candidatePhone={detail.contact?.phone ?? null}
+  // The whole sidebar stack, in one place for both layouts — see ApplicantSidebarCards.
+  const cards = (
+    <ApplicantSidebarCards
+      detail={detail}
       stages={stages}
       reasons={reasons}
-      onApplicantChanged={() => void load()}
+      canEditTags={canMove}
+      currentEmployerUserId={currentEmployerUserId}
+      reviewPanel={sidebar}
+      load={load}
     />
   );
 
-  // Absent for a plain posting, and for a legacy application on a posting that
-  // gained an assignment later — in both cases the page renders exactly as before.
-  const assignmentCard = detail.assignmentSubmission ? (
-    <AssignmentReviewPanel
-      submission={detail.assignmentSubmission}
-      review={detail.assignmentReview ?? null}
-      currentEmployerUserId={currentEmployerUserId}
-      onSaved={load}
-    />
-  ) : null;
-
   if (!twoColumn) {
-    return <Stack gap={16}>{viewer}{actionBar}{contactCard}{tagsCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>;
+    return <Stack gap={16}>{viewer}{actionBar}{cards}</Stack>;
   }
   return (
     <div style={GRID_STYLE}>
       <div style={LEFT_COLUMN_STYLE}>{viewer}</div>
       <div style={RIGHT_COLUMN_STYLE}>
-        <Stack gap={16}>{actionBar}{contactCard}{tagsCard}{coverNoteCard}{assignmentCard}{sidebar}{interviewSection}{timeline}{notesCard}</Stack>
+        <Stack gap={16}>{actionBar}{cards}</Stack>
       </div>
     </div>
   );

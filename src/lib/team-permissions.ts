@@ -96,6 +96,12 @@ export function canEditCompanySettings(currentRole: Role): boolean {
   return isOwnerOrHigher(currentRole);
 }
 
+/** Frontend visibility only — backend enforces truth. Erasure is irreversible and
+ *  reaches every application by the candidate, so it stops at Owner+. */
+export function canAnonymizeCandidate(currentRole: Role): boolean {
+  return isOwnerOrHigher(currentRole);
+}
+
 // ── Assignment library (Chunk 2 gates) ──────────────────────────────────────
 // These mirror employer-assignments-routes.js one-for-one:
 //   GET    /                    requireInterviewerOrHigher

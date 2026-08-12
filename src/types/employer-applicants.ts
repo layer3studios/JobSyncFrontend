@@ -53,6 +53,9 @@ export interface ApplicantNote {
   authorName: string | null;
   authorEmail: string;
   body: string;
+  /** Teammates named with @ in the body, validated server-side against the roster.
+   *  Empty on notes written before mentions existed. */
+  mentionedUserIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -135,6 +138,20 @@ export interface AssignmentStats {
 
 export type AssignmentReviewFilter = 'reviewed' | 'not_reviewed' | 'passed' | 'failed';
 
+/**
+ * One OTHER application by the same person at the same company. Contacts are deduped
+ * by email per company, so these rows are the same human, not a fuzzy match.
+ */
+export interface OtherApplication {
+  applicationId: string;
+  postingId: string | null;
+  postingTitle: string | null;
+  stageId: string | null;
+  stage: string | null;
+  appliedAt: string | null;
+  isArchived: boolean;
+}
+
 /** Full applicant detail payload (7A endpoint) consumed by the ApplicantDetail page. */
 export interface ApplicantDetail extends Applicant {
   scoreJobStatus: ScoreJobStatus | null;
@@ -142,6 +159,8 @@ export interface ApplicantDetail extends Applicant {
   resumeMeta: ResumeMeta | null;
   resumeDownloadUrl: string | null;
   resumeDownloadExpiresAt: string | null;
+  /** ABSENT when this person applied only once — never an empty array. */
+  otherApplications?: OtherApplication[];
   /** Null for a plain posting or a legacy application — guard on it, never assume. */
   assignmentSubmission?: AssignmentSubmission | null;
   assignmentReview?: AssignmentReview | null;
@@ -204,6 +223,11 @@ export interface Applicant {
   } | null;
   score: ApplicantScore | null;
   /**
+   * Total applications by this contact company-wide. ABSENT unless it is greater
+   * than one — its presence IS the "cross-applicant" signal.
+   */
+  applicationCount?: number;
+  /**
    * ABSENT (not null) on a plain posting — the backend guards before it runs any
    * assignment query and returns exactly the shape it always has. null means the
    * posting HAS an assignment but this candidate never submitted one.
@@ -236,6 +260,28 @@ export interface BulkArchiveResult {
   total: number;
   successCount: number;
   failureCount: number;
+}
+
+/**
+ * What anonymizing a candidate would touch. A contact is shared across postings, so
+ * applicationCount is nearly always more than the one application being viewed —
+ * which is exactly why the confirmation dialog reads it out.
+ */
+export interface AnonymizePreview {
+  applicationId: string;
+  candidateName: string | null;
+  applicationCount: number;
+  alreadyAnonymized: boolean;
+  /** Scheduled interviews. Anonymizing does NOT cancel them — the dialog says so. */
+  upcomingInterviews: Array<{ id: string; startAtUtc: string; timezoneId: string | null }>;
+}
+
+export interface AnonymizeResult {
+  contactAnonymized: boolean;
+  alreadyAnonymized: boolean;
+  applicationsProcessed: number;
+  filesDeleted: number;
+  notesRedacted: number;
 }
 
 /** Filter facets scoped to one posting's applicant pool (Chunk 1). */

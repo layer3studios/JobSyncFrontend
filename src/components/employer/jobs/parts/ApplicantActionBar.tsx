@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react';
 import { Button, Select } from '@/components/ui';
 import QuickArchivePopover from '../QuickArchivePopover';
+import ApplicantMoreActions from './ApplicantMoreActions';
 import type { Stage, ArchiveReason } from '@/types/employer-applicants';
 
 // Above the scrolling sidebar content, below Modal (100) and popovers.
@@ -22,9 +23,9 @@ const STICKY_Z_INDEX = 20;
 
 export default function ApplicantActionBar({
   candidateName, applicationId, currentStageId, stages, reasons, archived,
-  canMove, canArchive, canSchedule, isMoving,
+  canMove, canArchive, canSchedule, canAnonymize, isMoving,
   previousHref, nextHref, positionText,
-  onMove, onArchived, onScheduleInterview,
+  onMove, onArchived, onScheduleInterview, onAnonymized,
 }: {
   candidateName: string;
   applicationId: string;
@@ -35,6 +36,8 @@ export default function ApplicantActionBar({
   canMove: boolean;
   canArchive: boolean;
   canSchedule: boolean;
+  /** Owner+. Gates the destructive item in the ⋯ menu; the backend gates it too. */
+  canAnonymize: boolean;
   isMoving: boolean;
   previousHref?: string | null;
   nextHref?: string | null;
@@ -42,6 +45,8 @@ export default function ApplicantActionBar({
   onMove: (stageId: string) => void;
   onArchived: (candidateName: string) => void;
   onScheduleInterview?: () => void;
+  /** Re-read the applicant: anonymizing rewrites the name, contact card and notes. */
+  onAnonymized: () => void;
 }) {
   const archiveAnchorRef = useRef<HTMLButtonElement>(null);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
@@ -106,6 +111,18 @@ export default function ApplicantActionBar({
             />
           </span>
         )}
+
+        {/* Export + anonymize. Behind a ⋯ because neither is triage — see
+            ApplicantMoreActions. Pushed right so it never sits under the thumb
+            that is aiming for Archive. */}
+        <span style={{ marginLeft: 'auto' }}>
+          <ApplicantMoreActions
+            applicationId={applicationId}
+            candidateName={candidateName}
+            canAnonymize={canAnonymize}
+            onAnonymized={onAnonymized}
+          />
+        </span>
       </div>
 
       {/* Prev/next repeated here so triaging a list never needs a trip back to the
