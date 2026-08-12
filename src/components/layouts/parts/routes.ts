@@ -21,4 +21,5 @@ export const ADMIN_ROUTES = {
   EMPLOYER_ACCESS: '/admin/employer-access',
   ANALYTICS: '/admin/analytics',
   AI_USAGE: '/admin/ai-usage',
+  DPDP: '/admin/dpdp',
 } as const;

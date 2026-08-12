@@ -14,6 +14,7 @@ import { formatRelativeTime } from './applicant-view-helpers';
 import AssignmentColumn from './parts/AssignmentColumn';
 import TimeInStage from './parts/TimeInStage';
 import TagPill from './TagPill';
+import { COPY } from '@/theme/brand';
 
 /** Two pills, then a count. A row is scanned, not read — three pills already crowd
  *  the name they sit beside, and the detail page holds the full list. */
@@ -27,6 +28,23 @@ function RowTags({ tags }: { tags: string[] }) {
       {overflow > 0 && (
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)' }}>+{overflow}</span>
       )}
+    </span>
+  );
+}
+
+/** "3 roles" — this person is already in the pipeline elsewhere. Neutral on purpose:
+ *  it is context for the recruiter, not a score and not a warning. */
+function CrossApplicationPill({ count }: { count: number }) {
+  return (
+    <span
+      title={COPY.employer.applicants.rolesPillLabel.replace('{count}', String(count))}
+      style={{
+        flexShrink: 0, padding: '1px 6px', borderRadius: 999,
+        fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+        background: 'var(--surface-sunken)', color: 'var(--ink-muted)',
+      }}
+    >
+      {COPY.employer.applicants.rolesPill.replace('{count}', String(count))}
     </span>
   );
 }
@@ -99,6 +117,9 @@ export default function RankedCandidateRow({
           <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {applicant.contact?.fullName ?? '—'}
           </span>
+          {applicant.applicationCount != null && applicant.applicationCount > 1 && (
+            <CrossApplicationPill count={applicant.applicationCount} />
+          )}
           <RowTags tags={applicant.application.tags ?? []} />
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

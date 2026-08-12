@@ -10,14 +10,18 @@
 // content so a rejected note is never lost.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import { Card, Stack, Button, Alert, Textarea, SkeletonCard } from '@/components/ui';
+import { Card, Stack, Button, Alert, SkeletonCard } from '@/components/ui';
 import { useParams } from 'next/navigation';
 import { listApplicantNotes, createApplicantNote, EmployerApplicantsApiError } from '@/api/employer-applicants-api';
+import { listMembers } from '@/api/employer-team-api';
 import type { ApplicantNote } from '@/types/employer-applicants';
 import { formatRelativeTime } from './applicant-view-helpers';
 import { useEmployer } from '@/context/employer/EmployerContext';
 import { trackEvent } from '@/lib/analytics-events';
+import MentionTextarea from './parts/MentionTextarea';
+import NoteBody from './parts/NoteBody';
+import type { MentionCandidate } from './parts/mention-helpers';
+import { COPY } from '@/theme/brand';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 
@@ -52,11 +56,13 @@ function authorLabel(note: ApplicantNote): string {
   return note.authorName?.trim() || note.authorEmail;
 }
 
-function NoteRow({ note, isLast }: { note: ApplicantNote; isLast: boolean }) {
+function NoteRow({ note, isLast, candidates }: {
+  note: ApplicantNote; isLast: boolean; candidates: MentionCandidate[];
+}) {
   return (
     <div style={isLast ? undefined : NOTE_STYLE}>
       <Stack gap={6}>
-        <p style={BODY_STYLE}>{note.body}</p>
+        <NoteBody body={note.body} style={BODY_STYLE} candidates={candidates} />
         <div style={META_STYLE}>
           {authorLabel(note)} · {formatRelativeTime(note.createdAt)}
         </div>
@@ -69,6 +75,10 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
   const [notes, setNotes] = useState<ApplicantNote[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [draft, setDraft] = useState('');
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+  // Teammates who can be @mentioned. A solo founder gets an empty list and the
+  // whole feature stays invisible — no dropdown, no hint, nothing to dismiss.
+  const [candidates, setCandidates] = useState<MentionCandidate[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const params = useParams<{ postingId: string }>();
@@ -87,6 +97,22 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
 
   useEffect(() => { void load(); }, [load]);
 
+  // Roster fetched alongside the notes: it drives both the @picker and the mention
+  // highlighting in saved notes. A failure degrades to "no mentions available" —
+  // notes still read and still save, just without the affordance.
+  useEffect(() => {
+    let isActive = true;
+    listMembers()
+      .then((members) => {
+        if (!isActive) return;
+        setCandidates(members
+          .filter((member) => member.name)
+          .map((member) => ({ employerUserId: member.employerUserId, name: member.name as string })));
+      })
+      .catch(() => { /* mentions are additive — never block the notes card on this */ });
+    return () => { isActive = false; };
+  }, []);
+
   // The server trims before measuring (C7), so the counter and the gate measure the
   // trimmed length too — otherwise trailing whitespace would read as over the cap.
   const trimmedLength = draft.trim().length;
@@ -98,25 +124,20 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
     setSaveError(null);
     try {
       const noteLength = draft.trim().length;
-      const created = await createApplicantNote(applicationId, { body: draft.trim() });
+      const created = await createApplicantNote(applicationId, {
+        body: draft.trim(), mentionedUserIds,
+      });
       trackEvent('note_added', { applicationId, postingId, companyId: company?.id ?? undefined, noteLength });
       setNotes((current) => [created, ...current]); // confirmed append (R5) — server shape, not a guess
       setDraft('');
+      setMentionedUserIds([]);
     } catch (error) {
       // Keep the draft: the user's words are the one thing we must not drop (R5).
       setSaveError(error instanceof EmployerApplicantsApiError ? error.message : SAVE_ERROR_MESSAGE);
     } finally {
       setIsSaving(false);
     }
-  }, [applicationId, canSave, draft, postingId, company?.id]);
-
-  // Cmd/Ctrl+Enter submits; a bare Enter stays a newline (D10) — notes are multi-line.
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-      void handleSave();
-    }
-  }
+  }, [applicationId, canSave, draft, mentionedUserIds, postingId, company?.id]);
 
   function renderList() {
     if (loadState === 'loading') return <SkeletonCard lines={3} />;
@@ -135,7 +156,7 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
     return (
       <Stack gap={12}>
         {notes.map((note, index) => (
-          <NoteRow key={note.id} note={note} isLast={index === notes.length - 1} />
+          <NoteRow key={note.id} note={note} isLast={index === notes.length - 1} candidates={candidates} />
         ))}
       </Stack>
     );
@@ -149,13 +170,15 @@ export default function ApplicantNotesCard({ applicationId }: { applicationId: s
         <div style={LABEL_STYLE}>Notes</div>
         {renderList()}
         <Stack gap={8}>
-          <Textarea
-            label="Add a note"
+          <MentionTextarea
+            label={COPY.employer.applicants.addNote}
             rows={3}
             value={draft}
             disabled={isSaving}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={handleKeyDown}
+            candidates={candidates}
+            mentionedUserIds={mentionedUserIds}
+            onChange={({ body, mentionedUserIds: next }) => { setDraft(body); setMentionedUserIds(next); }}
+            onSubmit={() => void handleSave()}
           />
           {saveError && <Alert type="error">{saveError}</Alert>}
           <Stack gap={12} dir="row" align="center" justify="space-between" wrap>

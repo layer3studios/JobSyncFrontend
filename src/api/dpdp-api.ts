@@ -92,3 +92,27 @@ export async function submitRightsRequest(input: SubmitRightsRequestInput): Prom
   });
   return body.request;
 }
+
+// ─── Candidate self-service data export (public, no account) ──────────
+// These two hit /api/public/dpdp rather than /api/dpdp: the person asking has no
+// JobMesh account, and the emailed one-time token is the only credential involved.
+
+/**
+ * Ask for a download link. ALWAYS resolves with the same message whether or not the
+ * company holds data for that email — the endpoint refuses to be an oracle for
+ * "has this person applied there", and the UI must not invent a distinction the
+ * server deliberately withheld.
+ */
+export async function requestMyDataExport(
+  input: { email: string; companySlug: string },
+): Promise<{ message: string }> {
+  return request<{ message: string }>('/public/dpdp/export', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+/** The one-time download URL. The browser navigates to it; the server names the file. */
+export function myDataExportDownloadUrl(token: string): string {
+  return apiUrl(`/public/dpdp/export/download?token=${encodeURIComponent(token)}`);
+}

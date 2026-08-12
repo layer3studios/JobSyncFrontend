@@ -9,6 +9,7 @@
 import { Container, Stack } from '@/components/ui';
 import CompanyBrandHeader from './CompanyBrandHeader';
 import CareersJobList from './CareersJobList';
+import RequestMyDataForm from '@/components/seeker/legal/RequestMyDataForm';
 import type { PublicCompany, PublicJobSummary } from '@/types/public-apply';
 
 interface Props {
@@ -27,6 +28,10 @@ export default function CompanyView({ company, jobs }: Props) {
           companyName={company.name}
           socialLinks={company.socialLinks}
         />
+        {/* Last on the page, after the roles: this is the DPDP right of access, and
+            the person using it is not here to browse jobs — but it has to live
+            somewhere a candidate with no account can actually reach. */}
+        <RequestMyDataForm companySlug={company.slug} />
       </Stack>
     </Container>
   );

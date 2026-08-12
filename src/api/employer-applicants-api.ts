@@ -8,7 +8,7 @@ import { apiUrl } from '../lib/api-base';
 import type {
   Applicant, ApplicantDetail, ApplicantNote, ResumeUrl, Stage, ArchiveReason,
   ApplicantSort, BulkArchiveResult, RescoreResult, ApplicantFacets, SavedView,
-  AssignmentStats,
+  AssignmentStats, AnonymizePreview, AnonymizeResult,
 } from '../types/employer-applicants';
 
 export class EmployerApplicantsApiError extends Error {
@@ -213,7 +213,7 @@ export async function listApplicantNotes(applicationId: string): Promise<Applica
  */
 export async function createApplicantNote(
   applicationId: string,
-  input: { body: string },
+  input: { body: string; mentionedUserIds?: string[] },
 ): Promise<ApplicantNote> {
   const body = await request<{ note: ApplicantNote }>(`${applicantPath(applicationId)}/notes`, {
     method: 'POST',
@@ -229,6 +229,35 @@ export async function createApplicantNote(
  */
 export async function rescoreApplicant(applicationId: string): Promise<RescoreResult> {
   return request<RescoreResult>(`${applicantPath(applicationId)}/rescore`, { method: 'POST' });
+}
+
+// ─── Erasure + export (DPDP) ─────────────────────────────────────────
+
+/** What anonymizing this candidate would touch. Owner+; 403 for everyone else. */
+export async function fetchAnonymizePreview(applicationId: string): Promise<AnonymizePreview> {
+  const body = await request<{ preview: AnonymizePreview }>(`${applicantPath(applicationId)}/anonymize-preview`);
+  return body.preview;
+}
+
+/**
+ * Irreversibly anonymize this candidate across every application they made at this
+ * company. Idempotent — a repeat call resolves with alreadyAnonymized: true.
+ */
+export async function anonymizeCandidate(applicationId: string): Promise<AnonymizeResult> {
+  const body = await request<{ result: AnonymizeResult }>(`${applicantPath(applicationId)}/anonymize`, {
+    method: 'POST',
+  });
+  return body.result;
+}
+
+/**
+ * The browser navigates to this URL to download the export. Deliberately NOT a
+ * fetch + blob: the endpoint sets Content-Disposition, and letting the browser
+ * handle the download keeps the server-chosen filename instead of inventing one
+ * client-side that would drift from it.
+ */
+export function candidateExportUrl(applicationId: string, format: 'json' | 'csv' = 'json'): string {
+  return apiUrl(`${applicantPath(applicationId)}/export${format === 'csv' ? '?format=csv' : ''}`);
 }
 
 /**
