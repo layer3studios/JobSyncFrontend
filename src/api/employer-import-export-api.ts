@@ -50,6 +50,9 @@ export interface ImportSummary {
   imported: number;
   duplicates: number;
   failed: number;
+  /** Skipped because the contact is flagged do-not-contact. Counted apart from
+   *  duplicates and failures: neither is what happened. Absent on older responses. */
+  doNotContact?: number;
   errors: Array<{ filename: string; reason: string }>;
 }
 

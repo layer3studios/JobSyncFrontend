@@ -24,6 +24,7 @@ const STICKY_Z_INDEX = 20;
 export default function ApplicantActionBar({
   candidateName, applicationId, currentStageId, stages, reasons, archived,
   canMove, canArchive, canSchedule, canAnonymize, isMoving,
+  contactId = null, isDoNotContact = false, canFlagContact = false,
   previousHref, nextHref, positionText,
   onMove, onArchived, onScheduleInterview, onAnonymized,
 }: {
@@ -38,6 +39,10 @@ export default function ApplicantActionBar({
   canSchedule: boolean;
   /** Owner+. Gates the destructive item in the ⋯ menu; the backend gates it too. */
   canAnonymize: boolean;
+  /** Contact-level do-not-contact flag, surfaced through the same ⋯ menu. */
+  contactId?: string | null;
+  isDoNotContact?: boolean;
+  canFlagContact?: boolean;
   isMoving: boolean;
   previousHref?: string | null;
   nextHref?: string | null;
@@ -121,6 +126,9 @@ export default function ApplicantActionBar({
             candidateName={candidateName}
             canAnonymize={canAnonymize}
             onAnonymized={onAnonymized}
+            contactId={contactId}
+            isDoNotContact={isDoNotContact}
+            canFlagContact={canFlagContact}
           />
         </span>
       </div>

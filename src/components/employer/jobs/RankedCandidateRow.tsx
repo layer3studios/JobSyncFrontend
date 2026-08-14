@@ -15,6 +15,7 @@ import AssignmentColumn from './parts/AssignmentColumn';
 import TimeInStage from './parts/TimeInStage';
 import TagPill from './TagPill';
 import { COPY } from '@/theme/brand';
+import { Ban } from 'lucide-react';
 
 /** Two pills, then a count. A row is scanned, not read — three pills already crowd
  *  the name they sit beside, and the detail page holds the full list. */
@@ -45,6 +46,20 @@ function CrossApplicationPill({ count }: { count: number }) {
       }}
     >
       {COPY.employer.applicants.rolesPill.replace('{count}', String(count))}
+    </span>
+  );
+}
+
+/** A red slash beside the name. Icon plus a title/sr-only label — colour alone is
+ *  not a signal, and this one matters too much to be conveyed by hue. */
+function DoNotContactMark() {
+  return (
+    <span
+      title={COPY.employer.applicants.doNotContactRowLabel}
+      style={{ display: 'inline-flex', color: 'var(--danger)', flexShrink: 0 }}
+    >
+      <Ban size={13} aria-hidden="true" />
+      <span className="sr-only">{COPY.employer.applicants.doNotContactRowLabel}</span>
     </span>
   );
 }
@@ -117,6 +132,7 @@ export default function RankedCandidateRow({
           <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {applicant.contact?.fullName ?? '—'}
           </span>
+          {applicant.contact?.doNotContact?.flag && <DoNotContactMark />}
           {applicant.applicationCount != null && applicant.applicationCount > 1 && (
             <CrossApplicationPill count={applicant.applicationCount} />
           )}

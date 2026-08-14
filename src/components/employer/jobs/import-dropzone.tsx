@@ -86,6 +86,11 @@ export function ImportResults({ summary }: { summary: ImportSummary }) {
     { label: 'duplicates skipped', value: summary.duplicates, color: 'var(--ink-muted)' },
     { label: 'failed', value: summary.failed, color: summary.failed > 0 ? 'var(--danger)' : 'var(--ink-muted)' },
   ];
+  // Only shown when it happened. A permanent "0 do not contact" column would give
+  // a rare, alarming-sounding outcome equal billing with the everyday ones.
+  if (summary.doNotContact) {
+    counts.push({ label: 'skipped (do not contact)', value: summary.doNotContact, color: 'var(--danger)' });
+  }
 
   return (
     <Stack gap={10}>

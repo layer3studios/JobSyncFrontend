@@ -9,8 +9,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Mail, Phone, Linkedin, Github, Globe, MapPin, Copy, Check } from 'lucide-react';
 import { Card, Stack } from '@/components/ui';
+import DoNotContactBanner from './parts/DoNotContactBanner';
+import type { DoNotContact } from '@/types/employer-applicants';
 
 export interface ApplicantContact {
+  /** The "never reach out again" flag. Renders first, above everything. */
+  doNotContact?: DoNotContact | null;
   email?: string | null;
   phone?: string | null;
   linkedinUrl?: string | null;
@@ -95,13 +99,18 @@ export default function ApplicantContactCard({ contact }: { contact: ApplicantCo
   const portfolio = str(contact.portfolioUrl);
   const location = str(contact.location);
 
-  if (!email && !phone && !linkedin && !github && !portfolio && !location) return null;
+  const doNotContact = contact.doNotContact ?? null;
+
+  // A flagged candidate with no contact details still gets the card: the warning is
+  // the most important thing on it, and dropping the card would drop the warning.
+  if (!email && !phone && !linkedin && !github && !portfolio && !location && !doNotContact?.flag) return null;
 
   return (
     // data-ph-mask: applicant contact PII masked in session replay (defence-in-depth).
     <div data-ph-mask style={{ display: 'contents' }}>
     <Card>
       <Stack gap={10}>
+        {doNotContact?.flag && <DoNotContactBanner doNotContact={doNotContact} />}
         <div style={LABEL_STYLE}>Contact</div>
         {email && (
           <Row icon={<Mail size={15} aria-hidden="true" />} copyValue={email} copyLabel="email">

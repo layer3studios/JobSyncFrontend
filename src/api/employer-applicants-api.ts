@@ -8,7 +8,7 @@ import { apiUrl } from '../lib/api-base';
 import type {
   Applicant, ApplicantDetail, ApplicantNote, ResumeUrl, Stage, ArchiveReason,
   ApplicantSort, BulkArchiveResult, RescoreResult, ApplicantFacets, SavedView,
-  AssignmentStats, AnonymizePreview, AnonymizeResult,
+  AssignmentStats, AnonymizePreview, AnonymizeResult, InterviewFeedbackSummary,
 } from '../types/employer-applicants';
 
 export class EmployerApplicantsApiError extends Error {
@@ -272,4 +272,36 @@ export async function bulkArchiveApplicants(
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+/**
+ * The panel's aggregated verdicts. Null when this candidate has no interviews —
+ * the caller's signal to render nothing rather than an empty card.
+ *
+ * The anti-bias hold is applied SERVER-SIDE: when the viewer still owes their own
+ * feedback the per-interviewer detail is absent from the payload entirely, not
+ * merely hidden here.
+ */
+export async function fetchFeedbackSummary(
+  applicationId: string,
+): Promise<InterviewFeedbackSummary | null> {
+  const body = await request<{ summary: InterviewFeedbackSummary | null }>(
+    `${applicantPath(applicationId)}/feedback-summary`,
+  );
+  return body.summary;
+}
+
+/**
+ * Set or clear a candidate's "do not contact" flag. Member+; the flag lives on the
+ * contact, so this affects every posting this person appears on at the company.
+ */
+export async function setDoNotContact(
+  contactId: string,
+  input: { flag: boolean; reason?: string | null },
+): Promise<Applicant['contact']> {
+  const body = await request<{ contact: NonNullable<Applicant['contact']> }>(
+    `/employer/contacts/${encodeURIComponent(contactId)}/do-not-contact`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+  );
+  return body.contact;
 }

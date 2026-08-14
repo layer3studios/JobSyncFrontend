@@ -2,12 +2,40 @@
 // Shared types for the employer auth context. Kept separate from the seeker
 // types — employer and seeker are independent audiences (NAMING §0).
 
+/** The eight events a teammate can be emailed about. All default true server-side. */
+export interface NotificationPreferences {
+  newApplication: boolean;
+  stageChange: boolean;
+  noteMention: boolean;
+  interviewScheduled: boolean;
+  interviewReminder: boolean;
+  feedbackSubmitted: boolean;
+  candidateHired: boolean;
+  applicationDeadline: boolean;
+}
+
+export type NotificationEventKey = keyof NotificationPreferences;
+
 export interface EmployerUser {
   id: string;
   email: string;
   name: string;
+  /** Google's photo URL. Its link rotates, which is why avatarUrl exists. */
   picture: string | null;
   companyId: string | null; // null until company onboarding (Step 3)
+  /** The user's own upload. Wins over `picture` permanently once set. */
+  avatarUrl: string | null;
+  /** IANA zone id. Defaults to 'Asia/Kolkata' server-side, never absent. */
+  timezone: string;
+  jobTitle: string | null;
+  notificationPreferences: NotificationPreferences;
+}
+
+/** Which image to render: the upload always wins, then Google, then initials. */
+export function displayPictureFor(
+  user: Pick<EmployerUser, 'avatarUrl' | 'picture'> | null | undefined,
+): string | null {
+  return user?.avatarUrl || user?.picture || null;
 }
 
 export type EmployerLoginErrorKind = 'gated' | 'network' | 'invalid' | 'unknown';

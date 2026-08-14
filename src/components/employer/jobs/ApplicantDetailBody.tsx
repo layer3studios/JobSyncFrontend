@@ -137,6 +137,10 @@ export default function ApplicantDetailBody({
       canArchive={canArchive}
       canSchedule={canSchedule}
       canAnonymize={canAnonymize}
+      contactId={detail.contact?.id ?? null}
+      isDoNotContact={Boolean(detail.contact?.doNotContact?.flag)}
+      // Member+ — the same boundary the backend applies. canMove is that boundary.
+      canFlagContact={canMove}
       isMoving={isMoving}
       previousHref={previousHref}
       nextHref={nextHref}

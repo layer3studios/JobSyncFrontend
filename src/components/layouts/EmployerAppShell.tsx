@@ -6,6 +6,7 @@
 // EmployerTopNav. Desktop-first: no footer, no mobile bottom nav (D1).
 import { useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { displayPictureFor } from '@/context/employer/employer-context-types';
 import { useEmployer } from '../../context/employer/EmployerContext';
 import { useTheme } from '../../context/theme/ThemeProvider';
 import { useViewport } from '../../hooks/shared/useViewport';
@@ -35,7 +36,9 @@ export default function EmployerAppShell({ children }: { children: ReactNode }) 
   const currentUser = {
     name: employerUser.name,
     email: employerUser.email,
-    picture: employerUser.picture ?? undefined,
+    // The user's upload wins over Google's photo, permanently once set — see
+    // displayPictureFor. Google's URL rotates; theirs does not.
+    picture: displayPictureFor(employerUser) ?? undefined,
   };
 
   return (
