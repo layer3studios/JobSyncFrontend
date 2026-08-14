@@ -6,7 +6,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, Shield, Mail, Palette, Trash2 } from 'lucide-react';
+import { User, Building2, Users, Shield, Mail, Palette, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { COPY } from '@/theme/brand';
 
@@ -15,6 +15,9 @@ interface SettingsNavItem { label: string; href: string; icon: ReactNode; danger
 const SETTINGS_ROOT = '/employer/settings';
 
 export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
+  // Personal sits FIRST and above Company: it is the only page here every role can
+  // use, and Settings itself is otherwise owner-shaped.
+  { label: COPY.employer.settings.personal, href: `${SETTINGS_ROOT}/personal`, icon: <User size={14} /> },
   { label: COPY.employer.settings.company, href: SETTINGS_ROOT, icon: <Building2 size={14} /> },
   { label: COPY.employer.settings.team, href: `${SETTINGS_ROOT}/team`, icon: <Users size={14} /> },
   { label: COPY.employer.settings.roles, href: `${SETTINGS_ROOT}/roles`, icon: <Shield size={14} /> },

@@ -5,6 +5,19 @@
 
 export type ScoreTier = 'strong' | 'good' | 'partial' | 'weak' | 'poor';
 
+/**
+ * The "never contact this person again" flag. Lives on the CONTACT, so it follows
+ * the candidate across every posting they appear on at this company.
+ */
+export interface DoNotContact {
+  flag: boolean;
+  setAt: string | null;
+  setBy: string | null;
+  /** Snapshot of who set it — still correct after that person leaves. */
+  setByName: string | null;
+  reason: string | null;
+}
+
 export interface ApplicantScore {
   id: string;
   score: number;
@@ -212,6 +225,8 @@ export interface Applicant {
     email: string;
     fullName: string;
     phone: string | null;
+    /** Always present from the backend; optional here so older fixtures type-check. */
+    doNotContact?: DoNotContact;
     /** Parsed-profile enrichment (7A). Optional: the apply flow only fills email/phone
      *  today, so these are usually null/absent until the backend wires the resume parser
      *  in. github/portfolio aren't extracted yet — declared here so the UI lights up
@@ -307,4 +322,37 @@ export interface SavedView {
   filters: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Interview feedback summary (Sprint 5) ──────────────────────────────────
+// The panel's verdicts on one candidate, aggregated. Recommendations use the
+// backend's four-point scale — there is no neutral option, by design.
+
+export type InterviewRecommendation = 'strong_yes' | 'yes' | 'no' | 'strong_no';
+export type OverallSignal = 'strong_hire' | 'hire' | 'mixed' | 'no_hire';
+
+export interface FeedbackEntry {
+  interviewId: string;
+  interviewerName: string;
+  interviewerUserId: string | null;
+  interviewerAvatarUrl: string | null;
+  /** Null while this interviewer still owes their feedback. */
+  recommendation: InterviewRecommendation | null;
+  notePreview: string | null;
+  feedbackText: string | null;
+  completedAt: string | null;
+  status: string;
+}
+
+export interface InterviewFeedbackSummary {
+  totalInterviews: number;
+  completedInterviews: number;
+  recommendations: Partial<Record<InterviewRecommendation, number>>;
+  /** Null when nobody has submitted yet. */
+  overallSignal: OverallSignal | null;
+  /** Always null today — the scale is the recommendation, not a number. */
+  averageScore: number | null;
+  /** True when the VIEWER owes feedback; feedbackSummaries is then empty. */
+  viewerOwesFeedback: boolean;
+  feedbackSummaries: FeedbackEntry[];
 }

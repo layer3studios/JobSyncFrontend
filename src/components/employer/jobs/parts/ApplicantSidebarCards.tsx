@@ -21,6 +21,7 @@ import ApplicantNotesCard from '../ApplicantNotesCard';
 import InterviewSection from '../InterviewSection';
 import CandidateTimeline from '../CandidateTimeline';
 import AssignmentReviewPanel from './AssignmentReviewPanel';
+import FeedbackSummaryCard from './FeedbackSummaryCard';
 
 export default function ApplicantSidebarCards({
   detail, stages, reasons, canEditTags, currentEmployerUserId, reviewPanel, load,
@@ -62,6 +63,10 @@ export default function ApplicantSidebarCards({
         />
       )}
       {reviewPanel}
+      {/* Above the interviews themselves: the aggregate is what you read first,
+          the individual interviews are what you read when it surprises you.
+          Renders nothing when this candidate has no interviews. */}
+      <FeedbackSummaryCard applicationId={detail.application.id} />
       <InterviewSection
         applicationId={detail.application.id}
         candidateName={candidateName}

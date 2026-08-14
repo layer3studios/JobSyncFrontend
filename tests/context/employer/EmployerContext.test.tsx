@@ -5,7 +5,16 @@ import type { EmployerUser } from '@/context/employer/employer-context-types';
 
 vi.mock('@react-oauth/google', () => ({ googleLogout: vi.fn() }));
 
-const EMPLOYER: EmployerUser = { id: 'e1', email: 'hr@x.io', name: 'HR', picture: null, companyId: 'c1' };
+const NOTIFICATIONS = {
+  newApplication: true, stageChange: true, noteMention: true, interviewScheduled: true,
+  interviewReminder: true, feedbackSubmitted: true, candidateHired: true, applicationDeadline: true,
+};
+
+const EMPLOYER: EmployerUser = {
+  id: 'e1', email: 'hr@x.io', name: 'HR', picture: null, companyId: 'c1',
+  avatarUrl: null, timezone: 'Asia/Kolkata', jobTitle: null,
+  notificationPreferences: NOTIFICATIONS,
+};
 
 function Probe() {
   const { employerUser } = useEmployer();
