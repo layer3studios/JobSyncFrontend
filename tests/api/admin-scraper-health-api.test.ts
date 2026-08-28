@@ -20,19 +20,19 @@ describe('admin-scraper-health-api', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('fetchScraperHealth unwraps data and sends the admin cookie', async () => {
-    const fetchMock = vi.fn(async () => res(200, { data: OVERVIEW }));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => res(200, { data: OVERVIEW }));
     vi.stubGlobal('fetch', fetchMock);
 
     const out = await fetchScraperHealth();
     expect(out.sites[0].siteName).toBe('ashby');
     expect(out.corpus.pctCleaned).toBe(90);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('/api/admin/scraper-health');
     expect(init?.credentials).toBe('include');
   });
 
   it('fetchScrapeRuns sends the limit, and the site only when given', async () => {
-    const fetchMock = vi.fn(async () => res(200, { data: { runs: [] } }));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => res(200, { data: { runs: [] } }));
     vi.stubGlobal('fetch', fetchMock);
 
     await fetchScrapeRuns('ashby', 5);
@@ -50,12 +50,12 @@ describe('admin-scraper-health-api', () => {
   });
 
   it('triggerScrapeNow POSTs and passes already_running through as data, not an error', async () => {
-    const fetchMock = vi.fn(async () => res(200, { data: { started: false, reason: 'already_running' } }));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => res(200, { data: { started: false, reason: 'already_running' } }));
     vi.stubGlobal('fetch', fetchMock);
 
     const out = await triggerScrapeNow();
     expect(out).toEqual({ started: false, reason: 'already_running' });
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('/api/admin/scraper-health/run-now');
     expect(init?.method).toBe('POST');
     expect(init?.credentials).toBe('include');
