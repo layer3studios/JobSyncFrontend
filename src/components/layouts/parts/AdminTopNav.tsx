@@ -114,6 +114,7 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
           {renderNavLink('/admin/scraper-health', 'Scraper')}
           {renderNavLink('/admin/queues', 'Queues')}
           {renderNavLink('/admin/companies', 'Companies')}
+          {renderNavLink('/admin/jobs-browser', 'Jobs')}
           {renderNavLink('/admin/flags', 'Flags')}
           {renderNavLink('/admin/audit-log', 'Audit')}
           {renderNavLink(ADMIN_ROUTES.DPDP, 'DPDP')}
