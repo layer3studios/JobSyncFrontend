@@ -117,6 +117,8 @@ export default function AdminTopNav({ isCompact, currentUser, onLogout }: Props)
           {renderNavLink('/admin/jobs-browser', 'Jobs')}
           {renderNavLink('/admin/flags', 'Flags')}
           {renderNavLink('/admin/audit-log', 'Audit')}
+          {renderNavLink('/admin/email-log', 'Email')}
+          {renderNavLink('/admin/alerts', 'Alerts')}
           {renderNavLink(ADMIN_ROUTES.DPDP, 'DPDP')}
           {/* Literal path: ADMIN_ROUTES lives in routes.ts, outside this chunk's allowlist. */}
           {renderNavLink('/admin/team', 'Team')}
